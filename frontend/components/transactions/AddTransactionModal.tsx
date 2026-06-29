@@ -138,7 +138,7 @@ export default function AddTransactionModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-lg mx-4 animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-lg mx-4 animate-in fade-in duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h2 className="text-lg font-semibold text-text-primary">
