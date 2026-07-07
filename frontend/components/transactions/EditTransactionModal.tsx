@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,9 +10,9 @@ import { api, ApiError } from "../../lib/api";
 import { useAccounts } from "../../hooks/useAccounts";
 import { CATEGORIES, ACCOUNT_TYPES } from "../../lib/constants";
 import type { AccountType } from "../../lib/constants";
+import { Transaction } from "../../types/transaction";
 
-// --- Zod schema ---
-const addTransactionSchema = z.object({
+const editTransactionSchema = z.object({
   amount: z
     .string()
     .min(1, "Amount is required")
@@ -26,22 +26,22 @@ const addTransactionSchema = z.object({
   txn_date: z.string().min(1, "Date is required"),
 });
 
-type AddTransactionForm = z.infer<typeof addTransactionSchema>;
+type EditTransactionForm = z.infer<typeof editTransactionSchema>;
 
-interface AddTransactionModalProps {
+interface EditTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
+  transaction: Transaction | null;
 }
 
-export default function AddTransactionModal({
+export default function EditTransactionModal({
   isOpen,
   onClose,
-}: AddTransactionModalProps) {
+  transaction,
+}: EditTransactionModalProps) {
   const queryClient = useQueryClient();
   const { data: accounts = [] } = useAccounts();
   const amountRef = useRef<HTMLInputElement | null>(null);
-
-  const today = new Date().toISOString().split("T")[0];
 
   const {
     register,
@@ -51,49 +51,39 @@ export default function AddTransactionModal({
     reset,
     formState: { errors, isSubmitting },
     setError,
-  } = useForm<AddTransactionForm>({
-    resolver: zodResolver(addTransactionSchema),
+  } = useForm<EditTransactionForm>({
+    resolver: zodResolver(editTransactionSchema),
     defaultValues: {
       amount: "",
       type: "expense",
       account_id: "",
       category: "",
       description: "",
-      txn_date: today,
+      txn_date: "",
     },
   });
 
   const selectedType = watch("type");
-  const watchedAmount = watch("amount");
 
-  const [isSplitEnabled, setIsSplitEnabled] = useState(false);
-  const [splitCount, setSplitCount] = useState(2);
-
-  // Live split shares calculations
-  const parsedAmount = parseFloat(watchedAmount) || 0;
-  const myShare = splitCount > 0 ? (parsedAmount / splitCount).toFixed(2) : "0.00";
-  const roommateShare = splitCount > 0 ? (parsedAmount - parseFloat(myShare)).toFixed(2) : "0.00";
-
-  // Auto-focus amount field when modal opens
+  // Populate form when transaction changes
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && transaction) {
       reset({
-        amount: "",
-        type: "expense",
-        account_id: "",
-        category: "",
-        description: "",
-        txn_date: today,
+        amount: (transaction.amount_cents / 100).toFixed(2),
+        type: transaction.type,
+        account_id: transaction.account_id,
+        category: transaction.category,
+        description: transaction.description || "",
+        txn_date: transaction.txn_date,
       });
-      setIsSplitEnabled(false);
-      setSplitCount(2);
-      // Small delay to let the DOM render
+
+      // Small delay to let the DOM render before focusing
       const timer = setTimeout(() => {
         amountRef.current?.focus();
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [isOpen, reset, today]);
+  }, [isOpen, transaction, reset]);
 
   // Close on Escape key
   useEffect(() => {
@@ -104,46 +94,21 @@ export default function AddTransactionModal({
     return () => document.removeEventListener("keydown", handleEsc);
   }, [isOpen, onClose]);
 
-  const onSubmit = async (data: AddTransactionForm) => {
+  const onSubmit = async (data: EditTransactionForm) => {
+    if (!transaction) return;
+
     try {
       // Convert rupees to cents (integer, never float)
-      const totalAmountCents = Math.round(Number(data.amount) * 100);
+      const amountCents = Math.round(Number(data.amount) * 100);
 
-      if (data.type === "expense" && isSplitEnabled && splitCount > 1) {
-        // Calculate shares in cents
-        const myShareCents = Math.round((Number(data.amount) / splitCount) * 100);
-        const roommateShareCents = totalAmountCents - myShareCents;
-
-        // 1. Create Transaction 1 (Your Share)
-        await api.transactions.create({
-          account_id: data.account_id,
-          type: "expense",
-          amount_cents: myShareCents,
-          category: data.category as typeof CATEGORIES[number],
-          description: data.description ? `${data.description.trim()} (My Share)` : "My Share",
-          txn_date: data.txn_date,
-        });
-
-        // 2. Create Transaction 2 (Roommate Share)
-        await api.transactions.create({
-          account_id: data.account_id,
-          type: "expense",
-          amount_cents: roommateShareCents,
-          category: "Owed to Me" as typeof CATEGORIES[number],
-          description: data.description ? `${data.description.trim()} (Roommate Share)` : "Roommate Share",
-          txn_date: data.txn_date,
-        });
-      } else {
-        // Standard single transaction logging
-        await api.transactions.create({
-          account_id: data.account_id,
-          type: data.type,
-          amount_cents: totalAmountCents,
-          category: data.category as typeof CATEGORIES[number],
-          description: data.description?.trim() || undefined,
-          txn_date: data.txn_date,
-        });
-      }
+      await api.transactions.update(transaction.id, {
+        account_id: data.account_id,
+        type: data.type,
+        amount_cents: amountCents,
+        category: data.category as typeof CATEGORIES[number],
+        description: data.description?.trim() || "",
+        txn_date: data.txn_date,
+      });
 
       // Refresh data across the app
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
@@ -157,12 +122,12 @@ export default function AddTransactionModal({
           ? err.message
           : err instanceof Error
           ? err.message
-          : "Failed to create transaction.";
+          : "Failed to update transaction.";
       setError("root", { message });
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !transaction) return null;
 
   // Register amount with ref forwarding for auto-focus
   const { ref: amountRegRef, ...amountRegRest } = register("amount");
@@ -180,7 +145,7 @@ export default function AddTransactionModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h2 className="text-lg font-semibold text-text-primary">
-            Add Transaction
+            Edit Transaction
           </h2>
           <button
             onClick={onClose}
@@ -233,7 +198,7 @@ export default function AddTransactionModal({
           {/* Amount */}
           <div>
             <label
-              htmlFor="txn-amount"
+              htmlFor="edit-txn-amount"
               className="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2"
             >
               Amount (₹)
@@ -243,7 +208,7 @@ export default function AddTransactionModal({
                 ₹
               </span>
               <input
-                id="txn-amount"
+                id="edit-txn-amount"
                 type="number"
                 step="0.01"
                 min="0.01"
@@ -261,56 +226,16 @@ export default function AddTransactionModal({
             )}
           </div>
 
-          {/* Split Bill UI Toggle */}
-          {selectedType === "expense" && (
-            <div className="bg-surface-raised/40 p-3.5 rounded-xl border border-border/60 space-y-3 font-mono">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={isSplitEnabled}
-                  onChange={(e) => setIsSplitEnabled(e.target.checked)}
-                  className="rounded border-border text-accent focus:ring-accent bg-background"
-                />
-                <span className="text-[10px] font-semibold text-text-primary uppercase tracking-wider font-sans">
-                  Split this bill?
-                </span>
-              </label>
-
-              {isSplitEnabled && (
-                <div className="grid grid-cols-2 gap-4 items-center animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div>
-                    <label htmlFor="split-count" className="block text-[9px] font-medium text-text-muted uppercase tracking-wider mb-1 font-sans">
-                      Split Between
-                    </label>
-                    <input
-                      id="split-count"
-                      type="number"
-                      min="2"
-                      max="10"
-                      value={splitCount}
-                      onChange={(e) => setSplitCount(Math.max(2, parseInt(e.target.value) || 2))}
-                      className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-text-primary text-xs font-mono focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
-                    />
-                  </div>
-                  <div className="text-right text-[10px] text-text-secondary leading-normal">
-                    <div>Your Share: <span className="text-text-primary font-bold">₹{myShare}</span></div>
-                    <div>Owed to Me: <span className="text-accent font-bold">₹{roommateShare}</span></div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Account Dropdown */}
           <div>
             <label
-              htmlFor="txn-account"
+              htmlFor="edit-txn-account"
               className="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2"
             >
               Account
             </label>
             <select
-              id="txn-account"
+              id="edit-txn-account"
               {...register("account_id")}
               className="w-full px-3.5 py-2.5 bg-surface-raised border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent transition-all appearance-none cursor-pointer"
             >
@@ -333,13 +258,13 @@ export default function AddTransactionModal({
           {/* Category Dropdown */}
           <div>
             <label
-              htmlFor="txn-category"
+              htmlFor="edit-txn-category"
               className="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2"
             >
               Category
             </label>
             <select
-              id="txn-category"
+              id="edit-txn-category"
               {...register("category")}
               className="w-full px-3.5 py-2.5 bg-surface-raised border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent transition-all appearance-none cursor-pointer"
             >
@@ -362,14 +287,14 @@ export default function AddTransactionModal({
           {/* Description */}
           <div>
             <label
-              htmlFor="txn-description"
+              htmlFor="edit-txn-description"
               className="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2"
             >
               Description{" "}
               <span className="text-text-muted/50 normal-case">(optional)</span>
             </label>
             <input
-              id="txn-description"
+              id="edit-txn-description"
               type="text"
               placeholder="e.g. Lunch at restaurant"
               {...register("description")}
@@ -380,13 +305,13 @@ export default function AddTransactionModal({
           {/* Date Picker */}
           <div>
             <label
-              htmlFor="txn-date"
+              htmlFor="edit-txn-date"
               className="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2"
             >
               Date
             </label>
             <input
-              id="txn-date"
+              id="edit-txn-date"
               type="date"
               {...register("txn_date")}
               className="w-full px-3.5 py-2.5 bg-surface-raised border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent transition-all"
@@ -416,11 +341,7 @@ export default function AddTransactionModal({
                   : "bg-accent hover:bg-accent/90 text-text-primary shadow-accent/20"
               }`}
             >
-              {isSubmitting
-                ? "Saving..."
-                : selectedType === "income"
-                ? "Add Income"
-                : "Add Expense"}
+              {isSubmitting ? "Saving..." : "Save Changes"}
             </button>
           </div>
         </form>

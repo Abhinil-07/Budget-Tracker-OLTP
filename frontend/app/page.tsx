@@ -6,6 +6,7 @@ import { useFinanceStore } from "../stores/useFinanceStore";
 import { useAccounts } from "../hooks/useAccounts";
 import { useTransactions } from "../hooks/useTransactions";
 import { useBudget } from "../hooks/useBudget";
+import { useInvestments } from "../hooks/useInvestments";
 import PageWrapper from "../components/layout/PageWrapper";
 import AccountCard from "../components/accounts/AccountCard";
 import AddTransactionModal from "../components/transactions/AddTransactionModal";
@@ -104,12 +105,53 @@ export default function Dashboard() {
 
   const { data: incomeData } = useTransactions(incomeParams);
 
-  // Fetch Budget for the selected month
+  // Fetch all-time transactions for the "Owed to Me" category
+  const owedParams = useMemo(() => {
+    return {
+      category: "Owed to Me",
+      page_size: 1000,
+    };
+  }, []);
+
+  const { data: owedData } = useTransactions(owedParams);
+
   const {
     data: budget,
     isLoading: budgetLoading,
     error: budgetError,
   } = useBudget(selectedTimeframe || undefined);
+
+  // Fetch Investments for Net Worth calculation
+  const { data: investments = [] } = useInvestments();
+
+  // Calculate roommate outstanding balance
+  const totalOwedCents = useMemo(() => {
+    if (!owedData?.items) return 0;
+    return owedData.items.reduce((sum, item) => {
+      if (item.type === "expense") {
+        return sum + item.amount_cents; // We lended (roommate owes us)
+      } else {
+        return sum - item.amount_cents; // Roommate repaid us (reduces what they owe)
+      }
+    }, 0);
+  }, [owedData]);
+
+  // Calculate Net Worth dynamically
+  const netWorthCents = useMemo(() => {
+    let liquidCents = 0;
+    let debtCents = 0;
+    
+    accounts.forEach((acc) => {
+      if (acc.type === "credit_card") {
+        debtCents += acc.balance_cents;
+      } else {
+        liquidCents += acc.balance_cents;
+      }
+    });
+
+    const investmentCents = investments.reduce((sum, inv) => sum + inv.current_value_cents, 0);
+    return (liquidCents + investmentCents + totalOwedCents) - debtCents;
+  }, [accounts, investments, totalOwedCents]);
 
   const handleAccountClick = (accountId: string) => {
     if (selectedAccountId === accountId) {
@@ -140,6 +182,7 @@ export default function Dashboard() {
 
   // Budget details
   const totalBudgetCents = budget?.total_cents || 0;
+
   const mtdSpentCents = budget?.mtd_spent_cents || 0;
   const remainingCents = budget?.remaining_cents || 0;
   const percentageUsed = budget?.percentage_used || 0;
@@ -159,14 +202,23 @@ export default function Dashboard() {
 
       {/* Welcome Banner */}
       {user && (
-        <div className="mb-6 p-6 rounded-2xl bg-gradient-to-r from-surface-raised via-surface to-surface-raised border border-border/80 relative overflow-hidden select-none">
+        <div className="mb-6 p-6 rounded-2xl bg-gradient-to-r from-surface-raised via-surface to-surface-raised border border-border/80 relative overflow-hidden select-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="absolute top-0 right-0 w-48 h-48 bg-accent/5 rounded-full blur-3xl pointer-events-none" />
-          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
-            Hi, <span className="text-accent">{user.email?.split("@")[0] || "Command User"}</span> 👋
-          </h2>
-          <p className="text-xs sm:text-sm text-text-secondary mt-1.5 leading-relaxed max-w-xl">
-            Welcome to <span className="text-white font-semibold">Finance Command</span>. Take control of your money, analyze budget thresholds, and build your net worth dynamically.
-          </p>
+          <div className="space-y-1.5">
+            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
+              Hi, <span className="text-accent">{user.email?.split("@")[0] || "Command User"}</span> 👋
+            </h2>
+            <p className="text-xs sm:text-sm text-text-secondary leading-relaxed max-w-xl">
+              Welcome to <span className="text-white font-semibold">Finance Command</span>. Take control of your money, analyze budget thresholds, and build your net worth dynamically.
+            </p>
+          </div>
+          {/* Net Worth display block */}
+          <div className="bg-[#07090E]/60 border border-border/60 px-5 py-4 rounded-xl shrink-0 flex flex-col sm:items-end gap-1 font-mono">
+            <span className="text-[10px] text-text-muted uppercase font-sans font-bold tracking-wider">Estimated Net Worth</span>
+            <span className={`text-xl font-extrabold ${netWorthCents >= 0 ? "text-success" : "text-danger"}`}>
+              {formatCurrency(netWorthCents, "INR")}
+            </span>
+          </div>
         </div>
       )}
 
@@ -302,9 +354,9 @@ export default function Dashboard() {
       </div>
 
       {/* Statistics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {budgetLoading ? (
-          [1, 2, 3].map((n) => (
+          [1, 2, 3, 4].map((n) => (
             <div key={n} className="bg-surface p-6 rounded-xl border border-border animate-pulse space-y-3">
               <div className="h-3 bg-surface-raised w-1/3 rounded" />
               <div className="h-6 bg-surface-raised w-1/2 rounded" />
@@ -336,6 +388,14 @@ export default function Dashboard() {
                 {formatCurrency(mtdIncomeCents, "INR")}
               </div>
             </div>
+            <div className="bg-surface p-6 rounded-xl border border-border">
+              <div className="text-xs text-text-muted uppercase tracking-wider mb-2">
+                Owed to Me
+              </div>
+              <div className="font-mono text-xl font-bold text-accent">
+                {formatCurrency(totalOwedCents, "INR")}
+              </div>
+            </div>
           </>
         )}
       </div>
@@ -351,7 +411,15 @@ export default function Dashboard() {
               </p>
             )}
           </div>
-          <span className="text-xs text-text-secondary font-mono">Showing last 10</span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-text-secondary font-mono hidden sm:inline">Showing last 10</span>
+            <Link
+              href="/transactions"
+              className="text-xs font-semibold text-accent hover:text-accent/80 transition-colors"
+            >
+              View All & Filter &rarr;
+            </Link>
+          </div>
         </div>
 
         {txnsLoading ? (

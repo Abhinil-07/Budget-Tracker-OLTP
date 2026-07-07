@@ -12,6 +12,8 @@ export const CATEGORIES = [
   "Freelance",
   "Investment",
   "Transfer",
+  "Owed to Me",
+  "Grocery",
   "Other",
 ] as const;
 

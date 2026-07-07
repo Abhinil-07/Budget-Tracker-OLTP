@@ -7,6 +7,7 @@ from routers.transactions import router as transactions_router
 from routers.budget import router as budget_router
 from routers.sync import router as sync_router
 from routers.auth import router as auth_router
+from routers.investments import router as investments_router
 
 app = FastAPI(
     title="Personal Finance Command Center API",
@@ -31,6 +32,7 @@ app.include_router(transactions_router, prefix="/api")
 app.include_router(budget_router, prefix="/api")
 app.include_router(sync_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
+app.include_router(investments_router, prefix="/api")
 
 @app.get("/health")
 def health_check():

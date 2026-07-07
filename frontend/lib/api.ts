@@ -2,6 +2,7 @@ import { Account, CreateAccountDto, UpdateAccountDto } from "../types/account";
 import { Transaction, CreateTransactionDto, UpdateTransactionDto, TransactionQuery, PaginatedTransactions } from "../types/transaction";
 import { BudgetAggregatedDto, UpdateBudgetDto } from "../types/budget";
 import { SyncLog } from "../types/sync";
+import { Investment, CreateInvestmentDto, UpdateInvestmentDto, UpdateInvestmentValueDto } from "../types/investment";
 
 import { getInMemoryToken } from "../stores/useAuthStore";
 
@@ -142,5 +143,27 @@ export const api = {
     trigger: () => request<{ message: string }>("/api/sync/trigger", {
       method: "POST",
     }),
+  },
+  investments: {
+    list: () => request<Investment[]>("/api/investments"),
+    create: (body: CreateInvestmentDto) =>
+      request<Investment>("/api/investments", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    update: (id: string, body: UpdateInvestmentDto) =>
+      request<Investment>(`/api/investments/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+    updateValue: (id: string, body: UpdateInvestmentValueDto) =>
+      request<Investment>(`/api/investments/${id}/value`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      }),
+    delete: (id: string) =>
+      request<{ success: boolean; message: string; id: string }>(`/api/investments/${id}`, {
+        method: "DELETE",
+      }),
   },
 };

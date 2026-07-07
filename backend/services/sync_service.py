@@ -65,6 +65,8 @@ class SyncService:
                 "id, account_id, type, amount_cents, category, description, txn_date, created_at"
             )
             .eq("user_id", user_id)
+            .neq("category", "Owed to Me")
+            .eq("type", "expense")
             .gte("txn_date", week_ago)
             .order("txn_date", desc=False)
             .execute()

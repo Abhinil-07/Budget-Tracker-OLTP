@@ -58,12 +58,13 @@ class BudgetService:
         transactions = txn_response.data or []
 
         # 4. Calculate overall MTD spend and MTD spend by category
-        mtd_spent_cents = sum(t["amount_cents"] for t in transactions)
+        mtd_spent_cents = sum(t["amount_cents"] for t in transactions if t["category"] != "Owed to Me")
         
         category_spend_map: Dict[str, int] = {}
         for t in transactions:
             cat = t["category"]
-            category_spend_map[cat] = category_spend_map.get(cat, 0) + t["amount_cents"]
+            if cat != "Owed to Me":
+                category_spend_map[cat] = category_spend_map.get(cat, 0) + t["amount_cents"]
 
         # 5. Build category breakdown if category limits are specified
         category_breakdown: List[CategorySpend] = []

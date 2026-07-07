@@ -6,6 +6,7 @@ import { useAccounts } from "../../hooks/useAccounts";
 import { useTransactions } from "../../hooks/useTransactions";
 import PageWrapper from "../../components/layout/PageWrapper";
 import AddTransactionModal from "../../components/transactions/AddTransactionModal";
+import EditTransactionModal from "../../components/transactions/EditTransactionModal";
 import { formatCurrency } from "../../lib/formatCurrency";
 import { formatDate } from "../../lib/formatDate";
 import { CATEGORIES } from "../../lib/constants";
@@ -33,6 +34,7 @@ import {
   ArrowUpDown,
   RefreshCw,
   Plus,
+  Pencil,
 } from "lucide-react";
 import { Transaction } from "../../types/transaction";
 
@@ -61,6 +63,7 @@ export default function TransactionsPage() {
 
   // Confirm delete dialog state
   const [deletingTxn, setDeletingTxn] = useState<Transaction | null>(null);
+  const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -362,6 +365,7 @@ export default function TransactionsPage() {
   return (
     <PageWrapper title="Transactions" onAddTransactionClick={() => setShowAddModal(true)}>
       <AddTransactionModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
+      <EditTransactionModal isOpen={!!editingTxn} onClose={() => setEditingTxn(null)} transaction={editingTxn} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 min-h-[calc(100vh-12rem)]">
         {/* LEFT PANEL: 1/3 Width Accounts List */}
@@ -734,8 +738,15 @@ export default function TransactionsPage() {
                               {txn.description || "Unlabeled Transaction"}
                             </span>
                             
-                            {/* Delete Action on hover */}
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-155 shrink-0 absolute right-6 top-1/2 -translate-y-1/2">
+                            {/* Actions on hover */}
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-155 shrink-0 absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                              <button
+                                onClick={() => setEditingTxn(txn)}
+                                className="p-1.5 rounded text-text-muted hover:text-accent hover:bg-accent/10 transition-colors"
+                                title="Edit transaction"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
                               <button
                                 onClick={() => handleDeleteClick(txn)}
                                 className="p-1.5 rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-colors"

@@ -34,14 +34,18 @@ export default function Header({
         {/* Sync Status Badge */}
         <SyncStatusBadge />
 
-        {/* Add Transaction Action */}
-        <button
-          onClick={onAddTransactionClick}
-          className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-accent hover:bg-accent/90 text-text-primary rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-[0.98]"
-        >
-          <Plus className="h-4.5 w-4.5" />
-          <span className="hidden sm:inline">Add Transaction</span>
-        </button>
+        {/* Add Action (Conditional based on handler presence) */}
+        {onAddTransactionClick && (
+          <button
+            onClick={onAddTransactionClick}
+            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-accent hover:bg-accent/90 text-text-primary rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Plus className="h-4.5 w-4.5" />
+            <span className="hidden sm:inline">
+              {title === "Investments" ? "Add Investment" : "Add Transaction"}
+            </span>
+          </button>
+        )}
       </div>
     </header>
   );
