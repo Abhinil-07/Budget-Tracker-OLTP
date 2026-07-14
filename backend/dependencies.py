@@ -12,7 +12,6 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
     supabase: AsyncClient = Depends(get_supabase)
 ) -> User:
-    print(f"DEBUG: get_current_user credentials: {credentials} (type: {type(credentials)})")
     if not credentials or not credentials.credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -20,7 +19,6 @@ async def get_current_user(
         )
     
     token = credentials.credentials
-    print(f"DEBUG: get_current_user token: {token[:15]}... (type: {type(token)})")
     if isinstance(token, bytes):
         token = token.decode("utf-8")
     token = token.strip()
