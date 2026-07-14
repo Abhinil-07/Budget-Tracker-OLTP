@@ -1,21 +1,14 @@
 "use client";
 
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { api } from "../../lib/api";
+import { useSyncStatus } from "../../hooks/useSyncStatus";
 
 interface SyncStatusBadgeProps {
   className?: string;
 }
 
 export default function SyncStatusBadge({ className = "" }: SyncStatusBadgeProps) {
-  const { data: syncData } = useQuery({
-    queryKey: ["sync-status"],
-    queryFn: () => api.sync.status(),
-    refetchInterval: 60 * 1000, // Poll every 60 seconds
-  });
-
-  const lastSync = syncData?.data;
+  const { data: lastSync } = useSyncStatus();
 
   let dotColor = "bg-text-muted";
   let label = "No Sync";
