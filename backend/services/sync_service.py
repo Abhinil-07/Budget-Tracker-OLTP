@@ -54,15 +54,30 @@ class SyncService:
 
     async def _export_csv(self, user_id: str) -> tuple[str, int]:
         """
-        Query last 7 days of transactions from Supabase for this user.
-        Returns (csv_string, row_count).
+        Query last 7 days of transactions from Supabase for this user and format them
+        specifically for Databricks. Returns (csv_string, row_count).
         """
+        # Get user's name from Supabase auth
+        name = "Abhinil"
+        try:
+            user_info = await self.db.auth.admin.get_user_by_id(user_id)
+            if user_info and user_info.user:
+                email = user_info.user.email
+                metadata = user_info.user.user_metadata or {}
+                name = metadata.get("name") or metadata.get("full_name")
+                if not name and email:
+                    import re
+                    raw_name = email.split("@")[0]
+                    name = re.sub(r'\d+', '', raw_name).capitalize()
+        except Exception as e:
+            logger.warning(f"Failed to fetch user name, defaulting to Abhinil: {e}")
+
         week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).date().isoformat()
 
         response = (
             await self.db.table("transactions")
             .select(
-                "id, account_id, type, amount_cents, category, description, txn_date, created_at"
+                "id, account_id, type, amount_cents, category, description, txn_date, created_at, accounts(name)"
             )
             .eq("user_id", user_id)
             .neq("category", "Owed to Me")
@@ -76,20 +91,43 @@ class SyncService:
         if not rows:
             return "", 0
 
+        mapped_rows = []
+        for row in rows:
+            # Format Date: YYYY-MM-DD -> DD-MM-YYYY
+            try:
+                date_obj = datetime.strptime(row["txn_date"], "%Y-%m-%d")
+                formatted_date = date_obj.strftime("%d-%m-%Y")
+            except Exception:
+                formatted_date = row["txn_date"]
+
+            # Format Amount: cents to rupees
+            amount_cents = row["amount_cents"]
+            amount_spent = int(amount_cents / 100) if amount_cents % 100 == 0 else round(amount_cents / 100, 2)
+
+            # Get Account (Payment Method) name
+            payment_method = row.get("accounts", {}).get("name") or "Unknown"
+
+            mapped_rows.append({
+                "Name": name,
+                "Item": row.get("description") or row.get("category") or "Expense",
+                "Amount Spent": amount_spent,
+                "Payment Method": payment_method,
+                "Date": formatted_date,
+                "Category": row.get("category"),
+            })
+
         output = io.StringIO()
         fieldnames = [
-            "id",
-            "account_id",
-            "type",
-            "amount_cents",
-            "category",
-            "description",
-            "txn_date",
-            "created_at",
+            "Name",
+            "Item",
+            "Amount Spent",
+            "Payment Method",
+            "Date",
+            "Category",
         ]
         writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows(mapped_rows)
 
         return output.getvalue(), len(rows)
 
