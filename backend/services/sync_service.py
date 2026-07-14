@@ -134,9 +134,19 @@ class SyncService:
     async def _upload_to_volume(self, csv_content: str) -> None:
         """
         Upload CSV to a Databricks Unity Catalog Volume using the Files API.
-        PUT /api/2.0/fs/files<volume-path>
+        PUT /api/2.0/fs/files<volume-path> with a dynamic UTC timestamp suffix.
         """
-        url = f"{self.databricks_host}/api/2.0/fs/files{settings.databricks_volume_path}"
+        import os
+        base_path = settings.databricks_volume_path
+        dir_name, file_name = os.path.split(base_path)
+        base_name, ext = os.path.splitext(file_name)
+        
+        # Format timestamp: e.g., 20260714_152336 (UTC)
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        new_file_name = f"{base_name}_{timestamp}{ext}"
+        new_path = os.path.join(dir_name, new_file_name).replace("\\", "/")
+
+        url = f"{self.databricks_host}/api/2.0/fs/files{new_path}"
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.put(
@@ -146,7 +156,7 @@ class SyncService:
             )
             response.raise_for_status()
 
-        logger.info(f"Volume upload successful → {settings.databricks_volume_path}")
+        logger.info(f"Volume upload successful → {new_path}")
 
     async def create_sync_log(self, user_id: str, trigger_type: str) -> str:
         """Create initial record in sync_logs."""
