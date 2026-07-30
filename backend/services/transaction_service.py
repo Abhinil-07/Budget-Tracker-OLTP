@@ -438,7 +438,7 @@ class TransactionService:
 
         # 4. Description Extraction (Enhanced for HDFC InstaAlerts & UPI VPA)
         vpa_bracket_match = re.search(r'towards\s+vpa\s+[^\(\s]+\s*\(([^)]+)\)', text, re.IGNORECASE)
-        vpa_plain_match = re.search(r'towards\s+vpa\s+([a-[#0-9._\-]+@[a-zA-Z0-9._\-]+)', text, re.IGNORECASE)
+        vpa_plain_match = re.search(r'towards\s+vpa\s+([a-zA-Z0-9._\-]+@[a-zA-Z0-9._\-]+)', text, re.IGNORECASE)
         at_merchant_match = re.search(r'\b(?:at|to)\s+([A-Za-z0-9\s&.\-]+?)(?:\s+on|\s+ref|\s+via|\s+val|\.|\$|$)', text, re.IGNORECASE)
 
         if vpa_bracket_match and vpa_bracket_match.group(1):
