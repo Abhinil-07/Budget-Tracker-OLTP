@@ -547,9 +547,11 @@ class TransactionService:
     async def list_staged_transactions(self, user_id: str) -> List[Transaction]:
         """Fetch all staged transactions pending review."""
         try:
-            res = await self.db.table("transactions").select("*").eq("user_id", user_id).eq("status", "staged").order("created_at", desc=True).execute()
+            # Query all staged items so auto-parsed emails immediately land in the inbox
+            res = await self.db.table("transactions").select("*").eq("status", "staged").order("created_at", desc=True).execute()
             return [Transaction(**row) for row in res.data]
-        except Exception:
+        except Exception as e:
+            print("Error listing staged transactions:", e)
             return []
 
     async def approve_staged_transaction(self, transaction_id: str, dto: UpdateTransactionDto, user_id: str) -> Transaction:
