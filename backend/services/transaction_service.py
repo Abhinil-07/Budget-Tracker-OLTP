@@ -482,18 +482,34 @@ class TransactionService:
         user_id = None
 
         if target_account_id:
-            acc_resp = await self.db.table("accounts").select("*").eq("id", str(target_account_id)).execute()
-            if acc_resp.data:
-                account = acc_resp.data[0]
-                user_id = account["user_id"]
-                account_id = account["id"]
+            try:
+                acc_resp = await self.db.table("accounts").select("*").eq("id", str(target_account_id)).execute()
+                if acc_resp.data:
+                    account = acc_resp.data[0]
+                    user_id = account["user_id"]
+                    account_id = account["id"]
+            except Exception as e:
+                print("Error finding target account:", e)
 
         if not account_id:
-            acc_resp = await self.db.table("accounts").select("*").limit(1).execute()
-            if acc_resp.data:
-                account = acc_resp.data[0]
-                user_id = account["user_id"]
-                account_id = account["id"]
+            try:
+                acc_resp = await self.db.table("accounts").select("id, user_id").limit(1).execute()
+                if acc_resp.data:
+                    account = acc_resp.data[0]
+                    user_id = account["user_id"]
+                    account_id = account["id"]
+            except Exception as e:
+                print("Error finding default account:", e)
+
+        # Fallback to transactions table to find existing user_id/account_id if accounts query returns empty
+        if not account_id:
+            try:
+                txn_resp = await self.db.table("transactions").select("account_id, user_id").limit(1).execute()
+                if txn_resp.data:
+                    user_id = txn_resp.data[0]["user_id"]
+                    account_id = txn_resp.data[0]["account_id"]
+            except Exception as e:
+                print("Error finding transaction fallback account:", e)
 
         if user_id and account_id:
             # 2. Insert as status="staged" (does NOT update account balance)
@@ -513,7 +529,7 @@ class TransactionService:
                 if res.data:
                     parsed["staged_id"] = res.data[0]["id"]
             except Exception as e:
-                print("Warning: Staging insert error (schema status column might be missing):", e)
+                print("Staging insert error:", e)
 
         return parsed
 
