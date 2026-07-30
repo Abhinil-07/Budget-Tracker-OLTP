@@ -29,6 +29,17 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
     setMounted(true);
   }, []);
 
+  // Auto-preselect default account for staged items if not selected yet
+  useEffect(() => {
+    if (accounts.length > 0) {
+      stagedTransactions.forEach((item) => {
+        if (!item.account_id) {
+          updateStagedTransaction(item.id, { account_id: accounts[0].id });
+        }
+      });
+    }
+  }, [accounts, stagedTransactions, updateStagedTransaction]);
+
   if (!isOpen || !mounted) return null;
 
   const handleApprove = async (item: StagedTransactionItem) => {

@@ -23,6 +23,8 @@ const STORAGE_KEY = "staged_transactions_queue";
 export function useStagedTransactions() {
   const queryClient = useQueryClient();
   const [localStaged, setLocalStaged] = useState<StagedTransactionItem[]>([]);
+  // Local overrides for inline edits on remote/local staged items
+  const [edits, setEdits] = useState<Record<string, Partial<StagedTransactionItem>>>({});
 
   // 1. Fetch remote staged transactions from Supabase DB via React Query
   const { data: remoteStaged = [], refetch } = useQuery({
@@ -71,7 +73,7 @@ export function useStagedTransactions() {
     window.dispatchEvent(new Event("staged_queue_updated"));
   };
 
-  // Merge remote DB items + local items cleanly
+  // Merge remote DB items + local items cleanly and apply inline edits
   const allStaged = useMemo(() => {
     const formattedRemote: StagedTransactionItem[] = remoteStaged.map((t: Transaction) => ({
       id: t.id,
@@ -88,8 +90,17 @@ export function useStagedTransactions() {
     const remoteIds = new Set(formattedRemote.map((r) => r.id));
     const uniqueLocal = localStaged.filter((l) => !remoteIds.has(l.id));
 
-    return [...formattedRemote, ...uniqueLocal];
-  }, [remoteStaged, localStaged]);
+    const merged = [...formattedRemote, ...uniqueLocal];
+
+    // Apply inline user edits (account selection, category, etc.)
+    return merged.map((item) => {
+      const itemEdit = edits[item.id];
+      if (itemEdit) {
+        return { ...item, ...itemEdit };
+      }
+      return item;
+    });
+  }, [remoteStaged, localStaged, edits]);
 
   const addStagedTransaction = (item: Omit<StagedTransactionItem, "id" | "created_at">) => {
     const newItem: StagedTransactionItem = {
@@ -103,11 +114,24 @@ export function useStagedTransactions() {
   };
 
   const updateStagedTransaction = (id: string, updates: Partial<StagedTransactionItem>) => {
-    const updated = localStaged.map((item) => (item.id === id ? { ...item, ...updates } : item));
-    notifyChange(updated);
+    setEdits((prev) => ({
+      ...prev,
+      [id]: { ...(prev[id] || {}), ...updates },
+    }));
+
+    setLocalStaged((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
+    );
   };
 
   const removeStagedTransaction = async (id: string) => {
+    // Clear edits for this item
+    setEdits((prev) => {
+      const copy = { ...prev };
+      delete copy[id];
+      return copy;
+    });
+
     // 1. Instant optimistic state update
     setLocalStaged((prev) => prev.filter((item) => item.id !== id));
     queryClient.setQueryData(["staged-transactions"], (oldData: Transaction[] | undefined) => {
@@ -138,7 +162,7 @@ export function useStagedTransactions() {
   };
 
   const clearAllStaged = async () => {
-    // Delete all remote items
+    setEdits({});
     for (const item of allStaged) {
       if (!item.id.startsWith("staged_")) {
         try {
