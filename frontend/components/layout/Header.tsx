@@ -1,6 +1,8 @@
-import React from "react";
-import { Plus, Menu } from "lucide-react";
+import React, { useState } from "react";
+import { Plus, Menu, Inbox, Sparkles } from "lucide-react";
 import SyncStatusBadge from "../sync/SyncStatusBadge";
+import StagedInboxModal from "../transactions/StagedInboxModal";
+import { useStagedTransactions } from "../../hooks/useStagedTransactions";
 
 interface HeaderProps {
   title?: string;
@@ -13,8 +15,13 @@ export default function Header({
   onAddTransactionClick,
   onMenuClick,
 }: HeaderProps) {
+  const { stagedCount } = useStagedTransactions();
+  const [showStagedInbox, setShowStagedInbox] = useState(false);
+
   return (
     <header className="h-16 border-b border-border bg-surface/80 backdrop-blur-md px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30">
+      <StagedInboxModal isOpen={showStagedInbox} onClose={() => setShowStagedInbox(false)} />
+
       {/* Title & Hamburger Menu */}
       <div className="flex items-center">
         <button
@@ -30,11 +37,31 @@ export default function Header({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-3 sm:gap-6">
+      <div className="flex items-center gap-3 sm:gap-4">
+        {/* Staged Inbox Badge Button */}
+        <button
+          type="button"
+          onClick={() => setShowStagedInbox(true)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold font-mono transition-all border ${
+            stagedCount > 0
+              ? "bg-accent/15 text-accent border-accent/40 hover:bg-accent/25 animate-pulse"
+              : "bg-surface-raised/60 text-text-secondary border-border hover:text-text-primary"
+          }`}
+          title="Open Staged Transactions Inbox"
+        >
+          <Inbox className="h-4 w-4" />
+          <span>Inbox</span>
+          {stagedCount > 0 && (
+            <span className="px-1.5 py-0.2 bg-accent text-text-primary rounded-full text-[10px] font-bold">
+              {stagedCount}
+            </span>
+          )}
+        </button>
+
         {/* Sync Status Badge */}
         <SyncStatusBadge />
 
-        {/* Add Action (Conditional based on handler presence) */}
+        {/* Add Action */}
         {onAddTransactionClick && (
           <button
             onClick={onAddTransactionClick}

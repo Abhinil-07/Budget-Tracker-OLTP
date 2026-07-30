@@ -12,6 +12,7 @@ class Transaction(BaseModel):
     category: str
     description: Optional[str] = None
     txn_date: date
+    status: Optional[str] = "confirmed"  # 'confirmed' vs 'staged'
     created_at: datetime
 
     class Config:
@@ -24,6 +25,7 @@ class CreateTransactionDto(BaseModel):
     category: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = Field(default=None, max_length=500)
     txn_date: Optional[date] = None
+    status: Optional[str] = Field(default="confirmed", pattern="^(confirmed|staged)$")
 
 class UpdateTransactionDto(BaseModel):
     account_id: Optional[UUID] = None
@@ -32,11 +34,13 @@ class UpdateTransactionDto(BaseModel):
     category: Optional[str] = Field(default=None, min_length=1, max_length=100)
     description: Optional[str] = Field(default=None, max_length=500)
     txn_date: Optional[date] = None
+    status: Optional[str] = Field(default=None, pattern="^(confirmed|staged)$")
 
 class TransactionQuery(BaseModel):
     account_id: Optional[UUID] = None
     category: Optional[str] = None
     type: Optional[str] = Field(default=None, pattern="^(income|expense)$")
+    status: Optional[str] = Field(default="confirmed")
     date_from: Optional[date] = None
     date_to: Optional[date] = None
     page: int = Field(default=1, ge=1)
@@ -59,3 +63,17 @@ class BatchCreateTransactionsDto(BaseModel):
 class BatchCreateResponse(BaseModel):
     imported_count: int
     account_ids: List[UUID]
+
+class ParseTextDto(BaseModel):
+    text: str = Field(..., min_length=1, description="Raw SMS or Email notification text")
+    account_id: Optional[UUID] = None
+    auto_stage: bool = Field(default=True, description="Automatically save to Staged Inbox if account is provided")
+
+class ParsedTransactionResponse(BaseModel):
+    amount_cents: int
+    type: str
+    category: str
+    description: str
+    txn_date: date
+    staged_id: Optional[UUID] = None
+

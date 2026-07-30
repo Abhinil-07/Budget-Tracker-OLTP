@@ -14,6 +14,8 @@ from models.transaction import (
     UpdateTransactionDto,
     BatchCreateTransactionsDto,
     BatchCreateResponse,
+    ParseTextDto,
+    ParsedTransactionResponse,
 )
 from models.envelope import ApiResponse
 
@@ -48,6 +50,30 @@ async def batch_create_transactions(
 ):
     result = await service.batch_create_transactions(payload.items, str(current_user.id))
     return ApiResponse(data=BatchCreateResponse(**result))
+
+@router.post("/parse-text", response_model=ApiResponse[ParsedTransactionResponse])
+async def parse_transaction_text(
+    payload: ParseTextDto,
+    service: TransactionService = Depends(get_transaction_service)
+):
+    parsed = service.parse_text(payload.text)
+    return ApiResponse(data=ParsedTransactionResponse(**parsed))
+
+@router.post("/parse-sms", response_model=ApiResponse[ParsedTransactionResponse])
+async def parse_sms_webhook(
+    payload: ParseTextDto,
+    service: TransactionService = Depends(get_transaction_service)
+):
+    parsed = service.parse_text(payload.text)
+    return ApiResponse(data=ParsedTransactionResponse(**parsed))
+
+@router.post("/parse-email", response_model=ApiResponse[ParsedTransactionResponse])
+async def parse_email_webhook(
+    payload: ParseTextDto,
+    service: TransactionService = Depends(get_transaction_service)
+):
+    parsed = service.parse_text(payload.text)
+    return ApiResponse(data=ParsedTransactionResponse(**parsed))
 
 @router.patch("/{transaction_id}", response_model=ApiResponse[Transaction])
 async def update_transaction(

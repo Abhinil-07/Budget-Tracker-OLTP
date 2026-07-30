@@ -386,3 +386,84 @@ class TransactionService:
             "account_ids": list(account_deltas.keys())
         }
 
+    def parse_text(self, text: str) -> dict:
+        """Parse raw bank SMS or Email text into structured transaction fields."""
+        import re
+        from datetime import datetime, date
+
+        lower = text.lower()
+
+        # 1. Amount Extraction
+        amount_pattern = r'(?:rs\.?|inr|₹)\s*([\d,]+(?:\.\d{1,2})?)|(?:debited|credited|spent|paid)\s*(?:by|of)?\s*(?:rs\.?|inr|₹)?\s*([\d,]+(?:\.\d{1,2})?)|([\d,]+(?:\.\d{1,2})?)\s*(?:debited|credited|spent)'
+        match = re.search(amount_pattern, text, re.IGNORECASE)
+
+        amount_cents = 0
+        if match:
+            amt_str = (match.group(1) or match.group(2) or match.group(3)).replace(',', '')
+            try:
+                amount_cents = int(round(float(amt_str) * 100))
+            except ValueError:
+                amount_cents = 0
+
+        # 2. Type Extraction
+        if any(k in lower for k in ["credited", "received", "salary", "refund", "deposited"]):
+            txn_type = "income"
+        else:
+            txn_type = "expense"
+
+        # 3. Category Inference
+        inferred_category = "Miscellaneous"
+        if any(k in lower for k in ["zomato", "swiggy", "starbucks", "dominos", "mcdonald", "restaurant", "cafe"]):
+            inferred_category = "Food & Dining"
+        elif any(k in lower for k in ["uber", "ola", "rapido", "petrol", "fuel", "shell", "hpcl", "bpcl"]):
+            inferred_category = "Transport"
+        elif any(k in lower for k in ["amazon", "flipkart", "myntra", "ajio", "zara"]):
+            inferred_category = "Shopping"
+        elif any(k in lower for k in ["d-mart", "dmart", "blinkit", "zepto", "instamart", "grocery", "bigbasket"]):
+            inferred_category = "Grocery"
+        elif any(k in lower for k in ["airtel", "jio", "electricity", "bill", "bescom", "broadband"]):
+            inferred_category = "Utilities"
+        elif any(k in lower for k in ["netflix", "spotify", "prime", "pvr", "inox", "movie"]):
+            inferred_category = "Entertainment"
+        elif any(k in lower for k in ["salary", "payroll"]):
+            inferred_category = "Salary"
+        elif "rent" in lower:
+            inferred_category = "Housing"
+
+        # 4. Description Extraction (Enhanced for HDFC InstaAlerts & UPI VPA)
+        vpa_bracket_match = re.search(r'towards\s+vpa\s+[^\(\s]+\s*\(([^)]+)\)', text, re.IGNORECASE)
+        vpa_plain_match = re.search(r'towards\s+vpa\s+([a-[#0-9._\-]+@[a-zA-Z0-9._\-]+)', text, re.IGNORECASE)
+        at_merchant_match = re.search(r'\b(?:at|to)\s+([A-Za-z0-9\s&.\-]+?)(?:\s+on|\s+ref|\s+via|\s+val|\.|\$|$)', text, re.IGNORECASE)
+
+        if vpa_bracket_match and vpa_bracket_match.group(1):
+            description = vpa_bracket_match.group(1).strip()
+        elif vpa_plain_match and vpa_plain_match.group(1):
+            description = vpa_plain_match.group(1).split('@')[0].replace('.', ' ').capitalize().strip()
+        elif at_merchant_match and at_merchant_match.group(1):
+            description = at_merchant_match.group(1).strip()
+        else:
+            description = text[:45] + "..." if len(text) > 45 else text
+
+        # 5. Date Extraction
+        txn_date = date.today()
+        date_match = re.search(r'(\d{1,2})[-/]([A-Za-z]{3}|\d{1,2})[-/](\d{2,4})', text)
+        if date_match:
+            try:
+                d_str = f"{date_match.group(1)}-{date_match.group(2)}-{date_match.group(3)}"
+                for fmt in ("%d-%b-%Y", "%d-%b-%y", "%d-%m-%Y", "%d-%m-%y"):
+                    try:
+                        txn_date = datetime.strptime(d_str, fmt).date()
+                        break
+                    except ValueError:
+                        pass
+            except Exception:
+                pass
+
+        return {
+            "amount_cents": amount_cents,
+            "type": txn_type,
+            "category": inferred_category,
+            "description": description,
+            "txn_date": txn_date,
+        }
+

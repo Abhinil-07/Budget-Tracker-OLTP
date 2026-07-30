@@ -4,11 +4,12 @@ import React, { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { X, Plus, Sparkles, Zap, CheckCircle } from "lucide-react";
+import { X, Plus, Sparkles, Zap, CheckCircle, Inbox } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../../lib/api";
 import { useAccounts } from "../../hooks/useAccounts";
 import { useCategories } from "../../hooks/useCategories";
+import { useStagedTransactions } from "../../hooks/useStagedTransactions";
 import { CATEGORIES, ACCOUNT_TYPES } from "../../lib/constants";
 import type { AccountType } from "../../lib/constants";
 
@@ -76,11 +77,105 @@ export default function AddTransactionModal({
   const roommateShare = splitCount > 0 ? (parsedAmount - parseFloat(myShare)).toFixed(2) : "0.00";
 
   const { categories, addCategory } = useCategories();
+  const { addStagedTransaction } = useStagedTransactions();
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [showSmsParser, setShowSmsParser] = useState(false);
   const [rawSmsText, setRawSmsText] = useState("");
   const [smsParsedSuccess, setSmsParsedSuccess] = useState(false);
+
+  const handleStageToInbox = () => {
+    const text = rawSmsText.trim();
+    if (!text) return;
+
+    // Parse details using the helper logic
+    const lower = text.toLowerCase();
+
+    // 1. Amount Extraction
+    const amountMatch =
+      text.match(/(?:rs\.?|inr|₹)\s*([\d,]+(?:\.\d{1,2})?)/i) ||
+      text.match(/(?:debited|credited|spent|paid)\s*(?:by|of)?\s*(?:rs\.?|inr|₹)?\s*([\d,]+(?:\.\d{1,2})?)/i) ||
+      text.match(/([\d,]+(?:\.\d{1,2})?)\s*(?:debited|credited|spent)/i);
+
+    let amount_cents = 0;
+    if (amountMatch && amountMatch[1]) {
+      const rawAmt = amountMatch[1].replace(/,/g, "");
+      if (!isNaN(Number(rawAmt))) {
+        amount_cents = Math.round(Number(rawAmt) * 100);
+      }
+    }
+
+    // 2. Type
+    const txnType = (lower.includes("credited") || lower.includes("received") || lower.includes("salary") || lower.includes("refund"))
+      ? "income"
+      : "expense";
+
+    // 3. Category Inference
+    let inferredCategory = "Miscellaneous";
+    if (lower.includes("zomato") || lower.includes("swiggy") || lower.includes("starbucks") || lower.includes("dominos") || lower.includes("mcdonald") || lower.includes("restaurant") || lower.includes("cafe")) {
+      inferredCategory = "Food & Dining";
+    } else if (lower.includes("uber") || lower.includes("ola") || lower.includes("rapido") || lower.includes("petrol") || lower.includes("fuel") || lower.includes("shell") || lower.includes("hpcl") || lower.includes("bpcl")) {
+      inferredCategory = "Transport";
+    } else if (lower.includes("amazon") || lower.includes("flipkart") || lower.includes("myntra") || lower.includes("ajio") || lower.includes("zara")) {
+      inferredCategory = "Shopping";
+    } else if (lower.includes("d-mart") || lower.includes("dmart") || lower.includes("blinkit") || lower.includes("zepto") || lower.includes("instamart") || lower.includes("grocery") || lower.includes("bigbasket")) {
+      inferredCategory = "Grocery";
+    } else if (lower.includes("airtel") || lower.includes("jio") || lower.includes("electricity") || lower.includes("bill") || lower.includes("bescom") || lower.includes("broadband")) {
+      inferredCategory = "Utilities";
+    } else if (lower.includes("netflix") || lower.includes("spotify") || lower.includes("prime") || lower.includes("pvr") || lower.includes("inox") || lower.includes("movie")) {
+      inferredCategory = "Entertainment";
+    } else if (lower.includes("salary") || lower.includes("payroll")) {
+      inferredCategory = "Salary";
+    } else if (lower.includes("rent")) {
+      inferredCategory = "Housing";
+    }
+
+    // 4. Description
+    let descriptionText = "";
+    const toMatch = text.match(/(?:to|at|vpa|info:)\s*([A-Za-z0-9\s&.\-]+?)(?:\s+on|\s+ref|\s+via|\s+val|\.|\$)/i);
+    if (toMatch && toMatch[1]) {
+      descriptionText = toMatch[1].trim();
+    } else {
+      descriptionText = text.length > 40 ? text.substring(0, 40) + "..." : text;
+    }
+
+    // 5. Date
+    let txn_date = today;
+    const dateMatch = text.match(/(\d{1,2})[-/]([A-Za-z]{3}|\d{1,2})[-/](\d{2,4})/);
+    if (dateMatch) {
+      try {
+        const day = dateMatch[1].padStart(2, "0");
+        let month = dateMatch[2];
+        let year = dateMatch[3];
+        if (year.length === 2) year = "20" + year;
+
+        const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+        const monthIdx = monthNames.indexOf(month.toLowerCase());
+        if (monthIdx !== -1) {
+          month = String(monthIdx + 1).padStart(2, "0");
+        } else {
+          month = month.padStart(2, "0");
+        }
+        txn_date = `${year}-${month}-${day}`;
+      } catch (e) {}
+    }
+
+    addStagedTransaction({
+      account_id: accounts[0]?.id || "",
+      type: txnType,
+      amount_cents,
+      category: inferredCategory,
+      description: descriptionText,
+      txn_date,
+      source: "sms",
+      raw_text: text,
+    });
+
+    setRawSmsText("");
+    setShowSmsParser(false);
+    setSmsParsedSuccess(true);
+    setTimeout(() => setSmsParsedSuccess(false), 3000);
+  };
 
   const handleAddCustomCategory = () => {
     const trimmed = newCategoryName.trim();
@@ -341,6 +436,16 @@ export default function AddTransactionModal({
                     className="px-2.5 py-1 text-xs text-text-muted hover:text-text-primary font-medium"
                   >
                     Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleStageToInbox}
+                    disabled={!rawSmsText.trim()}
+                    className="flex items-center gap-1.5 px-3 py-1 bg-surface-raised hover:bg-surface-raised/80 border border-border text-text-primary rounded-lg text-xs font-semibold shadow-sm transition-all"
+                    title="Queue transaction in Staged Inbox for later review"
+                  >
+                    <Inbox className="h-3.5 w-3.5 text-accent" />
+                    <span>Send to Staged Inbox</span>
                   </button>
                   <button
                     type="button"
