@@ -311,6 +311,34 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
     );
   };
 
+  const updateParsedRow = (id: string, updates: Partial<ParsedRow>) => {
+    setParsedRows((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        const updated = { ...r, ...updates };
+
+        // Re-validate row if user fixed values
+        let isValid = true;
+        let errorMessage = "";
+
+        if (!updated.txn_date) {
+          isValid = false;
+          errorMessage = "Date is required";
+        } else if (isNaN(updated.amount_cents) || updated.amount_cents <= 0) {
+          isValid = false;
+          errorMessage = "Amount must be positive";
+        }
+
+        return {
+          ...updated,
+          isValid,
+          errorMessage,
+          enabled: isValid ? (r.enabled || !r.isValid) : false,
+        };
+      })
+    );
+  };
+
   const toggleAllRows = (checked: boolean) => {
     setParsedRows((prev) =>
       prev.map((r) => (r.isValid ? { ...r, enabled: checked } : r))
@@ -660,37 +688,83 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                     {parsedRows.map((r) => (
                       <tr
                         key={r.id}
-                        className={`${!r.isValid ? "bg-danger/10 opacity-70" : r.enabled ? "bg-surface" : "bg-surface-raised/30 opacity-60"}`}
+                        className={`${!r.isValid ? "bg-danger/10" : r.enabled ? "bg-surface hover:bg-surface-raised/40" : "bg-surface-raised/30 opacity-60"}`}
                       >
-                        <td className="p-2.5 text-center">
+                        <td className="p-2 text-center">
                           <input
                             type="checkbox"
                             disabled={!r.isValid}
                             checked={r.enabled}
                             onChange={() => toggleRowEnabled(r.id)}
-                            className="rounded border-border text-accent focus:ring-accent"
+                            className="rounded border-border text-accent focus:ring-accent cursor-pointer"
                           />
                         </td>
-                        <td className="p-2.5 whitespace-nowrap">{r.txn_date}</td>
-                        <td className="p-2.5">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
+                        <td className="p-1.5 whitespace-nowrap">
+                          <input
+                            type="date"
+                            value={r.txn_date}
+                            onChange={(e) => updateParsedRow(r.id, { txn_date: e.target.value })}
+                            className="bg-transparent border border-border/50 rounded px-1.5 py-0.5 text-xs text-text-primary focus:border-accent focus:outline-none"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateParsedRow(r.id, {
+                                type: r.type === "expense" ? "income" : "expense",
+                              })
+                            }
+                            className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase cursor-pointer transition-all ${
                               r.type === "expense"
-                                ? "bg-danger/15 text-danger border border-danger/30"
-                                : "bg-success/15 text-success border border-success/30"
+                                ? "bg-danger/15 text-danger border border-danger/30 hover:bg-danger/25"
+                                : "bg-success/15 text-success border border-success/30 hover:bg-success/25"
                             }`}
+                            title="Click to toggle Expense / Income"
                           >
                             {r.type}
-                          </span>
+                          </button>
                         </td>
-                        <td className="p-2.5 font-semibold">
-                          ₹{(r.amount_cents / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        <td className="p-1.5">
+                          <div className="flex items-center gap-1">
+                            <span className="text-text-muted text-xs">₹</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={isNaN(r.amount_cents) ? "" : (r.amount_cents / 100).toString()}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                updateParsedRow(r.id, {
+                                  amount_cents: isNaN(val) ? 0 : Math.round(val * 100),
+                                });
+                              }}
+                              className="w-24 bg-transparent border border-border/50 rounded px-1.5 py-0.5 text-xs font-semibold text-text-primary focus:border-accent focus:outline-none"
+                            />
+                          </div>
                         </td>
-                        <td className="p-2.5 truncate max-w-[120px]">{r.category}</td>
-                        <td className="p-2.5 truncate max-w-[180px]" title={r.description}>
-                          {r.description}
+                        <td className="p-1.5">
+                          <select
+                            value={r.category}
+                            onChange={(e) => updateParsedRow(r.id, { category: e.target.value })}
+                            className="bg-transparent border border-border/50 rounded px-1.5 py-0.5 text-xs text-text-primary focus:border-accent focus:outline-none max-w-[130px] truncate cursor-pointer"
+                          >
+                            {categories.map((c) => (
+                              <option key={c} value={c} className="bg-surface text-text-primary">
+                                {c}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="p-1.5">
+                          <input
+                            type="text"
+                            value={r.description}
+                            onChange={(e) => updateParsedRow(r.id, { description: e.target.value })}
+                            placeholder="Description..."
+                            className="w-full bg-transparent border border-border/50 rounded px-1.5 py-0.5 text-xs text-text-primary focus:border-accent focus:outline-none min-w-[140px]"
+                          />
                           {!r.isValid && (
-                            <span className="block text-[10px] text-danger font-sans">{r.errorMessage}</span>
+                            <span className="block text-[10px] text-danger font-sans mt-0.5">{r.errorMessage}</span>
                           )}
                         </td>
                       </tr>
