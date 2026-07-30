@@ -477,59 +477,70 @@ class TransactionService:
         """Parse raw text and insert as a staged transaction in Supabase."""
         parsed = self.parse_text(text)
         
-        # 1. Fetch account/user details
-        account_id = None
-        user_id = None
+        try:
+            # 1. Fetch account/user details
+            account_id = None
+            user_id = None
 
-        if target_account_id:
-            try:
-                acc_resp = await self.db.table("accounts").select("*").eq("id", str(target_account_id)).execute()
-                if acc_resp.data:
-                    account = acc_resp.data[0]
-                    user_id = account["user_id"]
-                    account_id = account["id"]
-            except Exception as e:
-                print("Error finding target account:", e)
+            if target_account_id:
+                try:
+                    acc_resp = await self.db.table("accounts").select("*").eq("id", str(target_account_id)).execute()
+                    if acc_resp.data:
+                        account = acc_resp.data[0]
+                        user_id = account["user_id"]
+                        account_id = account["id"]
+                except Exception as e:
+                    print("Error finding target account:", e)
 
-        if not account_id:
-            try:
-                acc_resp = await self.db.table("accounts").select("id, user_id").limit(1).execute()
-                if acc_resp.data:
-                    account = acc_resp.data[0]
-                    user_id = account["user_id"]
-                    account_id = account["id"]
-            except Exception as e:
-                print("Error finding default account:", e)
+            if not account_id:
+                try:
+                    acc_resp = await self.db.table("accounts").select("id, user_id").limit(1).execute()
+                    if acc_resp.data:
+                        account = acc_resp.data[0]
+                        user_id = account["user_id"]
+                        account_id = account["id"]
+                except Exception as e:
+                    print("Error finding default account:", e)
 
-        # Fallback to transactions table to find existing user_id/account_id if accounts query returns empty
-        if not account_id:
-            try:
-                txn_resp = await self.db.table("transactions").select("account_id, user_id").limit(1).execute()
-                if txn_resp.data:
-                    user_id = txn_resp.data[0]["user_id"]
-                    account_id = txn_resp.data[0]["account_id"]
-            except Exception as e:
-                print("Error finding transaction fallback account:", e)
+            # Fallback to transactions table to find existing user_id/account_id if accounts query returns empty
+            if not account_id:
+                try:
+                    txn_resp = await self.db.table("transactions").select("account_id, user_id").limit(1).execute()
+                    if txn_resp.data:
+                        user_id = txn_resp.data[0]["user_id"]
+                        account_id = txn_resp.data[0]["account_id"]
+                except Exception as e:
+                    print("Error finding transaction fallback account:", e)
 
-        if user_id and account_id:
-            # 2. Insert as status="staged" (does NOT update account balance)
-            insert_data = {
-                "user_id": user_id,
-                "account_id": account_id,
-                "type": parsed["type"],
-                "amount_cents": parsed["amount_cents"],
-                "category": parsed["category"],
-                "description": parsed["description"],
-                "txn_date": parsed["txn_date"].isoformat(),
-                "status": "staged"
-            }
+            if user_id and account_id:
+                insert_data = {
+                    "user_id": user_id,
+                    "account_id": account_id,
+                    "type": parsed["type"],
+                    "amount_cents": parsed["amount_cents"],
+                    "category": parsed["category"],
+                    "description": parsed["description"],
+                    "txn_date": parsed["txn_date"].isoformat(),
+                    "status": "staged"
+                }
 
-            try:
-                res = await self.db.table("transactions").insert(insert_data).execute()
-                if res.data:
-                    parsed["staged_id"] = res.data[0]["id"]
-            except Exception as e:
-                print("Staging insert error:", e)
+                try:
+                    res = await self.db.table("transactions").insert(insert_data).execute()
+                    if res.data:
+                        parsed["staged_id"] = str(res.data[0]["id"])
+                except Exception as e:
+                    print("Staging with status column failed, trying fallback insert without status column:", e)
+                    # Fallback insert without status column if status column does not exist in DB yet
+                    try:
+                        fallback_data = {k: v for k, v in insert_data.items() if k != "status"}
+                        res = await self.db.table("transactions").insert(fallback_data).execute()
+                        if res.data:
+                            parsed["staged_id"] = str(res.data[0]["id"])
+                    except Exception as fallback_e:
+                        print("Fallback staging insert failed:", fallback_e)
+
+        except Exception as global_e:
+            print("Global stage_parsed_text error:", global_e)
 
         return parsed
 
