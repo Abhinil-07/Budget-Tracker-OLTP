@@ -8,6 +8,7 @@ import { formatCurrency } from "../../lib/formatCurrency";
 import { api, ApiError } from "../../lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { CATEGORIES } from "../../lib/constants";
+import { useCategories } from "../../hooks/useCategories";
 import {
   PieChart,
   Edit3,
@@ -21,6 +22,7 @@ import {
 
 export default function BudgetPage() {
   const queryClient = useQueryClient();
+  const { categories } = useCategories();
   const { token, hydrated, hydrate } = useAuthStore();
 
   // Edit budget states
@@ -290,7 +292,7 @@ export default function BudgetPage() {
                         Category Limits (Optional)
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {CATEGORIES.map((cat) => (
+                        {categories.map((cat) => (
                           <div key={cat} className="flex flex-col gap-1.5">
                             <label className="text-xs text-text-secondary truncate font-medium">
                               {cat}

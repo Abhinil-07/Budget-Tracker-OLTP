@@ -7,7 +7,7 @@ export interface Transaction {
   account_id: string;
   type: TransactionType;
   amount_cents: number;
-  category: Category;
+  category: string;
   description?: string;
   txn_date: string;
   created_at: string;
@@ -17,7 +17,7 @@ export interface CreateTransactionDto {
   account_id: string;
   type: TransactionType;
   amount_cents: number;
-  category: Category;
+  category: string;
   description?: string;
   txn_date: string;
 }
@@ -36,7 +36,7 @@ export interface UpdateTransactionDto {
   account_id?: string;
   type?: TransactionType;
   amount_cents?: number;
-  category?: Category;
+  category?: string;
   description?: string;
   txn_date?: string;
 }

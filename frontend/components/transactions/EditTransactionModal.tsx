@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { X } from "lucide-react";
+import { X, Plus } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../../lib/api";
 import { useAccounts } from "../../hooks/useAccounts";
+import { useCategories } from "../../hooks/useCategories";
 import { CATEGORIES, ACCOUNT_TYPES } from "../../lib/constants";
 import type { AccountType } from "../../lib/constants";
 import { Transaction } from "../../types/transaction";
@@ -65,6 +66,19 @@ export default function EditTransactionModal({
 
   const selectedType = watch("type");
 
+  const { categories, addCategory } = useCategories();
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+
+  const handleAddCustomCategory = () => {
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) return;
+    addCategory(trimmed);
+    setValue("category", trimmed, { shouldValidate: true });
+    setNewCategoryName("");
+    setIsAddingCategory(false);
+  };
+
   // Populate form when transaction changes
   useEffect(() => {
     if (isOpen && transaction) {
@@ -76,6 +90,8 @@ export default function EditTransactionModal({
         description: transaction.description || "",
         txn_date: transaction.txn_date,
       });
+      setIsAddingCategory(false);
+      setNewCategoryName("");
 
       // Small delay to let the DOM render before focusing
       const timer = setTimeout(() => {
@@ -105,7 +121,7 @@ export default function EditTransactionModal({
         account_id: data.account_id,
         type: data.type,
         amount_cents: amountCents,
-        category: data.category as typeof CATEGORIES[number],
+        category: data.category,
         description: data.description?.trim() || "",
         txn_date: data.txn_date,
       });
@@ -257,27 +273,65 @@ export default function EditTransactionModal({
 
           {/* Category Dropdown */}
           <div>
-            <label
-              htmlFor="edit-txn-category"
-              className="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2"
-            >
-              Category
-            </label>
-            <select
-              id="edit-txn-category"
-              {...register("category")}
-              className="w-full px-3.5 py-2.5 bg-surface-raised border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent transition-all appearance-none cursor-pointer"
-            >
-              <option value="" className="text-text-muted">
-                Select a category
-              </option>
-              {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
+            <div className="flex items-center justify-between mb-2">
+              <label
+                htmlFor="edit-txn-category"
+                className="block text-xs font-medium text-text-muted uppercase tracking-wider"
+              >
+                Category
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsAddingCategory(!isAddingCategory)}
+                className="text-xs text-accent hover:underline flex items-center gap-1 font-medium cursor-pointer"
+              >
+                <Plus className="h-3 w-3" />
+                {isAddingCategory ? "Select Existing" : "Add Custom"}
+              </button>
+            </div>
+
+            {isAddingCategory ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="e.g. Pet Care, Subscriptions"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddCustomCategory();
+                    }
+                  }}
+                  className="flex-1 px-3.5 py-2 bg-surface-raised border border-accent rounded-lg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCustomCategory}
+                  className="px-3 py-2 bg-accent text-text-primary rounded-lg text-xs font-semibold hover:bg-accent/90 transition-all"
+                >
+                  Save
+                </button>
+              </div>
+            ) : (
+              <select
+                id="edit-txn-category"
+                {...register("category")}
+                className="w-full px-3.5 py-2.5 bg-surface-raised border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent transition-all appearance-none cursor-pointer"
+              >
+                <option value="" className="text-text-muted">
+                  Select a category
                 </option>
-              ))}
-            </select>
-            {errors.category && (
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {errors.category && !isAddingCategory && (
               <p className="mt-1 text-xs text-danger">
                 {errors.category.message}
               </p>

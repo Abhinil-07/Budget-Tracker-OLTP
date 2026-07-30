@@ -6,14 +6,24 @@ import { useSyncStatus } from "../../hooks/useSyncStatus";
 import PageWrapper from "../../components/layout/PageWrapper";
 import { api } from "../../lib/api";
 import { formatDate } from "../../lib/formatDate";
-import { RefreshCw, LogOut, CheckCircle, AlertCircle, Shield } from "lucide-react";
+import { RefreshCw, LogOut, CheckCircle, AlertCircle, Shield, Tag, Plus, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useCategories } from "../../hooks/useCategories";
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
   const { token, user, hydrated, hydrate, logout } = useAuthStore();
+  const { categories, customCategories, addCategory, removeCategory } = useCategories();
   const [syncLoading, setSyncLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [newCatInput, setNewCatInput] = useState("");
+
+  const handleAddCategoryInSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatInput.trim()) return;
+    addCategory(newCatInput.trim());
+    setNewCatInput("");
+  };
 
   // Hydrate auth state from localStorage on mount
   useEffect(() => {
@@ -187,6 +197,71 @@ export default function SettingsPage() {
               (Rate limited: runs once every 6 hours)
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Category Management Settings */}
+      <div className="bg-surface p-6 rounded-xl border border-border space-y-5">
+        <div>
+          <h3 className="font-semibold text-text-primary text-base flex items-center gap-2">
+            <Tag className="h-4 w-4 text-accent" />
+            Custom Categories
+          </h3>
+          <p className="text-sm text-text-secondary mt-1">
+            Add custom categories to use across your transactions, filters, and monthly budgets.
+          </p>
+        </div>
+
+        <form onSubmit={handleAddCategoryInSettings} className="flex gap-3 max-w-md">
+          <input
+            type="text"
+            placeholder="New Category Name (e.g. Pet Care)"
+            value={newCatInput}
+            onChange={(e) => setNewCatInput(e.target.value)}
+            className="flex-1 px-3.5 py-2 bg-surface-raised border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+          />
+          <button
+            type="submit"
+            className="flex items-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent/90 text-text-primary text-sm font-semibold rounded-lg transition-all"
+          >
+            <Plus className="h-4 w-4" />
+            Add
+          </button>
+        </form>
+
+        <div className="space-y-2 pt-1">
+          <label className="text-xs font-semibold text-text-muted uppercase tracking-wider font-mono">
+            Active Categories ({categories.length})
+          </label>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {categories.map((cat) => {
+              const isCustom = customCategories.some(
+                (c) => c.toLowerCase() === cat.toLowerCase()
+              );
+              return (
+                <span
+                  key={cat}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono border ${
+                    isCustom
+                      ? "bg-accent/15 text-accent border-accent/30"
+                      : "bg-surface-raised text-text-secondary border-border"
+                  }`}
+                >
+                  {cat}
+                  {isCustom && (
+                    <button
+                      type="button"
+                      onClick={() => removeCategory(cat)}
+                      className="hover:text-danger p-0.5 rounded transition-colors"
+                      title={`Remove custom category '${cat}'`}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </span>
+              );
+            })}
+          </div>
         </div>
       </div>
 

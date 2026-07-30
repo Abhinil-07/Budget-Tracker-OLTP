@@ -11,6 +11,7 @@ import { formatCurrency } from "../../lib/formatCurrency";
 import { formatDate } from "../../lib/formatDate";
 import { CATEGORIES } from "../../lib/constants";
 import type { AccountType } from "../../lib/constants";
+import { useCategories } from "../../hooks/useCategories";
 import { api, ApiError } from "../../lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -81,6 +82,7 @@ export default function TransactionsPage() {
 
   // Fetch accounts
   const { data: accounts = [], isLoading: accountsLoading } = useAccounts();
+  const { categories } = useCategories();
 
   // Select the first account by default on load
   useEffect(() => {
@@ -597,7 +599,7 @@ export default function TransactionsPage() {
                     className="bg-surface-raised border border-border rounded-lg px-3 py-1.5 text-xs font-medium text-text-primary focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer flex-1"
                   >
                     <option value="all">All Categories</option>
-                    {CATEGORIES.map((cat) => (
+                    {categories.map((cat) => (
                       <option key={cat} value={cat}>
                         {cat}
                       </option>
