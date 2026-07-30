@@ -13,6 +13,12 @@ class TransactionService:
         """List transactions with pagination and query filtering."""
         q = self.db.table("transactions").select("*", count="exact").eq("user_id", user_id)
         
+        # Filter out staged transactions by default unless requested
+        if query.status:
+            q = q.eq("status", query.status)
+        else:
+            q = q.neq("status", "staged")
+
         if query.account_id:
             q = q.eq("account_id", str(query.account_id))
         if query.category:
@@ -466,4 +472,107 @@ class TransactionService:
             "description": description,
             "txn_date": txn_date,
         }
+
+    async def stage_parsed_text(self, text: str, target_account_id: str = None) -> dict:
+        """Parse raw text and insert as a staged transaction in Supabase."""
+        parsed = self.parse_text(text)
+        
+        # 1. Fetch account/user details
+        account_id = None
+        user_id = None
+
+        if target_account_id:
+            acc_resp = await self.db.table("accounts").select("*").eq("id", str(target_account_id)).execute()
+            if acc_resp.data:
+                account = acc_resp.data[0]
+                user_id = account["user_id"]
+                account_id = account["id"]
+
+        if not account_id:
+            acc_resp = await self.db.table("accounts").select("*").limit(1).execute()
+            if acc_resp.data:
+                account = acc_resp.data[0]
+                user_id = account["user_id"]
+                account_id = account["id"]
+
+        if user_id and account_id:
+            # 2. Insert as status="staged" (does NOT update account balance)
+            insert_data = {
+                "user_id": user_id,
+                "account_id": account_id,
+                "type": parsed["type"],
+                "amount_cents": parsed["amount_cents"],
+                "category": parsed["category"],
+                "description": parsed["description"],
+                "txn_date": parsed["txn_date"].isoformat(),
+                "status": "staged"
+            }
+
+            try:
+                res = await self.db.table("transactions").insert(insert_data).execute()
+                if res.data:
+                    parsed["staged_id"] = res.data[0]["id"]
+            except Exception as e:
+                print("Warning: Staging insert error (schema status column might be missing):", e)
+
+        return parsed
+
+    async def list_staged_transactions(self, user_id: str) -> List[Transaction]:
+        """Fetch all staged transactions pending review."""
+        try:
+            res = await self.db.table("transactions").select("*").eq("user_id", user_id).eq("status", "staged").order("created_at", desc=True).execute()
+            return [Transaction(**row) for row in res.data]
+        except Exception:
+            return []
+
+    async def approve_staged_transaction(self, transaction_id: str, dto: UpdateTransactionDto, user_id: str) -> Transaction:
+        """Confirm a staged transaction, set status='confirmed', and update account balance."""
+        # 1. Fetch existing transaction
+        existing_res = await self.db.table("transactions").select("*").eq("id", transaction_id).eq("user_id", user_id).execute()
+        if not existing_res.data:
+            raise NotFoundError("Staged transaction not found")
+        existing = existing_res.data[0]
+
+        target_account_id = str(dto.account_id) if dto.account_id else existing["account_id"]
+        
+        # 2. Fetch target account
+        acc_resp = await self.db.table("accounts").select("*").eq("id", target_account_id).eq("user_id", user_id).execute()
+        if not acc_resp.data:
+            raise NotFoundError("Account not found")
+        account = acc_resp.data[0]
+        acc_type = account["type"]
+
+        amount_cents = dto.amount_cents if dto.amount_cents is not None else existing["amount_cents"]
+        txn_type = dto.type if dto.type else existing["type"]
+
+        # 3. Calculate balance delta
+        if acc_type == "credit_card":
+            delta = amount_cents if txn_type == "expense" else -amount_cents
+        else:
+            delta = amount_cents if txn_type == "income" else -amount_cents
+
+        # 4. Update transaction status to "confirmed"
+        txn_date_val = (dto.txn_date or date.today()).isoformat() if isinstance(dto.txn_date, date) else existing["txn_date"]
+
+        update_data = {
+            "account_id": target_account_id,
+            "type": txn_type,
+            "amount_cents": amount_cents,
+            "category": dto.category if dto.category else existing["category"],
+            "description": dto.description if dto.description is not None else existing["description"],
+            "txn_date": txn_date_val,
+            "status": "confirmed"
+        }
+
+        updated_res = await self.db.table("transactions").update(update_data).eq("id", transaction_id).eq("user_id", user_id).execute()
+        if not updated_res.data:
+            raise ValidationError("Failed to approve staged transaction")
+
+        # 5. Apply balance update atomically
+        await self.db.rpc("increment_balance", {
+            "account_id": target_account_id,
+            "delta": delta
+        }).execute()
+
+        return Transaction(**updated_res.data[0])
 

@@ -64,7 +64,10 @@ async def parse_sms_webhook(
     payload: ParseTextDto,
     service: TransactionService = Depends(get_transaction_service)
 ):
-    parsed = service.parse_text(payload.text)
+    if payload.auto_stage:
+        parsed = await service.stage_parsed_text(payload.text, str(payload.account_id) if payload.account_id else None)
+    else:
+        parsed = service.parse_text(payload.text)
     return ApiResponse(data=ParsedTransactionResponse(**parsed))
 
 @router.post("/parse-email", response_model=ApiResponse[ParsedTransactionResponse])
@@ -72,8 +75,29 @@ async def parse_email_webhook(
     payload: ParseTextDto,
     service: TransactionService = Depends(get_transaction_service)
 ):
-    parsed = service.parse_text(payload.text)
+    if payload.auto_stage:
+        parsed = await service.stage_parsed_text(payload.text, str(payload.account_id) if payload.account_id else None)
+    else:
+        parsed = service.parse_text(payload.text)
     return ApiResponse(data=ParsedTransactionResponse(**parsed))
+
+@router.get("/staged", response_model=ApiResponse[list[Transaction]])
+async def list_staged_transactions(
+    current_user: User = Depends(get_current_user),
+    service: TransactionService = Depends(get_transaction_service)
+):
+    staged = await service.list_staged_transactions(str(current_user.id))
+    return ApiResponse(data=staged)
+
+@router.post("/staged/{transaction_id}/approve", response_model=ApiResponse[Transaction])
+async def approve_staged_transaction(
+    transaction_id: str,
+    dto: UpdateTransactionDto,
+    current_user: User = Depends(get_current_user),
+    service: TransactionService = Depends(get_transaction_service)
+):
+    approved = await service.approve_staged_transaction(transaction_id, dto, str(current_user.id))
+    return ApiResponse(data=approved)
 
 @router.patch("/{transaction_id}", response_model=ApiResponse[Transaction])
 async def update_transaction(
