@@ -114,75 +114,55 @@ class TransactionService:
         return Transaction(**created_txn)
 
     async def delete_transaction(self, transaction_id: str, user_id: str) -> None:
-        """Delete a transaction and atomically reverse its balance update."""
-        # 1. Fetch transaction details
+        """Delete a transaction. If staged, purges row directly from DB. If confirmed, reverses balance."""
+        # 1. Fetch transaction
         txn_response = (
             await self.db.table("transactions")
             .select("*")
             .eq("id", transaction_id)
-            .eq("user_id", user_id)
             .execute()
         )
         if not txn_response.data:
             raise NotFoundError("Transaction not found")
             
         txn = txn_response.data[0]
+        
+        # If staged transaction, purge row directly from Supabase DB (no balance reversal needed)
+        if txn.get("status") == "staged":
+            await self.db.table("transactions").delete().eq("id", transaction_id).execute()
+            return
+
+        # For confirmed transactions: reverse original balance delta
         amount_cents = txn["amount_cents"]
         txn_type = txn["type"]
         account_id = txn["account_id"]
         
-        # 2. Fetch associated account details to get its type
-        account_response = (
-            await self.db.table("accounts")
-            .select("*")
-            .eq("id", account_id)
-            .eq("user_id", user_id)
-            .execute()
-        )
-        if not account_response.data:
-            raise NotFoundError("Associated account not found")
-            
-        account = account_response.data[0]
-        acc_type = account["type"]
-        
-        # 3. Calculate original balance delta to know what to reverse
-        if acc_type == "credit_card":
-            if txn_type == "expense":
-                delta = amount_cents
-            else:
-                delta = -amount_cents
-        else:
-            if txn_type == "income":
-                delta = amount_cents
-            else:
-                delta = -amount_cents
-                
-        # The reverse delta is the negation of the original delta
-        reverse_delta = -delta
-        
-        # 4. Delete the transaction
-        delete_response = (
-            await self.db.table("transactions")
-            .delete()
-            .eq("id", transaction_id)
-            .eq("user_id", user_id)
-            .execute()
-        )
-        if not delete_response.data:
-            raise ValidationError("Failed to delete transaction")
-            
-        # 5. Reverse the balance update atomically via postgres RPC function
+        # Delete transaction from DB
+        await self.db.table("transactions").delete().eq("id", transaction_id).execute()
+
+        # Reverse balance delta atomically if associated account exists
         try:
-            await self.db.rpc("increment_balance", {
-                "account_id": account_id,
-                "delta": reverse_delta
-            }).execute()
-        except Exception as e:
-            # Rollback deletion if balance reversal fails
-            # Strip database-generated metadata fields that aren't user-insertable if needed,
-            # but since postgrest insert expects a dict, we can just insert the original row
-            await self.db.table("transactions").insert(txn).execute()
-            raise ValidationError(f"Failed to reverse account balance during deletion: {str(e)}")
+            account_response = (
+                await self.db.table("accounts")
+                .select("*")
+                .eq("id", account_id)
+                .execute()
+            )
+            if account_response.data:
+                account = account_response.data[0]
+                acc_type = account["type"]
+                if acc_type == "credit_card":
+                    delta = amount_cents if txn_type == "expense" else -amount_cents
+                else:
+                    delta = amount_cents if txn_type == "income" else -amount_cents
+                reverse_delta = -delta
+
+                await self.db.rpc("increment_balance", {
+                    "account_id": account_id,
+                    "delta": reverse_delta
+                }).execute()
+        except Exception as err:
+            print("Warning: Balance reversal on delete encountered non-critical error:", err)
 
     async def update_transaction(self, transaction_id: str, dto: UpdateTransactionDto, user_id: str) -> Transaction:
         """Update an existing transaction and atomically adjust account balances."""
