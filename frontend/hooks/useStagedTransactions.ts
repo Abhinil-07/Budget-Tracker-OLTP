@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useCategories } from "./useCategories";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "../lib/api";
+import type { Transaction } from "../types/transaction";
 
 export interface StagedTransactionItem {
   id: string;
@@ -19,27 +21,41 @@ export interface StagedTransactionItem {
 const STORAGE_KEY = "staged_transactions_queue";
 
 export function useStagedTransactions() {
-  const [stagedList, setStagedList] = useState<StagedTransactionItem[]>([]);
-  const { categories } = useCategories();
+  const queryClient = useQueryClient();
+  const [localStaged, setLocalStaged] = useState<StagedTransactionItem[]>([]);
 
-  // Load staged list from localStorage / window events
-  const loadStaged = useCallback(() => {
+  // 1. Fetch remote staged transactions from Supabase DB via React Query
+  const { data: remoteStaged = [], refetch } = useQuery({
+    queryKey: ["staged-transactions"],
+    queryFn: async () => {
+      try {
+        const res = await api.transactions.listStaged();
+        return res.data || [];
+      } catch (e) {
+        return [];
+      }
+    },
+    refetchInterval: 10000, // Auto refetch every 10s to pick up incoming emails!
+  });
+
+  // Load local staged items
+  const loadLocalStaged = useCallback(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        setStagedList(JSON.parse(stored));
+        setLocalStaged(JSON.parse(stored));
       } else {
-        setStagedList([]);
+        setLocalStaged([]);
       }
     } catch (e) {
-      console.error("Failed to load staged transactions:", e);
+      console.error("Failed to load local staged items:", e);
     }
   }, []);
 
   useEffect(() => {
-    loadStaged();
+    loadLocalStaged();
 
-    const handleCustomEvent = () => loadStaged();
+    const handleCustomEvent = () => loadLocalStaged();
     window.addEventListener("staged_queue_updated", handleCustomEvent);
     window.addEventListener("storage", handleCustomEvent);
 
@@ -47,13 +63,33 @@ export function useStagedTransactions() {
       window.removeEventListener("staged_queue_updated", handleCustomEvent);
       window.removeEventListener("storage", handleCustomEvent);
     };
-  }, [loadStaged]);
+  }, [loadLocalStaged]);
 
   const notifyChange = (newList: StagedTransactionItem[]) => {
-    setStagedList(newList);
+    setLocalStaged(newList);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newList));
     window.dispatchEvent(new Event("staged_queue_updated"));
   };
+
+  // Merge remote DB items + local items cleanly
+  const allStaged = useMemo(() => {
+    const formattedRemote: StagedTransactionItem[] = remoteStaged.map((t: Transaction) => ({
+      id: t.id,
+      account_id: t.account_id || "",
+      type: (t.type as "expense" | "income") || "expense",
+      amount_cents: t.amount_cents,
+      category: t.category || "Miscellaneous",
+      description: t.description || "",
+      txn_date: t.txn_date,
+      source: "email",
+      created_at: t.created_at || new Date().toISOString(),
+    }));
+
+    const remoteIds = new Set(formattedRemote.map((r) => r.id));
+    const uniqueLocal = localStaged.filter((l) => !remoteIds.has(l.id));
+
+    return [...formattedRemote, ...uniqueLocal];
+  }, [remoteStaged, localStaged]);
 
   const addStagedTransaction = (item: Omit<StagedTransactionItem, "id" | "created_at">) => {
     const newItem: StagedTransactionItem = {
@@ -61,31 +97,42 @@ export function useStagedTransactions() {
       id: "staged_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
       created_at: new Date().toISOString(),
     };
-    const updated = [newItem, ...stagedList];
+    const updated = [newItem, ...localStaged];
     notifyChange(updated);
     return newItem;
   };
 
   const updateStagedTransaction = (id: string, updates: Partial<StagedTransactionItem>) => {
-    const updated = stagedList.map((item) => (item.id === id ? { ...item, ...updates } : item));
+    const updated = localStaged.map((item) => (item.id === id ? { ...item, ...updates } : item));
     notifyChange(updated);
   };
 
-  const removeStagedTransaction = (id: string) => {
-    const updated = stagedList.filter((item) => item.id !== id);
+  const removeStagedTransaction = async (id: string) => {
+    if (!id.startsWith("staged_")) {
+      try {
+        await api.transactions.delete(id);
+        await refetch();
+      } catch (e) {
+        console.error("Failed to delete remote staged item:", e);
+      }
+    }
+    const updated = localStaged.filter((item) => item.id !== id);
     notifyChange(updated);
+    queryClient.invalidateQueries({ queryKey: ["staged-transactions"] });
   };
 
   const clearAllStaged = () => {
     notifyChange([]);
+    queryClient.invalidateQueries({ queryKey: ["staged-transactions"] });
   };
 
   return {
-    stagedTransactions: stagedList,
-    stagedCount: stagedList.length,
+    stagedTransactions: allStaged,
+    stagedCount: allStaged.length,
     addStagedTransaction,
     updateStagedTransaction,
     removeStagedTransaction,
     clearAllStaged,
+    refetchStaged: refetch,
   };
 }

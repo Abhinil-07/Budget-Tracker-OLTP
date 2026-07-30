@@ -134,6 +134,12 @@ export const api = {
       request<{ success: boolean; message: string; id: string }>(`/api/transactions/${id}`, {
         method: "DELETE",
       }),
+    listStaged: () => request<Transaction[]>("/api/transactions/staged"),
+    approveStaged: (id: string, body: UpdateTransactionDto) =>
+      request<Transaction>(`/api/transactions/staged/${id}/approve`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
   },
   budget: {
     get: (month?: string) => request<BudgetAggregatedDto>(month ? `/api/budget?month=${month}` : "/api/budget"),
