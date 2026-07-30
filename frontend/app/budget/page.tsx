@@ -7,6 +7,7 @@ import PageWrapper from "../../components/layout/PageWrapper";
 import { formatCurrency } from "../../lib/formatCurrency";
 import { api, ApiError } from "../../lib/api";
 import { useQueryClient } from "@tanstack/react-query";
+import BudgetAlertBanners from "../../components/budget/BudgetAlertBanners";
 import { CATEGORIES } from "../../lib/constants";
 import { useCategories } from "../../hooks/useCategories";
 import {
@@ -260,7 +261,14 @@ export default function BudgetPage() {
             <div className="h-40 bg-surface rounded-xl border border-border" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="space-y-6">
+            <BudgetAlertBanners
+              categoryBreakdown={budget?.category_breakdown}
+              totalBudgetCents={totalBudgetCents}
+              mtdSpentCents={mtdSpentCents}
+            />
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* LEFT SECTION: Budget Input and Progress Bar */}
             <div className="lg:col-span-2 space-y-6">
               {/* Budget input card */}
@@ -511,8 +519,9 @@ export default function BudgetPage() {
               )}
             </div>
           </div>
-        )}
-      </div>
-    </PageWrapper>
+        </div>
+      )}
+    </div>
+  </PageWrapper>
   );
 }

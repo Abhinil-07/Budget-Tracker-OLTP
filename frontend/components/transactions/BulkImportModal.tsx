@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import * as XLSX from "xlsx";
 import { X, Upload, CheckCircle, AlertCircle, FileSpreadsheet, ArrowRight, ArrowLeft, RefreshCw, Check } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../../lib/api";
@@ -117,66 +118,110 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
     processFile(selectedFile);
   };
 
+  const setupHeadersAndRows = (headers: string[], parsedRows: Record<string, string>[]) => {
+    setCsvHeaders(headers);
+
+    const lowerHeaders = headers.map((h) => h.toLowerCase());
+    const foundDate = headers[lowerHeaders.findIndex((h) => h.includes("date") || h.includes("txn"))] || headers[0] || "";
+    const foundDesc = headers[lowerHeaders.findIndex((h) => h.includes("desc") || h.includes("narration") || h.includes("remark") || h.includes("particular"))] || headers[1] || "";
+    const foundAmount = headers[lowerHeaders.findIndex((h) => h.includes("amount") || h.includes("val"))] || "";
+    const foundDebit = headers[lowerHeaders.findIndex((h) => h.includes("debit") || h.includes("dr"))] || "";
+    const foundCredit = headers[lowerHeaders.findIndex((h) => h.includes("credit") || h.includes("cr"))] || "";
+    const foundCat = headers[lowerHeaders.findIndex((h) => h.includes("cat"))] || "";
+
+    setDateHeader(foundDate);
+    setDescHeader(foundDesc);
+    if (foundDebit && foundCredit) {
+      setAmountMode("separate");
+      setDebitHeader(foundDebit);
+      setCreditHeader(foundCredit);
+    } else if (foundAmount) {
+      setAmountMode("single");
+      setSingleAmountHeader(foundAmount);
+    } else {
+      setSingleAmountHeader(headers[2] || "");
+    }
+    setCategoryHeader(foundCat);
+    setRawRows(parsedRows);
+  };
+
   const processFile = (selectedFile: File) => {
     setFile(selectedFile);
     setError(null);
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const text = evt.target?.result as string;
-      if (!text) {
-        setError("File appears to be empty.");
-        return;
-      }
+    const fileName = selectedFile.name.toLowerCase();
+    const isExcel = fileName.endsWith(".xlsx") || fileName.endsWith(".xls");
 
-      const lines = text.split(/\r\n|\n/).filter((line) => line.trim().length > 0);
-      if (lines.length < 2) {
-        setError("CSV must contain a header row and at least one data row.");
-        return;
-      }
+    if (isExcel) {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const buffer = evt.target?.result as ArrayBuffer;
+          const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
+          const firstSheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: "" });
 
-      const headers = parseCSVLine(lines[0]);
-      setCsvHeaders(headers);
+          if (jsonData.length === 0) {
+            setError("Excel file appears to be empty.");
+            return;
+          }
 
-      // Auto-suggest header mappings
-      const lowerHeaders = headers.map((h) => h.toLowerCase());
-      
-      const foundDate = headers[lowerHeaders.findIndex((h) => h.includes("date") || h.includes("txn"))] || headers[0] || "";
-      const foundDesc = headers[lowerHeaders.findIndex((h) => h.includes("desc") || h.includes("narration") || h.includes("remark") || h.includes("particular"))] || headers[1] || "";
-      const foundAmount = headers[lowerHeaders.findIndex((h) => h.includes("amount") || h.includes("val"))] || "";
-      const foundDebit = headers[lowerHeaders.findIndex((h) => h.includes("debit") || h.includes("dr"))] || "";
-      const foundCredit = headers[lowerHeaders.findIndex((h) => h.includes("credit") || h.includes("cr"))] || "";
-      const foundCat = headers[lowerHeaders.findIndex((h) => h.includes("cat"))] || "";
-
-      setDateHeader(foundDate);
-      setDescHeader(foundDesc);
-      if (foundDebit && foundCredit) {
-        setAmountMode("separate");
-        setDebitHeader(foundDebit);
-        setCreditHeader(foundCredit);
-      } else if (foundAmount) {
-        setAmountMode("single");
-        setSingleAmountHeader(foundAmount);
-      } else {
-        setSingleAmountHeader(headers[2] || "");
-      }
-      setCategoryHeader(foundCat);
-
-      const rows: Record<string, string>[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const values = parseCSVLine(lines[i]);
-        if (values.length === headers.length || values.some(v => v.trim() !== "")) {
-          const rowObj: Record<string, string> = {};
-          headers.forEach((h, idx) => {
-            rowObj[h] = values[idx] || "";
+          const headers = Object.keys(jsonData[0]);
+          const parsedRows: Record<string, string>[] = jsonData.map((row) => {
+            const formatted: Record<string, string> = {};
+            headers.forEach((h) => {
+              const val = row[h];
+              if (val instanceof Date) {
+                formatted[h] = val.toISOString().split("T")[0];
+              } else {
+                formatted[h] = val !== undefined && val !== null ? String(val) : "";
+              }
+            });
+            return formatted;
           });
-          rows.push(rowObj);
-        }
-      }
-      setRawRows(rows);
-    };
 
-    reader.readAsText(selectedFile);
+          setupHeadersAndRows(headers, parsedRows);
+        } catch (err) {
+          console.error("Excel parse error:", err);
+          setError("Failed to parse Excel file. Please ensure it is a valid .xlsx or .xls file.");
+        }
+      };
+      reader.readAsArrayBuffer(selectedFile);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const text = evt.target?.result as string;
+        if (!text) {
+          setError("File appears to be empty.");
+          return;
+        }
+
+        const lines = text.split(/\r\n|\n/).filter((line) => line.trim().length > 0);
+        if (lines.length < 2) {
+          setError("CSV must contain a header row and at least one data row.");
+          return;
+        }
+
+        const headers = parseCSVLine(lines[0]);
+        const parsedRows: Record<string, string>[] = [];
+
+        for (let i = 1; i < lines.length; i++) {
+          const values = parseCSVLine(lines[i]);
+          if (values.length === headers.length || values.some((v) => v.trim() !== "")) {
+            const rowObj: Record<string, string> = {};
+            headers.forEach((h, idx) => {
+              rowObj[h] = values[idx] || "";
+            });
+            parsedRows.push(rowObj);
+          }
+        }
+
+        setupHeadersAndRows(headers, parsedRows);
+      };
+
+      reader.readAsText(selectedFile);
+    }
   };
 
   // Helper date parser
@@ -443,19 +488,19 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
 
               <div>
                 <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
-                  2. Upload Bank Statement (.CSV)
+                  2. Upload Bank Statement (.CSV or .XLSX)
                 </label>
                 <div className="border-2 border-dashed border-border/80 hover:border-accent/60 rounded-xl p-8 text-center transition-all bg-surface-raised/30 flex flex-col items-center justify-center gap-3">
                   <Upload className="h-10 w-10 text-accent/80 animate-pulse" />
                   <div>
                     <p className="text-sm font-semibold text-text-primary">
-                      {file ? file.name : "Click or drop your CSV bank statement here"}
+                      {file ? file.name : "Click or drop your CSV or Excel (.xlsx) statement here"}
                     </p>
-                    <p className="text-xs text-text-muted mt-1">Supports standard bank export files</p>
+                    <p className="text-xs text-text-muted mt-1">Supports standard CSV & Excel bank exports</p>
                   </div>
                   <input
                     type="file"
-                    accept=".csv"
+                    accept=".csv, .xlsx, .xls"
                     onChange={handleFileChange}
                     className="absolute opacity-0 cursor-pointer w-full h-36"
                   />

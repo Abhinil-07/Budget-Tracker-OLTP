@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Sparkles, Zap, CheckCircle } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../../lib/api";
 import { useAccounts } from "../../hooks/useAccounts";
@@ -78,6 +78,9 @@ export default function AddTransactionModal({
   const { categories, addCategory } = useCategories();
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [showSmsParser, setShowSmsParser] = useState(false);
+  const [rawSmsText, setRawSmsText] = useState("");
+  const [smsParsedSuccess, setSmsParsedSuccess] = useState(false);
 
   const handleAddCustomCategory = () => {
     const trimmed = newCategoryName.trim();
@@ -86,6 +89,92 @@ export default function AddTransactionModal({
     setValue("category", trimmed, { shouldValidate: true });
     setNewCategoryName("");
     setIsAddingCategory(false);
+  };
+
+  const handleParseSms = () => {
+    const text = rawSmsText.trim();
+    if (!text) return;
+
+    const lower = text.toLowerCase();
+
+    // 1. Amount Extraction
+    const amountMatch =
+      text.match(/(?:rs\.?|inr|₹)\s*([\d,]+(?:\.\d{1,2})?)/i) ||
+      text.match(/(?:debited|credited|spent|paid)\s*(?:by|of)?\s*(?:rs\.?|inr|₹)?\s*([\d,]+(?:\.\d{1,2})?)/i) ||
+      text.match(/([\d,]+(?:\.\d{1,2})?)\s*(?:debited|credited|spent)/i);
+
+    if (amountMatch && amountMatch[1]) {
+      const rawAmt = amountMatch[1].replace(/,/g, "");
+      if (!isNaN(Number(rawAmt))) {
+        setValue("amount", rawAmt, { shouldValidate: true });
+      }
+    }
+
+    // 2. Type Extraction
+    if (lower.includes("credited") || lower.includes("received") || lower.includes("salary") || lower.includes("refund")) {
+      setValue("type", "income");
+    } else if (lower.includes("debited") || lower.includes("spent") || lower.includes("paid") || lower.includes("vpa") || lower.includes("upi")) {
+      setValue("type", "expense");
+    }
+
+    // 3. Smart Category Inference
+    let inferredCategory = "Miscellaneous";
+    if (lower.includes("zomato") || lower.includes("swiggy") || lower.includes("starbucks") || lower.includes("dominos") || lower.includes("mcdonald") || lower.includes("restaurant") || lower.includes("cafe")) {
+      inferredCategory = "Food & Dining";
+    } else if (lower.includes("uber") || lower.includes("ola") || lower.includes("rapido") || lower.includes("petrol") || lower.includes("fuel") || lower.includes("shell") || lower.includes("hpcl") || lower.includes("bpcl")) {
+      inferredCategory = "Transport";
+    } else if (lower.includes("amazon") || lower.includes("flipkart") || lower.includes("myntra") || lower.includes("ajio") || lower.includes("zara")) {
+      inferredCategory = "Shopping";
+    } else if (lower.includes("d-mart") || lower.includes("dmart") || lower.includes("blinkit") || lower.includes("zepto") || lower.includes("instamart") || lower.includes("grocery") || lower.includes("bigbasket")) {
+      inferredCategory = "Grocery";
+    } else if (lower.includes("airtel") || lower.includes("jio") || lower.includes("electricity") || lower.includes("bill") || lower.includes("bescom") || lower.includes("broadband")) {
+      inferredCategory = "Utilities";
+    } else if (lower.includes("netflix") || lower.includes("spotify") || lower.includes("prime") || lower.includes("pvr") || lower.includes("inox") || lower.includes("movie")) {
+      inferredCategory = "Entertainment";
+    } else if (lower.includes("salary") || lower.includes("payroll")) {
+      inferredCategory = "Salary";
+    } else if (lower.includes("rent")) {
+      inferredCategory = "Housing";
+    }
+
+    const matchedCat = categories.find((c) => c.toLowerCase() === inferredCategory.toLowerCase()) || categories[0] || inferredCategory;
+    setValue("category", matchedCat, { shouldValidate: true });
+
+    // 4. Description / Payee Extraction
+    const toMatch = text.match(/(?:to|at|vpa|info:)\s*([A-Za-z0-9\s&.\-]+?)(?:\s+on|\s+ref|\s+via|\s+val|\.|\$)/i);
+    if (toMatch && toMatch[1]) {
+      setValue("description", toMatch[1].trim());
+    } else {
+      const shortFallback = text.length > 40 ? text.substring(0, 40) + "..." : text;
+      setValue("description", shortFallback);
+    }
+
+    // 5. Date Extraction
+    const dateMatch = text.match(/(\d{1,2})[-/]([A-Za-z]{3}|\d{1,2})[-/](\d{2,4})/);
+    if (dateMatch) {
+      try {
+        const day = dateMatch[1].padStart(2, "0");
+        let month = dateMatch[2];
+        let year = dateMatch[3];
+        if (year.length === 2) year = "20" + year;
+
+        const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+        const monthIdx = monthNames.indexOf(month.toLowerCase());
+        if (monthIdx !== -1) {
+          month = String(monthIdx + 1).padStart(2, "0");
+        } else {
+          month = month.padStart(2, "0");
+        }
+
+        const formattedDate = `${year}-${month}-${day}`;
+        setValue("txn_date", formattedDate, { shouldValidate: true });
+      } catch (e) {
+        // Fallback to today
+      }
+    }
+
+    setSmsParsedSuccess(true);
+    setTimeout(() => setSmsParsedSuccess(false), 3000);
   };
 
   // Auto-focus amount field when modal opens
@@ -214,6 +303,58 @@ export default function AddTransactionModal({
               {errors.root.message}
             </div>
           )}
+
+          {/* Quick Bank SMS / UPI Parser Toggle */}
+          <div className="bg-surface-raised/40 border border-border/60 rounded-xl p-3.5 space-y-3">
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setShowSmsParser(!showSmsParser)}
+                className="flex items-center gap-2 text-xs font-semibold text-accent hover:underline cursor-pointer"
+              >
+                <Zap className="h-4 w-4 text-accent animate-bounce" />
+                <span>Auto-Fill from Bank SMS / UPI Text</span>
+              </button>
+              {smsParsedSuccess && (
+                <span className="flex items-center gap-1 text-[11px] font-semibold text-success bg-success/15 px-2 py-0.5 rounded border border-success/30 font-mono">
+                  <CheckCircle className="h-3 w-3" /> Auto-Filled!
+                </span>
+              )}
+            </div>
+
+            {showSmsParser && (
+              <div className="space-y-2.5 pt-2 border-t border-border/40 animate-in fade-in duration-200">
+                <textarea
+                  value={rawSmsText}
+                  onChange={(e) => setRawSmsText(e.target.value)}
+                  placeholder="Paste SMS here (e.g. 'Rs 450.00 debited on 26-Jul-26 to Zomato via UPI...')"
+                  rows={2}
+                  className="w-full px-3 py-2 bg-surface border border-border/80 rounded-lg text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent resize-none font-mono"
+                />
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRawSmsText("");
+                      setShowSmsParser(false);
+                    }}
+                    className="px-2.5 py-1 text-xs text-text-muted hover:text-text-primary font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleParseSms}
+                    disabled={!rawSmsText.trim()}
+                    className="flex items-center gap-1.5 px-3 py-1 bg-accent hover:bg-accent/90 disabled:opacity-50 text-text-primary rounded-lg text-xs font-semibold shadow-sm transition-all"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>Extract & Fill Form</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Type Toggle */}
           <div>

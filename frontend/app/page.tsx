@@ -10,6 +10,7 @@ import { useInvestments } from "../hooks/useInvestments";
 import PageWrapper from "../components/layout/PageWrapper";
 import AccountCard from "../components/accounts/AccountCard";
 import AddTransactionModal from "../components/transactions/AddTransactionModal";
+import BudgetAlertBanners from "../components/budget/BudgetAlertBanners";
 import { formatCurrency } from "../lib/formatCurrency";
 import { formatDate } from "../lib/formatDate";
 import { AlertCircle } from "lucide-react";
@@ -221,6 +222,16 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Budget Threshold Alerts */}
+      <div className="mb-6">
+        <BudgetAlertBanners
+          categoryBreakdown={budget?.category_breakdown}
+          totalBudgetCents={totalBudgetCents}
+          mtdSpentCents={mtdSpentCents}
+          showLinkToBudget
+        />
+      </div>
 
       {/* Timeframe Selector Panel */}
       <div className="mb-6 p-4 rounded-xl bg-surface border border-border/60 flex items-center justify-between flex-wrap gap-3 select-none">

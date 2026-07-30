@@ -84,6 +84,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 - All Databricks credentials are environment variables — never hardcoded
 - Credit card accounts track **amount owed** (liability), not a balance going down
 - The weekly sync must be **idempotent** — re-running it for the same week should not duplicate data in the Volume
+- **Do NOT push code changes to GitHub (`git push`) unless explicitly requested by the user.**
 
 ---
 
