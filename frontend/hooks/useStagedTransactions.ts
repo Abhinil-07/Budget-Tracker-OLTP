@@ -35,7 +35,7 @@ export function useStagedTransactions() {
         return [];
       }
     },
-    refetchInterval: 10000, // Auto refetch every 10s to pick up incoming emails!
+    refetchInterval: 8000,
   });
 
   // Load local staged items
@@ -108,21 +108,46 @@ export function useStagedTransactions() {
   };
 
   const removeStagedTransaction = async (id: string) => {
+    // 1. Instant optimistic state update
+    setLocalStaged((prev) => prev.filter((item) => item.id !== id));
+    queryClient.setQueryData(["staged-transactions"], (oldData: Transaction[] | undefined) => {
+      if (!oldData) return [];
+      return oldData.filter((t) => t.id !== id);
+    });
+
+    // 2. Clear from localStorage
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored).filter((item: StagedTransactionItem) => item.id !== id);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      }
+    } catch (e) {}
+
+    window.dispatchEvent(new Event("staged_queue_updated"));
+
+    // 3. Delete from Supabase DB if remote UUID
     if (!id.startsWith("staged_")) {
       try {
         await api.transactions.delete(id);
-        await refetch();
+        queryClient.invalidateQueries({ queryKey: ["staged-transactions"] });
       } catch (e) {
         console.error("Failed to delete remote staged item:", e);
       }
     }
-    const updated = localStaged.filter((item) => item.id !== id);
-    notifyChange(updated);
-    queryClient.invalidateQueries({ queryKey: ["staged-transactions"] });
   };
 
-  const clearAllStaged = () => {
+  const clearAllStaged = async () => {
+    // Delete all remote items
+    for (const item of allStaged) {
+      if (!item.id.startsWith("staged_")) {
+        try {
+          await api.transactions.delete(item.id);
+        } catch (e) {}
+      }
+    }
     notifyChange([]);
+    queryClient.setQueryData(["staged-transactions"], []);
     queryClient.invalidateQueries({ queryKey: ["staged-transactions"] });
   };
 

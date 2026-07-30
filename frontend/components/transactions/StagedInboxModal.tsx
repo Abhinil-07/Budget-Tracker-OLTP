@@ -1,13 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Check, Trash2, Mail, MessageSquare, AlertCircle, Sparkles, CheckCheck } from "lucide-react";
+import { X, Check, Trash2, Mail, MessageSquare, AlertCircle, Sparkles, CheckCheck, Inbox, ShieldCheck } from "lucide-react";
 import { useStagedTransactions, StagedTransactionItem } from "../../hooks/useStagedTransactions";
 import { useAccounts } from "../../hooks/useAccounts";
 import { useCategories } from "../../hooks/useCategories";
 import { api, ApiError } from "../../lib/api";
 import { useQueryClient } from "@tanstack/react-query";
-import { formatCurrency } from "../../lib/formatCurrency";
 
 interface StagedInboxModalProps {
   isOpen: boolean;
@@ -35,7 +34,11 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
     setError(null);
     setLoadingIds((prev) => ({ ...prev, [item.id]: true }));
 
+    // 1. INSTANT OPTIMISTIC REMOVAL FROM UI (0ms delay)
+    removeStagedTransaction(item.id);
+
     try {
+      // 2. Log transaction & update account balance in DB
       await api.transactions.create({
         account_id: item.account_id,
         type: item.type,
@@ -45,13 +48,10 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
         txn_date: item.txn_date,
       });
 
-      // Refetch accounts & transactions
-      await queryClient.invalidateQueries({ queryKey: ["accounts"] });
-      await queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      await queryClient.invalidateQueries({ queryKey: ["budget"] });
-
-      // Remove from staged queue
-      removeStagedTransaction(item.id);
+      // Refetch ledger state in background
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["budget"] });
     } catch (err) {
       console.error("Failed to approve transaction:", err);
       const message = err instanceof ApiError ? err.message : "Failed to save transaction.";
@@ -64,7 +64,7 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
   const handleApproveAll = async () => {
     const validItems = stagedTransactions.filter((item) => Boolean(item.account_id));
     if (validItems.length === 0) {
-      setError("Please assign accounts to your staged transactions first.");
+      setError("Please select bank/credit card accounts for your transactions before approving.");
       return;
     }
 
@@ -75,124 +75,135 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-surface border border-border rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[85vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+      {/* Glassmorphic Modal Box Container */}
+      <div className="bg-slate-900/90 border border-slate-800/90 shadow-2xl rounded-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[85vh] backdrop-blur-xl ring-1 ring-white/10">
+        
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border/80 bg-surface-raised/40">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-accent/15 rounded-lg">
-              <Sparkles className="h-5 w-5 text-accent" />
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800/80 bg-slate-900/50">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-emerald-500/15 border border-emerald-500/30 rounded-xl text-emerald-400 shadow-sm">
+              <Sparkles className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="font-semibold text-text-primary text-lg">Staged Inbox</h2>
-              <p className="text-xs text-text-muted">
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold text-slate-100 text-lg tracking-tight">Staged Inbox</h2>
+                {stagedTransactions.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    {stagedTransactions.length}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400">
                 Review and approve auto-parsed SMS & Email transactions before they enter your ledger.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-text-muted hover:text-text-primary hover:bg-surface-raised rounded-lg transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 rounded-lg transition-all"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-4 font-sans">
+        <div className="p-6 overflow-y-auto flex-1 space-y-4 font-sans custom-scrollbar">
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-danger/10 border border-danger/20 text-danger rounded-lg text-sm">
+            <div className="flex items-center gap-2 p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl text-sm animate-in slide-in-from-top-1">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {stagedTransactions.length === 0 ? (
-            <div className="py-12 text-center space-y-3">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-surface-raised rounded-full text-text-muted border border-border">
-                <Check className="h-6 w-6 text-success" />
+            /* Glassmorphic Empty State */
+            <div className="py-14 text-center space-y-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-400 shadow-inner">
+                <ShieldCheck className="h-8 w-8" />
               </div>
-              <h3 className="text-base font-semibold text-text-primary">Inbox Clean & Clear!</h3>
-              <p className="text-xs text-text-muted max-w-sm mx-auto">
-                No unreviewed transactions pending. Forwarded bank emails and parsed SMS will land here for your review.
-              </p>
+              <div className="space-y-1">
+                <h3 className="text-lg font-semibold text-slate-100">Inbox Clean & Clear!</h3>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                  No unreviewed transactions pending. Forwarded bank emails and parsed SMS will land here for instant 1-click review.
+                </p>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between text-xs font-mono bg-surface-raised/60 p-3 rounded-lg border border-border/50">
-                <span className="text-text-secondary">
-                  <strong>{stagedTransactions.length}</strong> transaction(s) pending review.
+              {/* Batch Action Toolbar */}
+              <div className="flex items-center justify-between text-xs font-mono bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 backdrop-blur-sm">
+                <span className="text-slate-300">
+                  <strong>{stagedTransactions.length}</strong> pending transaction(s)
                 </span>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={handleApproveAll}
-                    className="flex items-center gap-1 text-accent font-semibold hover:underline"
+                    className="flex items-center gap-1.5 text-emerald-400 font-semibold hover:text-emerald-300 transition-colors"
                   >
-                    <CheckCheck className="h-3.5 w-3.5" /> Approve All Ready
+                    <CheckCheck className="h-4 w-4" /> Approve All
                   </button>
-                  <span className="text-border">|</span>
+                  <span className="text-slate-700">|</span>
                   <button
                     type="button"
                     onClick={clearAllStaged}
-                    className="text-text-muted hover:text-danger hover:underline"
+                    className="text-slate-400 hover:text-rose-400 transition-colors"
                   >
                     Discard All
                   </button>
                 </div>
               </div>
 
-              {/* Transaction Cards List */}
-              <div className="space-y-3">
+              {/* Transaction Cards */}
+              <div className="space-y-3.5">
                 {stagedTransactions.map((item) => (
                   <div
                     key={item.id}
-                    className="p-4 bg-surface-raised/30 border border-border rounded-xl space-y-3 hover:border-border/90 transition-all"
+                    className="p-4 bg-slate-800/40 border border-slate-700/60 hover:border-emerald-500/40 rounded-xl space-y-3.5 transition-all shadow-md backdrop-blur-md group"
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2.5">
                         {item.source === "email" ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-accent bg-accent/15 px-2 py-0.5 rounded border border-accent/30 uppercase font-mono">
+                          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-sky-400 bg-sky-500/10 px-2.5 py-1 rounded-md border border-sky-500/20 uppercase font-mono tracking-wider">
                             <Mail className="h-3 w-3" /> Gmail
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-success bg-success/15 px-2 py-0.5 rounded border border-success/30 uppercase font-mono">
+                          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20 uppercase font-mono tracking-wider">
                             <MessageSquare className="h-3 w-3" /> SMS
                           </span>
                         )}
-                        <span className="text-xs text-text-muted font-mono">{item.created_at.split("T")[0]}</span>
+                        <span className="text-xs text-slate-400 font-mono">{item.created_at.split("T")[0]}</span>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateStagedTransaction(item.id, {
-                              type: item.type === "expense" ? "income" : "expense",
-                            })
-                          }
-                          className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase cursor-pointer transition-all ${
-                            item.type === "expense"
-                              ? "bg-danger/15 text-danger border border-danger/30 hover:bg-danger/25"
-                              : "bg-success/15 text-success border border-success/30 hover:bg-success/25"
-                          }`}
-                        >
-                          {item.type}
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateStagedTransaction(item.id, {
+                            type: item.type === "expense" ? "income" : "expense",
+                          })
+                        }
+                        className={`px-2.5 py-1 rounded-md text-[10px] font-semibold uppercase cursor-pointer transition-all font-mono tracking-wider ${
+                          item.type === "expense"
+                            ? "bg-rose-500/15 text-rose-400 border border-rose-500/30 hover:bg-rose-500/25"
+                            : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25"
+                        }`}
+                      >
+                        {item.type}
+                      </button>
                     </div>
 
-                    {/* Form Fields Grid */}
+                    {/* Inputs Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs font-mono">
-                      {/* Account Picker */}
+                      {/* Account */}
                       <div>
-                        <label className="block text-[10px] font-sans font-semibold text-text-muted uppercase mb-1">
+                        <label className="block text-[10px] font-sans font-semibold text-slate-400 uppercase mb-1">
                           Account *
                         </label>
                         <select
                           value={item.account_id}
                           onChange={(e) => updateStagedTransaction(item.id, { account_id: e.target.value })}
-                          className="w-full bg-surface border border-border/80 rounded px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-accent"
+                          className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                         >
                           <option value="">-- Select Account --</option>
                           {accounts.map((acc) => (
@@ -205,13 +216,13 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
 
                       {/* Category */}
                       <div>
-                        <label className="block text-[10px] font-sans font-semibold text-text-muted uppercase mb-1">
+                        <label className="block text-[10px] font-sans font-semibold text-slate-400 uppercase mb-1">
                           Category
                         </label>
                         <select
                           value={item.category}
                           onChange={(e) => updateStagedTransaction(item.id, { category: e.target.value })}
-                          className="w-full bg-surface border border-border/80 rounded px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-accent"
+                          className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                         >
                           {categories.map((c) => (
                             <option key={c} value={c}>
@@ -221,9 +232,9 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
                         </select>
                       </div>
 
-                      {/* Amount (₹) */}
+                      {/* Amount */}
                       <div>
-                        <label className="block text-[10px] font-sans font-semibold text-text-muted uppercase mb-1">
+                        <label className="block text-[10px] font-sans font-semibold text-slate-400 uppercase mb-1">
                           Amount (₹)
                         </label>
                         <input
@@ -236,41 +247,41 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
                               amount_cents: isNaN(val) ? 0 : Math.round(val * 100),
                             });
                           }}
-                          className="w-full bg-surface border border-border/80 rounded px-2.5 py-1.5 text-xs font-semibold text-text-primary focus:outline-none focus:ring-1 focus:ring-accent"
+                          className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-100 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                         />
                       </div>
 
                       {/* Date */}
                       <div>
-                        <label className="block text-[10px] font-sans font-semibold text-text-muted uppercase mb-1">
+                        <label className="block text-[10px] font-sans font-semibold text-slate-400 uppercase mb-1">
                           Date
                         </label>
                         <input
                           type="date"
                           value={item.txn_date}
                           onChange={(e) => updateStagedTransaction(item.id, { txn_date: e.target.value })}
-                          className="w-full bg-surface border border-border/80 rounded px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-accent"
+                          className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                         />
                       </div>
                     </div>
 
-                    {/* Description & Action buttons */}
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-border/40">
+                    {/* Payee / Description & Actions */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-700/40">
                       <div className="w-full sm:w-2/3">
                         <input
                           type="text"
                           value={item.description}
                           onChange={(e) => updateStagedTransaction(item.id, { description: e.target.value })}
-                          placeholder="Description / Payee..."
-                          className="w-full bg-transparent border-b border-border/50 py-1 text-xs text-text-primary focus:border-accent focus:outline-none"
+                          placeholder="Description / Payee Name..."
+                          className="w-full bg-transparent border-b border-slate-700 py-1 text-xs text-slate-200 placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
                         />
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+                      <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto justify-end">
                         <button
                           type="button"
                           onClick={() => removeStagedTransaction(item.id)}
-                          className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
                           title="Discard transaction"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -280,10 +291,10 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
                           type="button"
                           disabled={loadingIds[item.id] || !item.account_id}
                           onClick={() => handleApprove(item)}
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-accent hover:bg-accent/90 disabled:opacity-50 text-text-primary rounded-lg text-xs font-semibold shadow-sm transition-all"
+                          className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 rounded-lg text-xs font-bold shadow-md shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
                         >
-                          <Check className="h-4 w-4" />
-                          <span>{loadingIds[item.id] ? "Saving..." : "Approve & Log"}</span>
+                          <Check className="h-4 w-4 stroke-[3]" />
+                          <span>Approve & Log</span>
                         </button>
                       </div>
                     </div>
