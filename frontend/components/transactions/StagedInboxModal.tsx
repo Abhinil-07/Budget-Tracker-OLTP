@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
-import { X, Check, Trash2, Mail, MessageSquare, AlertCircle, Sparkles, CheckCheck, Inbox, ShieldCheck } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { X, Check, Trash2, Mail, MessageSquare, AlertCircle, Sparkles, CheckCheck, ShieldCheck } from "lucide-react";
 import { useStagedTransactions, StagedTransactionItem } from "../../hooks/useStagedTransactions";
 import { useAccounts } from "../../hooks/useAccounts";
 import { useCategories } from "../../hooks/useCategories";
@@ -15,6 +16,7 @@ interface StagedInboxModalProps {
 
 export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalProps) {
   const queryClient = useQueryClient();
+  const [mounted, setMounted] = useState(false);
   const { stagedTransactions, updateStagedTransaction, removeStagedTransaction, clearAllStaged } =
     useStagedTransactions();
   const { data: accounts = [] } = useAccounts();
@@ -23,7 +25,11 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
   const [loadingIds, setLoadingIds] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
 
   const handleApprove = async (item: StagedTransactionItem) => {
     if (!item.account_id) {
@@ -74,10 +80,10 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      {/* Glassmorphic Modal Box Container */}
-      <div className="bg-slate-900/90 border border-slate-800/90 shadow-2xl rounded-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[85vh] backdrop-blur-xl ring-1 ring-white/10">
+  const modalUI = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+      {/* Glassmorphic Dead-Center Modal Box Container */}
+      <div className="relative my-auto mx-auto bg-slate-900/95 border border-slate-800/90 shadow-2xl rounded-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[85vh] backdrop-blur-xl ring-1 ring-white/10">
         
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800/80 bg-slate-900/50">
@@ -307,4 +313,6 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
       </div>
     </div>
   );
+
+  return createPortal(modalUI, document.body);
 }
