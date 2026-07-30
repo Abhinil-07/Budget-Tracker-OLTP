@@ -312,3 +312,77 @@ class TransactionService:
             raise ValidationError(f"Failed to adjust account balances for transaction update: {str(e)}")
             
         return Transaction(**updated_txn)
+
+    async def batch_create_transactions(self, dtos: List[CreateTransactionDto], user_id: str) -> dict:
+        """Create multiple transactions in batch and atomically update account balances."""
+        if not dtos:
+            return {"imported_count": 0, "account_ids": []}
+
+        # 1. Fetch user accounts to verify ownership & account types
+        account_ids = list({str(d.account_id) for d in dtos})
+        acc_response = (
+            await self.db.table("accounts")
+            .select("id, type")
+            .eq("user_id", user_id)
+            .in_("id", account_ids)
+            .execute()
+        )
+        user_accounts = {row["id"]: row["type"] for row in (acc_response.data or [])}
+
+        for acc_id in account_ids:
+            if acc_id not in user_accounts:
+                raise NotFoundError(f"Account {acc_id} not found or unauthorized")
+
+        # 2. Prepare transaction rows and compute net balance deltas per account
+        account_deltas: dict[str, int] = {}
+        insert_rows = []
+        today = date.today()
+
+        for dto in dtos:
+            acc_id = str(dto.account_id)
+            acc_type = user_accounts[acc_id]
+
+            if acc_type == "credit_card":
+                delta = dto.amount_cents if dto.type == "expense" else -dto.amount_cents
+            else:
+                delta = dto.amount_cents if dto.type == "income" else -dto.amount_cents
+
+            account_deltas[acc_id] = account_deltas.get(acc_id, 0) + delta
+
+            txn_date = dto.txn_date or today
+            insert_rows.append({
+                "user_id": user_id,
+                "account_id": acc_id,
+                "type": dto.type,
+                "amount_cents": dto.amount_cents,
+                "category": dto.category,
+                "description": dto.description,
+                "txn_date": txn_date.isoformat(),
+            })
+
+        # 3. Batch insert transaction records
+        insert_response = await self.db.table("transactions").insert(insert_rows).execute()
+        if not insert_response.data:
+            raise ValidationError("Failed to batch insert transactions")
+
+        inserted_data = insert_response.data
+
+        # 4. Atomically apply balance updates per account
+        try:
+            for acc_id, net_delta in account_deltas.items():
+                if net_delta != 0:
+                    await self.db.rpc("increment_balance", {
+                        "account_id": acc_id,
+                        "delta": net_delta
+                    }).execute()
+        except Exception as e:
+            # Attempt rollback of inserted transactions if balance update fails
+            inserted_ids = [r["id"] for r in inserted_data]
+            await self.db.table("transactions").delete().in_("id", inserted_ids).eq("user_id", user_id).execute()
+            raise ValidationError(f"Failed to update account balances during batch import: {str(e)}")
+
+        return {
+            "imported_count": len(inserted_data),
+            "account_ids": list(account_deltas.keys())
+        }
+

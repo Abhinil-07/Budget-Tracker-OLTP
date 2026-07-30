@@ -53,3 +53,12 @@ export interface DeleteTransactionResponse {
   message: string;
   id: string;
 }
+
+export interface BatchCreateTransactionsDto {
+  items: CreateTransactionDto[];
+}
+
+export interface BatchCreateResponse {
+  imported_count: number;
+  account_ids: string[];
+}

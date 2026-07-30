@@ -1,5 +1,5 @@
 import { Account, CreateAccountDto, UpdateAccountDto } from "../types/account";
-import { Transaction, CreateTransactionDto, UpdateTransactionDto, TransactionQuery, PaginatedTransactions } from "../types/transaction";
+import { Transaction, CreateTransactionDto, UpdateTransactionDto, TransactionQuery, PaginatedTransactions, BatchCreateTransactionsDto, BatchCreateResponse } from "../types/transaction";
 import { BudgetAggregatedDto, UpdateBudgetDto } from "../types/budget";
 import { SyncLog } from "../types/sync";
 import { Investment, CreateInvestmentDto, UpdateInvestmentDto, UpdateInvestmentValueDto } from "../types/investment";
@@ -117,6 +117,11 @@ export const api = {
       ),
     create: (body: CreateTransactionDto) =>
       request<Transaction>("/api/transactions", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    batchCreate: (body: BatchCreateTransactionsDto) =>
+      request<BatchCreateResponse>("/api/transactions/batch", {
         method: "POST",
         body: JSON.stringify(body),
       }),

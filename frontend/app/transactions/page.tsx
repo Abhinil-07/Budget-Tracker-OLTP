@@ -7,6 +7,7 @@ import { useTransactions } from "../../hooks/useTransactions";
 import PageWrapper from "../../components/layout/PageWrapper";
 import AddTransactionModal from "../../components/transactions/AddTransactionModal";
 import EditTransactionModal from "../../components/transactions/EditTransactionModal";
+import BulkImportModal from "../../components/transactions/BulkImportModal";
 import { formatCurrency } from "../../lib/formatCurrency";
 import { formatDate } from "../../lib/formatDate";
 import { CATEGORIES } from "../../lib/constants";
@@ -36,6 +37,7 @@ import {
   RefreshCw,
   Plus,
   Pencil,
+  Upload,
 } from "lucide-react";
 import { Transaction } from "../../types/transaction";
 
@@ -43,6 +45,7 @@ export default function TransactionsPage() {
   const queryClient = useQueryClient();
   const { token, hydrated, hydrate } = useAuthStore();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false);
 
   // States for selected account, filters, search, and page navigation
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
@@ -368,13 +371,23 @@ export default function TransactionsPage() {
     <PageWrapper title="Transactions" onAddTransactionClick={() => setShowAddModal(true)}>
       <AddTransactionModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
       <EditTransactionModal isOpen={!!editingTxn} onClose={() => setEditingTxn(null)} transaction={editingTxn} />
+      <BulkImportModal isOpen={showBulkImportModal} onClose={() => setShowBulkImportModal(false)} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 min-h-[calc(100vh-12rem)]">
         {/* LEFT PANEL: 1/3 Width Accounts List */}
         <div className={`lg:col-span-1 space-y-4 ${showMobileDetail ? "hidden lg:block" : "block"}`}>
-          <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider font-mono px-1">
-            Accounts Ledger
-          </h3>
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider font-mono">
+              Accounts Ledger
+            </h3>
+            <button
+              onClick={() => setShowBulkImportModal(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-accent/15 border border-accent/30 text-accent hover:bg-accent/25 rounded-md text-xs font-semibold font-mono transition-all"
+            >
+              <Upload className="h-3 w-3" />
+              Import Statement
+            </button>
+          </div>
           <div className="space-y-3">
             {accountsLoading ? (
               <div className="space-y-3 animate-pulse">
@@ -492,6 +505,16 @@ export default function TransactionsPage() {
                             {/* Overlay to close menu on click outside */}
                             <div className="fixed inset-0 z-40" onClick={() => setShowThreeDotsMenu(false)} />
                             <div className="absolute right-0 mt-2 bg-[#121A2A] border border-[#1E293B] rounded-lg shadow-xl py-1.5 w-40 z-50 text-xs text-text-primary animate-in fade-in slide-in-from-top-1 duration-150">
+                              <button
+                                onClick={() => {
+                                  setShowBulkImportModal(true);
+                                  setShowThreeDotsMenu(false);
+                                }}
+                                className="w-full text-left px-4 py-2 hover:bg-surface-raised transition-colors flex items-center gap-2 text-accent font-medium"
+                              >
+                                <Upload className="h-3.5 w-3.5 text-accent" />
+                                <span>Import Statement</span>
+                              </button>
                               <button
                                 onClick={() => {
                                   handleExportCSV();

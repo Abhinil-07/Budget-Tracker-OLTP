@@ -52,3 +52,10 @@ class DeleteTransactionResponse(BaseModel):
     success: bool = True
     message: str = "Transaction successfully deleted"
     id: UUID
+
+class BatchCreateTransactionsDto(BaseModel):
+    items: List[CreateTransactionDto] = Field(..., min_length=1, max_length=1000)
+
+class BatchCreateResponse(BaseModel):
+    imported_count: int
+    account_ids: List[UUID]
