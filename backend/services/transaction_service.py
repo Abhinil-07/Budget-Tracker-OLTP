@@ -529,7 +529,24 @@ class TransactionService:
         try:
             # Query all staged items so auto-parsed emails immediately land in the inbox
             res = await self.db.table("transactions").select("*").eq("status", "staged").order("created_at", desc=True).execute()
-            return [Transaction(**row) for row in res.data]
+            items = []
+            for row in res.data:
+                try:
+                    # Provide fallback values if optional database fields are null
+                    if not row.get("user_id"):
+                        row["user_id"] = user_id
+                    if not row.get("account_id"):
+                        row["account_id"] = "00000000-0000-0000-0000-000000000000"
+                    if not row.get("created_at"):
+                        row["created_at"] = datetime.utcnow().isoformat()
+                    if not row.get("status"):
+                        row["status"] = "staged"
+                    if not row.get("description"):
+                        row["description"] = "Bank Transaction Alert"
+                    items.append(Transaction(**row))
+                except Exception as row_err:
+                    print("Error parsing staged row:", row_err, row)
+            return items
         except Exception as e:
             print("Error listing staged transactions:", e)
             return []
