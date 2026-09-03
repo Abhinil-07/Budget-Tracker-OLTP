@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from supabase import AsyncClient
 from uuid import UUID
 from typing import List
@@ -48,43 +49,55 @@ class AccountService:
             raise e
 
     async def update_account(self, account_id: str, dto: UpdateAccountDto, user_id: str) -> Account:
-        """Update account details (name/currency). Raises NotFoundError if account doesn't exist."""
-        # Check if account exists and belongs to user
-        check_response = (
-            await self.db.table("accounts")
-            .select("*")
-            .eq("id", account_id)
-            .eq("user_id", user_id)
-            .execute()
-        )
-        if not check_response.data:
-            raise NotFoundError("Account not found")
+        """Update account details (name/currency/balance). Raises NotFoundError if account doesn't exist."""
+        try:
+            print(f"DEBUG: update_account inputs - account_id: {account_id}, dto: {dto}, user_id: {user_id}")
+            # Check if account exists and belongs to user
+            check_response = (
+                await self.db.table("accounts")
+                .select("*")
+                .eq("id", account_id)
+                .eq("user_id", user_id)
+                .execute()
+            )
+            print(f"DEBUG: check_response: {check_response}")
+            if not check_response.data:
+                # Diagnostics: check if account exists under another user_id or at all
+                all_check = await self.db.table("accounts").select("id, user_id").eq("id", account_id).execute()
+                print(f"DEBUG: all_check for account_id {account_id}: {all_check}")
+                raise NotFoundError("Account not found or access denied")
 
-        update_data = {}
-        if dto.name is not None:
-            update_data["name"] = dto.name
-        if dto.currency is not None:
-            update_data["currency"] = dto.currency
-        if dto.account_number is not None:
-            update_data["account_number"] = dto.account_number
-        if dto.balance_cents is not None:
-            update_data["balance_cents"] = dto.balance_cents
+            update_data = {
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            if dto.name is not None:
+                update_data["name"] = dto.name
+            if dto.currency is not None:
+                update_data["currency"] = dto.currency
+            if dto.account_number is not None:
+                update_data["account_number"] = dto.account_number
+            if dto.balance_cents is not None:
+                update_data["balance_cents"] = dto.balance_cents
 
-        if not update_data:
-            return Account(**check_response.data[0])
+            print(f"DEBUG: update_data: {update_data}")
+            response = (
+                await self.db.table("accounts")
+                .update(update_data)
+                .eq("id", account_id)
+                .eq("user_id", user_id)
+                .execute()
+            )
+            print(f"DEBUG: update response: {response}")
+            
+            if not response.data:
+                raise NotFoundError("Failed to update account in database")
 
-        response = (
-            await self.db.table("accounts")
-            .update(update_data)
-            .eq("id", account_id)
-            .eq("user_id", user_id)
-            .execute()
-        )
-        
-        if not response.data:
-            raise NotFoundError("Failed to update account")
-
-        return Account(**response.data[0])
+            return Account(**response.data[0])
+        except Exception as e:
+            import traceback
+            tb = traceback.format_exc()
+            print(f"\n{'='*60}\nEXCEPTION IN update_account:\n{tb}\n{'='*60}\n")
+            raise e
 
     async def delete_account(self, account_id: str, user_id: str) -> None:
         """Delete an account. Fails if transactions are linked to it."""

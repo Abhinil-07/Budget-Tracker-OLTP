@@ -102,7 +102,12 @@ export default function AccountsPage() {
       queryClient.invalidateQueries({ queryKey: ["transactions"] }); // invalidate transactions to update running balance checks if any
       setEditingId(null);
     } catch (err: unknown) {
-      const message = err instanceof ApiError ? err.message : "Failed to update account details.";
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+          ? err.message
+          : "Failed to update account details.";
       setEditError(message);
     }
   };
@@ -120,6 +125,8 @@ export default function AccountsPage() {
     } catch (err: unknown) {
       const message =
         err instanceof ApiError
+          ? err.message
+          : err instanceof Error
           ? err.message
           : "Cannot delete account. Ensure it has no remaining transactions.";
       setDeleteError(message);

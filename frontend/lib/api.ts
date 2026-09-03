@@ -19,8 +19,13 @@ export interface ApiResponse<T> {
 
 export class ApiError extends Error {
   constructor(public status: number, public payload: any) {
-    super(payload?.error?.message || `API Error (${status})`);
+    const msg =
+      payload?.error?.message ||
+      (typeof payload?.detail === "string" ? payload.detail : null) ||
+      `API Error (${status})`;
+    super(msg);
     this.name = "ApiError";
+    Object.setPrototypeOf(this, ApiError.prototype);
   }
 }
 

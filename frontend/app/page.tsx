@@ -106,6 +106,29 @@ export default function Dashboard() {
 
   const { data: incomeData } = useTransactions(incomeParams);
 
+  // Fetch all selected month's expense transactions to calculate per-account spend
+  const expenseParams = useMemo(() => {
+    return {
+      type: "expense" as const,
+      date_from: dateRange.start,
+      date_to: dateRange.end,
+      page_size: 1000,
+    };
+  }, [dateRange]);
+
+  const { data: expenseData } = useTransactions(expenseParams);
+
+  // Map of account_id -> total spent cents in the selected timeframe
+  const spentByAccount = useMemo(() => {
+    const map: Record<string, number> = {};
+    if (expenseData?.items) {
+      expenseData.items.forEach((item) => {
+        map[item.account_id] = (map[item.account_id] || 0) + item.amount_cents;
+      });
+    }
+    return map;
+  }, [expenseData]);
+
   // Fetch all-time transactions for the "Owed to Me" category
   const owedParams = useMemo(() => {
     return {
@@ -301,6 +324,7 @@ export default function Dashboard() {
               <AccountCard
                 key={acc.id}
                 account={acc}
+                spentThisMonthCents={spentByAccount[acc.id] || 0}
                 isSelected={selectedAccountId === acc.id}
                 onClick={() => handleAccountClick(acc.id)}
               />
