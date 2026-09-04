@@ -103,10 +103,46 @@ export default function BudgetPage() {
     }
   };
 
+  // Live category limit calculations in edit mode
+  const liveTotalLimitsCents = useMemo(() => {
+    let sum = 0;
+    Object.values(categoryLimits).forEach((val) => {
+      const cleanVal = val.trim();
+      if (cleanVal !== "") {
+        const num = Number(cleanVal);
+        if (!isNaN(num) && num > 0) {
+          sum += Math.round(num * 100);
+        }
+      }
+    });
+    return sum;
+  }, [categoryLimits]);
+
+  const liveBudgetCents = useMemo(() => {
+    const num = Number(budgetValue);
+    return isNaN(num) || num < 0 ? 0 : Math.round(num * 100);
+  }, [budgetValue]);
+
+  const isOverAllocated = liveTotalLimitsCents > liveBudgetCents;
+  const unallocatedCents = liveBudgetCents - liveTotalLimitsCents;
+
   const handleSave = async () => {
     const numVal = Number(budgetValue);
     if (isNaN(numVal) || numVal < 0) {
       setError("Please enter a valid positive budget amount.");
+      return;
+    }
+
+    if (isOverAllocated) {
+      setError(
+        `Total category limits (${formatCurrency(
+          liveTotalLimitsCents,
+          "INR"
+        )}) cannot exceed the total monthly budget (${formatCurrency(
+          liveBudgetCents,
+          "INR"
+        )}). Please adjust category limits.`
+      );
       return;
     }
 
@@ -136,7 +172,12 @@ export default function BudgetPage() {
       queryClient.invalidateQueries({ queryKey: ["budget"] });
       setIsEditing(false);
     } catch (err: unknown) {
-      const message = err instanceof ApiError ? err.message : "Failed to update monthly budget.";
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+          ? err.message
+          : "Failed to update monthly budget.";
       setError(message);
     } finally {
       setSaving(false);
@@ -296,9 +337,26 @@ export default function BudgetPage() {
                     </div>
 
                     <div>
-                      <h4 className="text-xs font-semibold text-text-primary uppercase tracking-wider font-mono mb-3 border-b border-border/50 pb-2">
-                        Category Limits (Optional)
-                      </h4>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-2 mb-3">
+                        <h4 className="text-xs font-semibold text-text-primary uppercase tracking-wider font-mono">
+                          Category Limits (Optional)
+                        </h4>
+                        <div className="text-xs font-mono flex items-center gap-2 flex-wrap">
+                          <span className="text-text-muted">Allocated:</span>
+                          <span className={`font-bold ${isOverAllocated ? "text-danger" : "text-accent"}`}>
+                            {formatCurrency(liveTotalLimitsCents, "INR")} / {formatCurrency(liveBudgetCents, "INR")}
+                          </span>
+                          {isOverAllocated ? (
+                            <span className="text-[10px] bg-danger/15 text-danger border border-danger/25 px-2 py-0.5 rounded font-bold">
+                              Over by {formatCurrency(liveTotalLimitsCents - liveBudgetCents, "INR")}
+                            </span>
+                          ) : unallocatedCents > 0 ? (
+                            <span className="text-[10px] text-text-muted">
+                              ({formatCurrency(unallocatedCents, "INR")} unallocated)
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {categories.map((cat) => (
                           <div key={cat} className="flex flex-col gap-1.5">

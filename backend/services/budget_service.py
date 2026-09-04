@@ -112,6 +112,13 @@ class BudgetService:
 
     async def upsert_budget(self, dto: UpdateBudgetDto, user_id: str, month_str: Optional[str] = None) -> Budget:
         """Create or update the specified month's budget configuration."""
+        if dto.category_limits:
+            total_categories_cents = sum(dto.category_limits.values())
+            if total_categories_cents > dto.total_cents:
+                raise ValidationError(
+                    f"Sum of category limits (₹{total_categories_cents / 100:.2f}) cannot exceed total monthly budget (₹{dto.total_cents / 100:.2f})"
+                )
+
         if month_str:
             try:
                 today = date.fromisoformat(month_str)
