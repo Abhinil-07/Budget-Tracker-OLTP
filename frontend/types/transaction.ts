@@ -10,6 +10,7 @@ export interface Transaction {
   category: string;
   description?: string;
   txn_date: string;
+  status?: string;
   created_at: string;
 }
 

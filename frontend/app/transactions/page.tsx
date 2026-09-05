@@ -938,7 +938,7 @@ export default function TransactionsPage() {
                     <div className="flex items-center gap-2">
                       <FileSpreadsheet className="h-4 w-4 text-accent" />
                       <h4 className="text-sm font-semibold text-white">
-                        {selectedAccount.name} Statement
+                        {selectedAccount?.name || "Account"} Statement
                       </h4>
                     </div>
 
