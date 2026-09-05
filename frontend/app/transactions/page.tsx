@@ -432,17 +432,28 @@ export default function TransactionsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 min-h-[calc(100vh-12rem)]">
         {/* LEFT PANEL: 1/3 Width Accounts List */}
         <div className={`lg:col-span-1 space-y-4 ${showMobileDetail ? "hidden lg:block" : "block"}`}>
-          <div className="flex items-center justify-between px-1">
+          <div className="flex items-center justify-between px-1 flex-wrap gap-2">
             <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider font-mono">
               Accounts Ledger
             </h3>
-            <button
-              onClick={() => setShowBulkImportModal(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 bg-accent/15 border border-accent/30 text-accent hover:bg-accent/25 rounded-md text-xs font-semibold font-mono transition-all"
-            >
-              <Upload className="h-3 w-3" />
-              Import Statement
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={handleExportAllExpensesCSV}
+                disabled={isExportingAll}
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-surface-raised border border-border hover:border-accent text-text-primary hover:text-white rounded-md text-xs font-semibold font-mono transition-all shadow-sm"
+                title="Download CSV of all expense transactions across all accounts"
+              >
+                <Download className="h-3 w-3 text-accent" />
+                <span>{isExportingAll ? "Exporting..." : "Dump All Expenses"}</span>
+              </button>
+              <button
+                onClick={() => setShowBulkImportModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-accent/15 border border-accent/30 text-accent hover:bg-accent/25 rounded-md text-xs font-semibold font-mono transition-all"
+              >
+                <Upload className="h-3 w-3" />
+                Import
+              </button>
+            </div>
           </div>
           <div className="space-y-3">
             {accountsLoading ? (
