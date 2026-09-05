@@ -38,6 +38,7 @@ import {
   Plus,
   Pencil,
   Upload,
+  Download,
 } from "lucide-react";
 import { Transaction } from "../../types/transaction";
 
@@ -63,6 +64,7 @@ export default function TransactionsPage() {
   const [statementDateFrom, setStatementDateFrom] = useState("");
   const [statementDateTo, setStatementDateTo] = useState("");
   const [exportFormat, setExportFormat] = useState("csv");
+  const [isExportingAll, setIsExportingAll] = useState(false);
   const pageSize = 15;
 
   // Confirm delete dialog state
@@ -291,6 +293,60 @@ export default function TransactionsPage() {
     document.body.removeChild(link);
   };
 
+  const handleExportAllExpensesCSV = async () => {
+    setIsExportingAll(true);
+    try {
+      const res = await api.transactions.list({
+        type: "expense",
+        page: 1,
+        page_size: 10000,
+      });
+
+      const items = res?.data?.items || [];
+      if (items.length === 0) {
+        alert("No expense transactions found to export.");
+        return;
+      }
+
+      const headers = ["Date", "Description", "Category", "Amount (INR)", "Account", "Account Type", "Status"];
+      const rows = items.map((txn) => {
+        const acc = accounts.find((a) => a.id === txn.account_id);
+        const accTypeLabel =
+          acc?.type === "credit_card"
+            ? "Credit Card"
+            : acc?.type === "current"
+            ? "Current Account"
+            : "Savings Account";
+
+        return [
+          txn.txn_date,
+          `"${(txn.description || "").replace(/"/g, '""')}"`,
+          `"${txn.category.replace(/"/g, '""')}"`,
+          (txn.amount_cents / 100).toFixed(2),
+          acc ? `"${acc.name.replace(/"/g, '""')}"` : '"Unknown"',
+          `"${accTypeLabel}"`,
+          `"${txn.status || "confirmed"}"`,
+        ];
+      });
+
+      const csvContent =
+        "data:text/csv;charset=utf-8," +
+        encodeURIComponent([headers.join(","), ...rows.map((e) => e.join(","))].join("\n"));
+
+      const link = document.createElement("a");
+      link.setAttribute("href", csvContent);
+      link.setAttribute("download", `all_expenses_dump_${new Date().toISOString().split("T")[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error("Failed to export all expenses:", err);
+      alert("Failed to export all expenses. Please try again.");
+    } finally {
+      setIsExportingAll(false);
+    }
+  };
+
   const handleDownloadCustomStatement = () => {
     if (!txnData || txnData.items.length === 0) return;
     
@@ -517,13 +573,24 @@ export default function TransactionsPage() {
                               </button>
                               <button
                                 onClick={() => {
+                                  handleExportAllExpensesCSV();
+                                  setShowThreeDotsMenu(false);
+                                }}
+                                disabled={isExportingAll}
+                                className="w-full text-left px-4 py-2 hover:bg-surface-raised transition-colors flex items-center gap-2 text-accent font-medium"
+                              >
+                                <Download className="h-3.5 w-3.5 text-accent" />
+                                <span>Dump All Expenses (CSV)</span>
+                              </button>
+                              <button
+                                onClick={() => {
                                   handleExportCSV();
                                   setShowThreeDotsMenu(false);
                                 }}
                                 className="w-full text-left px-4 py-2 hover:bg-surface-raised transition-colors flex items-center gap-2"
                               >
                                 <FileSpreadsheet className="h-3.5 w-3.5 text-text-secondary" />
-                                <span>Export CSV</span>
+                                <span>Export Statement CSV</span>
                               </button>
                               <button
                                 onClick={() => {
@@ -559,60 +626,52 @@ export default function TransactionsPage() {
                   <div className="text-xs text-[#8888AA] font-medium mb-1">
                     {selectedAccount.type === "credit_card" ? "Credit Card" : selectedAccount.type === "current" ? "Current Account" : "Savings Account"}
                   </div>
-                  <div className="flex items-center gap-2 font-mono text-sm text-text-secondary">
-                    <span>•••• •••• •••• {selectedAccount.account_number ? selectedAccount.account_number.slice(-4) : "0902"}</span>
-                    <EyeOff className="h-3.5 w-3.5 text-[#8888AA] cursor-pointer hover:text-white transition-colors" />
+                  <div className="text-2xl font-bold font-mono tracking-tight text-white">
+                    {formatCurrency(selectedAccount.balance_cents, "INR")}
                   </div>
                 </div>
 
-                <div className="text-right">
-                  <div className="text-[10px] text-[#8888AA] uppercase tracking-wider font-semibold">Available Balance</div>
-                  <div className="text-xl font-bold font-mono text-white mt-1">
-                    {formatCurrency(selectedAccount.balance_cents, "INR")}
-                  </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setActiveTab("statement")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      activeTab === "statement"
+                        ? "bg-accent/20 text-accent border border-accent/40 shadow-sm shadow-accent/20"
+                        : "bg-surface-raised/40 border border-border text-text-secondary hover:text-white"
+                    }`}
+                  >
+                    Statement
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("get-statement")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      activeTab === "get-statement"
+                        ? "bg-accent/20 text-accent border border-accent/40 shadow-sm shadow-accent/20"
+                        : "bg-surface-raised/40 border border-border text-text-secondary hover:text-white"
+                    }`}
+                  >
+                    Get Statement
+                  </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Statement Tabs */}
-          <div className="flex border-b border-[#1E293B] bg-[#0E131F] select-none">
-            <button
-              onClick={() => setActiveTab("statement")}
-              className={`flex-1 py-3 text-center text-xs font-semibold uppercase tracking-wider transition-all duration-150 border-b-2 ${
-                activeTab === "statement"
-                  ? "border-accent text-accent"
-                  : "border-transparent text-text-muted hover:text-text-secondary"
-              }`}
-            >
-              Statement
-            </button>
-            <button
-              onClick={() => setActiveTab("get-statement")}
-              className={`flex-1 py-3 text-center text-xs font-semibold uppercase tracking-wider transition-all duration-150 border-b-2 ${
-                activeTab === "get-statement"
-                  ? "border-accent text-accent"
-                  : "border-transparent text-text-muted hover:text-text-secondary"
-              }`}
-            >
-              Get Statement
-            </button>
-          </div>
-
+          {/* TAB 1: Ledger Statement */}
           {activeTab === "statement" ? (
             <>
-              {/* Filters Bar */}
-              <div className="p-4 border-b border-border flex items-center justify-between gap-3 bg-[#0B0F17] flex-wrap">
-                <div className="flex items-center gap-3 flex-1 min-w-[280px]">
+              {/* Filter Toolbar */}
+              <div className="p-4 border-b border-border/60 bg-[#0E131F]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none">
+                <div className="flex items-center gap-2 flex-wrap flex-1">
                   {/* Type Select */}
                   <select
                     value={selectedType}
                     onChange={(e) => setSelectedType(e.target.value)}
-                    className="bg-surface-raised border border-border rounded-lg px-3 py-1.5 text-xs font-medium text-text-primary focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer min-w-[100px]"
+                    className="bg-surface-raised border border-border rounded-lg px-3 py-1.5 text-xs font-medium text-text-primary focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
                   >
-                    <option value="all">Recent</option>
-                    <option value="expense">Expenses</option>
-                    <option value="income">Income</option>
+                    <option value="all">All Types</option>
+                    <option value="income">Income (+)</option>
+                    <option value="expense">Expense (-)</option>
                   </select>
 
                   {/* Category Select */}
@@ -643,11 +702,23 @@ export default function TransactionsPage() {
                     <option value="custom">Custom Range...</option>
                   </select>
 
+                  {/* Dump All Expenses CSV Button */}
+                  <button
+                    onClick={handleExportAllExpensesCSV}
+                    disabled={isExportingAll}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-raised border border-border hover:border-accent hover:text-white rounded-lg text-xs font-semibold text-text-secondary transition-all shrink-0"
+                    title="Download complete CSV of all expense transactions across all accounts"
+                  >
+                    <Download className="h-3.5 w-3.5 text-accent" />
+                    <span className="hidden sm:inline">{isExportingAll ? "Exporting..." : "Dump All Expenses (.CSV)"}</span>
+                    <span className="sm:hidden">{isExportingAll ? "..." : "All Expenses"}</span>
+                  </button>
+
                   {/* Export Statement Button */}
                   <button
                     onClick={handleExportCSV}
-                    className="p-1.5 bg-surface-raised border border-border rounded-lg text-text-secondary hover:text-white transition-colors"
-                    title="Export Statement"
+                    className="p-1.5 bg-surface-raised border border-border rounded-lg text-text-secondary hover:text-white transition-colors shrink-0"
+                    title="Export Current Statement View as CSV"
                   >
                     <FileSpreadsheet className="h-4 w-4" />
                   </button>
@@ -843,59 +914,110 @@ export default function TransactionsPage() {
           ) : (
             <div className="flex-1 p-8 space-y-6 bg-[#0B0F17] overflow-y-auto">
               <div className="space-y-2">
-                <h3 className="text-base font-semibold text-white">Download Account Statement</h3>
+                <h3 className="text-base font-semibold text-white">Export & Statements</h3>
                 <p className="text-xs text-[#8888AA]">
-                  Specify a date range and format to export your statement.
+                  Export filtered statements for this account or download a full dump of all expenses across all accounts.
                 </p>
               </div>
 
-              <div className="bg-[#0E1320] border border-border/60 rounded-xl p-6 space-y-5 max-w-lg">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="block text-xs font-semibold text-[#8888AA] uppercase tracking-wider font-mono">
-                      Date From
-                    </label>
-                    <input
-                      type="date"
-                      value={statementDateFrom}
-                      onChange={(e) => setStatementDateFrom(e.target.value)}
-                      className="w-full bg-[#07090E] border border-border rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-accent font-mono"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-xs font-semibold text-[#8888AA] uppercase tracking-wider font-mono">
-                      Date To
-                    </label>
-                    <input
-                      type="date"
-                      value={statementDateTo}
-                      onChange={(e) => setStatementDateTo(e.target.value)}
-                      className="w-full bg-[#07090E] border border-border rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-accent font-mono"
-                    />
-                  </div>
-                </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-4xl">
+                {/* Option 1: Selected Account Statement */}
+                <div className="bg-[#0E1320] border border-border/60 rounded-xl p-6 space-y-5 flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <FileSpreadsheet className="h-4 w-4 text-accent" />
+                      <h4 className="text-sm font-semibold text-white">
+                        {selectedAccount.name} Statement
+                      </h4>
+                    </div>
 
-                <div className="space-y-2">
-                  <label className="block text-xs font-semibold text-[#8888AA] uppercase tracking-wider font-mono">
-                    File Format
-                  </label>
-                  <select
-                    value={exportFormat}
-                    onChange={(e) => setExportFormat(e.target.value)}
-                    className="w-full bg-[#07090E] border border-border rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-semibold text-[#8888AA] uppercase tracking-wider font-mono">
+                          Date From
+                        </label>
+                        <input
+                          type="date"
+                          value={statementDateFrom}
+                          onChange={(e) => setStatementDateFrom(e.target.value)}
+                          className="w-full bg-[#07090E] border border-border rounded-lg px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-accent font-mono"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-semibold text-[#8888AA] uppercase tracking-wider font-mono">
+                          Date To
+                        </label>
+                        <input
+                          type="date"
+                          value={statementDateTo}
+                          onChange={(e) => setStatementDateTo(e.target.value)}
+                          className="w-full bg-[#07090E] border border-border rounded-lg px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-accent font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-semibold text-[#8888AA] uppercase tracking-wider font-mono">
+                        File Format
+                      </label>
+                      <select
+                        value={exportFormat}
+                        onChange={(e) => setExportFormat(e.target.value)}
+                        className="w-full bg-[#07090E] border border-border rounded-lg px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+                      >
+                        <option value="csv">CSV Spreadsheet (.csv)</option>
+                        <option value="json">JSON Data Feed (.json)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleDownloadCustomStatement}
+                    className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2.5 bg-surface-raised border border-border hover:border-accent text-text-primary rounded-lg text-xs font-semibold transition-all shadow-md"
                   >
-                    <option value="csv">CSV Spreadsheet (.csv)</option>
-                    <option value="json">JSON Data Feed (.json)</option>
-                  </select>
+                    <FileSpreadsheet className="h-4 w-4" />
+                    <span>Download Account Statement</span>
+                  </button>
                 </div>
 
-                <button
-                  onClick={handleDownloadCustomStatement}
-                  className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent/90 text-text-primary rounded-lg text-sm font-semibold transition-all shadow-lg shadow-accent/20"
-                >
-                  <FileSpreadsheet className="h-4.5 w-4.5" />
-                  <span>Download Statement</span>
-                </button>
+                {/* Option 2: Dump All Expenses (All Accounts) */}
+                <div className="bg-[#0E1320] border border-accent/30 bg-accent/5 rounded-xl p-6 space-y-5 flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Download className="h-4 w-4 text-accent" />
+                      <h4 className="text-sm font-semibold text-white">
+                        Dump All Expenses (All Accounts)
+                      </h4>
+                    </div>
+                    <p className="text-xs text-[#8888AA] leading-relaxed">
+                      Download a single, complete CSV dump containing every expense from all your bank accounts and credit cards (incomes are excluded).
+                    </p>
+
+                    <div className="p-3 rounded-lg bg-[#07090E]/80 border border-border/70 text-[11px] text-text-muted space-y-1.5 font-mono">
+                      <div className="flex justify-between">
+                        <span>Filter:</span>
+                        <span className="text-danger font-semibold">Expenses Only</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Accounts:</span>
+                        <span className="text-text-primary font-semibold">All Accounts</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Format:</span>
+                        <span className="text-accent font-semibold">Standard CSV (.csv)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleExportAllExpensesCSV}
+                    disabled={isExportingAll}
+                    className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent/90 text-text-primary rounded-lg text-xs font-semibold transition-all shadow-lg shadow-accent/20"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>{isExportingAll ? "Exporting CSV..." : "Dump All Expenses (.CSV)"}</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
