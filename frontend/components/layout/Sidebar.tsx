@@ -14,11 +14,13 @@ import {
   LogOut,
   X,
   TrendingUp,
+  Scale,
 } from "lucide-react";
 
 const NAVIGATION_ITEMS = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Transactions", href: "/transactions", icon: ArrowLeftRight },
+  { name: "Reconciliation", href: "/reconciliation", icon: Scale },
   { name: "Accounts", href: "/accounts", icon: Wallet },
   { name: "Investments", href: "/investments", icon: TrendingUp },
   { name: "Budget", href: "/budget", icon: PieChart },
