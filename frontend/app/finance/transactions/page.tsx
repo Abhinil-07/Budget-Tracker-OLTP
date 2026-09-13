@@ -1,19 +1,19 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { useAuthStore } from "../../stores/useAuthStore";
-import { useAccounts } from "../../hooks/useAccounts";
-import { useTransactions } from "../../hooks/useTransactions";
-import PageWrapper from "../../components/layout/PageWrapper";
-import AddTransactionModal from "../../components/transactions/AddTransactionModal";
-import EditTransactionModal from "../../components/transactions/EditTransactionModal";
-import BulkImportModal from "../../components/transactions/BulkImportModal";
-import { formatCurrency } from "../../lib/formatCurrency";
-import { formatDate } from "../../lib/formatDate";
-import { CATEGORIES } from "../../lib/constants";
-import type { AccountType } from "../../lib/constants";
-import { useCategories } from "../../hooks/useCategories";
-import { api, ApiError } from "../../lib/api";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { useAccounts } from "@/hooks/useAccounts";
+import { useTransactions } from "@/hooks/useTransactions";
+import PageWrapper from "@/components/layout/PageWrapper";
+import AddTransactionModal from "@/components/transactions/AddTransactionModal";
+import EditTransactionModal from "@/components/transactions/EditTransactionModal";
+import BulkImportModal from "@/components/transactions/BulkImportModal";
+import { formatCurrency } from "@/lib/formatCurrency";
+import { formatDate } from "@/lib/formatDate";
+import { CATEGORIES } from "@/lib/constants";
+import type { AccountType } from "@/lib/constants";
+import { useCategories } from "@/hooks/useCategories";
+import { api, ApiError } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Search,
@@ -40,7 +40,7 @@ import {
   Upload,
   Download,
 } from "lucide-react";
-import { Transaction } from "../../types/transaction";
+import { Transaction } from "@/types/transaction";
 
 export default function TransactionsPage() {
   const queryClient = useQueryClient();

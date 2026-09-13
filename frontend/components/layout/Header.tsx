@@ -1,58 +1,66 @@
+"use client";
+
 import React, { useState } from "react";
-import { Plus, Menu, Inbox, Sparkles } from "lucide-react";
+import { Plus, Inbox, Menu } from "lucide-react";
 import SyncStatusBadge from "../sync/SyncStatusBadge";
 import StagedInboxModal from "../transactions/StagedInboxModal";
-import { useStagedTransactions } from "../../hooks/useStagedTransactions";
+import { useStagedTransactions } from "@/hooks/useStagedTransactions";
 
 interface HeaderProps {
   title?: string;
   onAddTransactionClick?: () => void;
+  actionLabel?: string;
   onMenuClick?: () => void;
+  hasSubNav?: boolean;
 }
 
 export default function Header({
-  title = "Dashboard",
+  title = "Life OS",
   onAddTransactionClick,
+  actionLabel,
   onMenuClick,
+  hasSubNav = false,
 }: HeaderProps) {
   const { stagedCount } = useStagedTransactions();
   const [showStagedInbox, setShowStagedInbox] = useState(false);
 
   return (
-    <header className="h-16 border-b border-border bg-surface/80 backdrop-blur-md px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30">
+    <header className="h-14 border-b border-border bg-surface/80 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20">
       <StagedInboxModal isOpen={showStagedInbox} onClose={() => setShowStagedInbox(false)} />
 
-      {/* Title & Hamburger Menu */}
-      <div className="flex items-center">
-        <button
-          onClick={onMenuClick}
-          className="lg:hidden p-1.5 mr-2 rounded-lg text-text-secondary hover:text-white hover:bg-surface-raised transition-colors"
-          title="Open Menu"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-        <h1 className="text-base sm:text-xl font-semibold text-text-primary tracking-tight">
+      {/* Title & Mobile Menu Hamburger */}
+      <div className="flex items-center gap-2.5">
+        {hasSubNav && onMenuClick && (
+          <button
+            onClick={onMenuClick}
+            className="lg:hidden p-1.5 rounded-lg text-text-secondary hover:text-white hover:bg-surface-raised transition-colors"
+            title="Open Sub-menu"
+          >
+            <Menu className="h-4 w-4" />
+          </button>
+        )}
+        <h1 className="text-sm sm:text-base font-semibold text-text-primary tracking-tight">
           {title}
         </h1>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-3 sm:gap-4">
-        {/* Staged Inbox Badge Button */}
+      <div className="flex items-center gap-2.5 sm:gap-3">
+        {/* Staged Inbox Badge (Finance) */}
         <button
           type="button"
           onClick={() => setShowStagedInbox(true)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold font-mono transition-all border ${
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border ${
             stagedCount > 0
-              ? "bg-accent/15 text-accent border-accent/40 hover:bg-accent/25 animate-pulse"
-              : "bg-surface-raised/60 text-text-secondary border-border hover:text-text-primary"
+              ? "bg-accent/10 text-accent border-accent/30 hover:bg-accent/15"
+              : "bg-surface-raised text-text-muted border-border hover:text-text-secondary"
           }`}
-          title="Open Staged Transactions Inbox"
+          title="Staged Transactions"
         >
-          <Inbox className="h-4 w-4" />
-          <span>Inbox</span>
+          <Inbox className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Inbox</span>
           {stagedCount > 0 && (
-            <span className="px-1.5 py-0.2 bg-accent text-text-primary rounded-full text-[10px] font-bold">
+            <span className="px-1.5 py-0.5 bg-accent text-white rounded-full text-[10px] font-bold leading-none">
               {stagedCount}
             </span>
           )}
@@ -61,16 +69,14 @@ export default function Header({
         {/* Sync Status Badge */}
         <SyncStatusBadge />
 
-        {/* Add Action */}
+        {/* Primary Action Button */}
         {onAddTransactionClick && (
           <button
             onClick={onAddTransactionClick}
-            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-accent hover:bg-accent/90 text-text-primary rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-[0.98]"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent/90 text-white rounded-lg text-xs font-semibold transition-all shadow-sm"
           >
-            <Plus className="h-4.5 w-4.5" />
-            <span className="hidden sm:inline">
-              {title === "Investments" ? "Add Investment" : "Add Transaction"}
-            </span>
+            <Plus className="h-3.5 w-3.5" />
+            <span>{actionLabel || "Log Entry"}</span>
           </button>
         )}
       </div>

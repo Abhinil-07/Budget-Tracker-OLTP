@@ -54,7 +54,7 @@ class SyncService:
 
     async def _export_csv(self, user_id: str) -> tuple[str, int]:
         """
-        Query last 7 days of transactions from Supabase for this user and format them
+        Query all historical expense transactions from Supabase for this user and format them
         specifically for Databricks. Returns (csv_string, row_count).
         """
         # Get user's name from Supabase auth
@@ -72,8 +72,6 @@ class SyncService:
         except Exception as e:
             logger.warning(f"Failed to fetch user name, defaulting to Abhinil: {e}")
 
-        week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).date().isoformat()
-
         response = (
             await self.db.table("transactions")
             .select(
@@ -82,7 +80,6 @@ class SyncService:
             .eq("user_id", user_id)
             .neq("category", "Owed to Me")
             .eq("type", "expense")
-            .gte("txn_date", week_ago)
             .order("txn_date", desc=False)
             .execute()
         )

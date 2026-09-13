@@ -3,6 +3,10 @@ import { Transaction, CreateTransactionDto, UpdateTransactionDto, TransactionQue
 import { BudgetAggregatedDto, UpdateBudgetDto } from "../types/budget";
 import { SyncLog } from "../types/sync";
 import { Investment, CreateInvestmentDto, UpdateInvestmentDto, UpdateInvestmentValueDto } from "../types/investment";
+import { GymSession, CreateGymSessionDto, UpdateGymSessionDto } from "../types/gym";
+import { MealLog, CreateMealLogDto, UpdateMealLogDto } from "../types/food";
+import { StudyLog, CreateStudyLogDto, UpdateStudyLogDto, StudyGoal, CreateStudyGoalDto, UpdateStudyGoalDto } from "../types/study";
+import { MediaItem, CreateMediaItemDto, UpdateMediaItemDto } from "../types/media";
 
 import { getInMemoryToken } from "../stores/useAuthStore";
 
@@ -179,6 +183,94 @@ export const api = {
       }),
     delete: (id: string) =>
       request<{ success: boolean; message: string; id: string }>(`/api/investments/${id}`, {
+        method: "DELETE",
+      }),
+  },
+  gym: {
+    list: (params?: { date_from?: string; date_to?: string; split_type?: string }) =>
+      request<GymSession[]>(`/api/gym${params ? `?${toQueryString(params)}` : ""}`),
+    create: (body: CreateGymSessionDto) =>
+      request<GymSession>("/api/gym", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    update: (id: string, body: UpdateGymSessionDto) =>
+      request<GymSession>(`/api/gym/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+    delete: (id: string) =>
+      request<{ success: boolean; message: string; id: string }>(`/api/gym/${id}`, {
+        method: "DELETE",
+      }),
+  },
+  food: {
+    list: (params?: { date_from?: string; date_to?: string; meal_slot?: string; tag?: string }) =>
+      request<MealLog[]>(`/api/food${params ? `?${toQueryString(params)}` : ""}`),
+    create: (body: CreateMealLogDto) =>
+      request<MealLog>("/api/food", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    update: (id: string, body: UpdateMealLogDto) =>
+      request<MealLog>(`/api/food/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+    delete: (id: string) =>
+      request<{ success: boolean; message: string; id: string }>(`/api/food/${id}`, {
+        method: "DELETE",
+      }),
+  },
+  study: {
+    list: (params?: { date_from?: string; date_to?: string; topic?: string }) =>
+      request<StudyLog[]>(`/api/study${params ? `?${toQueryString(params)}` : ""}`),
+    create: (body: CreateStudyLogDto) =>
+      request<StudyLog>("/api/study", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    update: (id: string, body: UpdateStudyLogDto) =>
+      request<StudyLog>(`/api/study/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+    delete: (id: string) =>
+      request<{ success: boolean; message: string; id: string }>(`/api/study/${id}`, {
+        method: "DELETE",
+      }),
+    listGoals: (params?: { month?: string; status?: string }) =>
+      request<StudyGoal[]>(`/api/study/goals${params ? `?${toQueryString(params)}` : ""}`),
+    createGoal: (body: CreateStudyGoalDto) =>
+      request<StudyGoal>("/api/study/goals", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    updateGoal: (id: string, body: UpdateStudyGoalDto) =>
+      request<StudyGoal>(`/api/study/goals/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+    deleteGoal: (id: string) =>
+      request<{ success: boolean; message: string; id: string }>(`/api/study/goals/${id}`, {
+        method: "DELETE",
+      }),
+  },
+  media: {
+    list: (params?: { media_type?: string; status?: string }) =>
+      request<MediaItem[]>(`/api/media${params ? `?${toQueryString(params)}` : ""}`),
+    create: (body: CreateMediaItemDto) =>
+      request<MediaItem>("/api/media", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    update: (id: string, body: UpdateMediaItemDto) =>
+      request<MediaItem>(`/api/media/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+    delete: (id: string) =>
+      request<{ success: boolean; message: string; id: string }>(`/api/media/${id}`, {
         method: "DELETE",
       }),
   },

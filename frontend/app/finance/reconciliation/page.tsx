@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { useAuthStore } from "../../stores/useAuthStore";
-import { useFinanceStore } from "../../stores/useFinanceStore";
-import { useAccounts } from "../../hooks/useAccounts";
-import { useTransactions } from "../../hooks/useTransactions";
-import PageWrapper from "../../components/layout/PageWrapper";
-import AddTransactionModal from "../../components/transactions/AddTransactionModal";
-import { formatCurrency } from "../../lib/formatCurrency";
-import { formatDate } from "../../lib/formatDate";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { useFinanceStore } from "@/stores/useFinanceStore";
+import { useAccounts } from "@/hooks/useAccounts";
+import { useTransactions } from "@/hooks/useTransactions";
+import PageWrapper from "@/components/layout/PageWrapper";
+import AddTransactionModal from "@/components/transactions/AddTransactionModal";
+import { formatCurrency } from "@/lib/formatCurrency";
+import { formatDate } from "@/lib/formatDate";
 import {
   Scale,
   CheckCircle2,

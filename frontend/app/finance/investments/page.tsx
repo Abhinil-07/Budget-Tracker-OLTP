@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { useAuthStore } from "../../stores/useAuthStore";
-import { useInvestments } from "../../hooks/useInvestments";
-import PageWrapper from "../../components/layout/PageWrapper";
-import AddInvestmentModal from "../../components/investments/AddInvestmentModal";
-import UpdateValueModal from "../../components/investments/UpdateValueModal";
-import { formatCurrency } from "../../lib/formatCurrency";
-import { api, ApiError } from "../../lib/api";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { useInvestments } from "@/hooks/useInvestments";
+import PageWrapper from "@/components/layout/PageWrapper";
+import AddInvestmentModal from "@/components/investments/AddInvestmentModal";
+import UpdateValueModal from "@/components/investments/UpdateValueModal";
+import { formatCurrency } from "@/lib/formatCurrency";
+import { api, ApiError } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   TrendingUp,
@@ -24,7 +24,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { Investment, InvestmentType } from "../../types/investment";
+import { Investment, InvestmentType } from "@/types/investment";
 
 const TYPE_CONFIG = {
   fixed_deposit: {

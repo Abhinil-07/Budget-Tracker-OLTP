@@ -1,15 +1,15 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { useAuthStore } from "../../stores/useAuthStore";
-import { useBudget } from "../../hooks/useBudget";
-import PageWrapper from "../../components/layout/PageWrapper";
-import { formatCurrency } from "../../lib/formatCurrency";
-import { api, ApiError } from "../../lib/api";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { useBudget } from "@/hooks/useBudget";
+import PageWrapper from "@/components/layout/PageWrapper";
+import { formatCurrency } from "@/lib/formatCurrency";
+import { api, ApiError } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
-import BudgetAlertBanners from "../../components/budget/BudgetAlertBanners";
-import { CATEGORIES } from "../../lib/constants";
-import { useCategories } from "../../hooks/useCategories";
+import BudgetAlertBanners from "@/components/budget/BudgetAlertBanners";
+import { CATEGORIES } from "@/lib/constants";
+import { useCategories } from "@/hooks/useCategories";
 import {
   PieChart,
   Edit3,
