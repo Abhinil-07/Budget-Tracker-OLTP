@@ -56,7 +56,7 @@ export default function TransactionsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
   const [selectedIncluded, setSelectedIncluded] = useState<string>("all");
-  const [selectedDateRange, setSelectedDateRange] = useState<string>("all");
+  const [selectedDateRange, setSelectedDateRange] = useState<string>("this-month");
   const [customDateFrom, setCustomDateFrom] = useState<string>("");
   const [customDateTo, setCustomDateTo] = useState<string>("");
   const [page, setPage] = useState(1);
@@ -131,7 +131,8 @@ export default function TransactionsPage() {
 
     if (selectedDateRange === "this-month") {
       const startOfThisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      return { date_from: formatDateObj(startOfThisMonth), date_to: undefined };
+      const endOfThisMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      return { date_from: formatDateObj(startOfThisMonth), date_to: formatDateObj(endOfThisMonth) };
     }
 
     if (selectedDateRange === "last-month") {
@@ -842,7 +843,9 @@ export default function TransactionsPage() {
                   </div>
                 ) : filteredTxnItems.length === 0 ? (
                   <div className="p-16 text-center text-text-secondary text-sm flex flex-col items-center justify-center gap-3">
-                    <span className="font-mono">No transactions yet</span>
+                    <span className="font-mono">
+                      {selectedDateRange === "this-month" ? "No transactions yet for this month" : "No transactions found"}
+                    </span>
                     <button
                       onClick={() => setShowAddModal(true)}
                       className="px-4 py-2 bg-accent hover:bg-accent/90 text-text-primary rounded-lg text-xs font-semibold transition-all shadow-md shadow-accent/10"
