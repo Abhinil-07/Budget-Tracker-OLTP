@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:3000"]
     static_api_key: str | None = None
     static_user_id: str | None = None
+    telegram_bot_token: str | None = None
+    telegram_allowed_chat_id: str | None = None
 
     class Config:
         env_file = str(ENV_FILE_PATH)

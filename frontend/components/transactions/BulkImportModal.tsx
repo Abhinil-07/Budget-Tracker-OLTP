@@ -415,6 +415,7 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
         category: r.category,
         description: r.description,
         txn_date: r.txn_date,
+        is_included: true,
       }));
 
       const res = await api.transactions.batchCreate({ items: dtos });

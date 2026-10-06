@@ -1,0 +1,56 @@
+[
+  {
+    "name": "Single item with half-half split",
+    "text": "milk 50 me, sauce 200 half half",
+    "total_paise": 25000,
+    "merchant": "Zepto",
+    "people": [
+      { "id": "p1", "name": "Me", "is_me": true, "aliases": ["me", "myself"] },
+      { "id": "p2", "name": "Rohan", "is_me": false, "aliases": ["roommate", "rohan"] }
+    ],
+    "expected": [
+      { "person_name": "Me", "amount_paise": 15000 },
+      { "person_name": "Rohan", "amount_paise": 10000 }
+    ]
+  },
+  {
+    "name": "All allocated to roommate",
+    "text": "all his",
+    "total_paise": 45000,
+    "merchant": "Blinkit",
+    "people": [
+      { "id": "p1", "name": "Me", "is_me": true, "aliases": ["me"] },
+      { "id": "p2", "name": "Rohan", "is_me": false, "aliases": ["roommate", "rohan", "his"] }
+    ],
+    "expected": [
+      { "person_name": "Rohan", "amount_paise": 45000 }
+    ]
+  },
+  {
+    "name": "All allocated to me",
+    "text": "all mine",
+    "total_paise": 32000,
+    "merchant": "Swiggy",
+    "people": [
+      { "id": "p1", "name": "Me", "is_me": true, "aliases": ["me", "mine"] },
+      { "id": "p2", "name": "Rohan", "is_me": false, "aliases": ["roommate"] }
+    ],
+    "expected": [
+      { "person_name": "Me", "amount_paise": 32000 }
+    ]
+  },
+  {
+    "name": "Default 50/50 split",
+    "text": "half half",
+    "total_paise": 50000,
+    "merchant": "Instamart",
+    "people": [
+      { "id": "p1", "name": "Me", "is_me": true, "aliases": ["me"] },
+      { "id": "p2", "name": "Rohan", "is_me": false, "aliases": ["roommate"] }
+    ],
+    "expected": [
+      { "person_name": "Me", "amount_paise": 25000 },
+      { "person_name": "Rohan", "amount_paise": 25000 }
+    ]
+  }
+]

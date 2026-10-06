@@ -9,6 +9,7 @@ import { useBudget } from "@/hooks/useBudget";
 import { useInvestments } from "@/hooks/useInvestments";
 import PageWrapper from "@/components/layout/PageWrapper";
 import AccountCard from "@/components/accounts/AccountCard";
+import BalancesCard from "@/components/splits/BalancesCard";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import BudgetAlertBanners from "@/components/budget/BudgetAlertBanners";
 import { formatCurrency } from "@/lib/formatCurrency";
@@ -46,22 +47,18 @@ export default function Dashboard() {
     return list;
   }, []);
 
-  const [selectedTimeframe, setSelectedTimeframe] = useState<string>("");
-
-  useEffect(() => {
-    if (timeframes.length > 0 && !selectedTimeframe) {
-      setSelectedTimeframe(timeframes[0].value);
-    }
-  }, [timeframes, selectedTimeframe]);
+  // Initialize selectedTimeframe to the current month (YYYY-MM-01)
+  const [selectedTimeframe, setSelectedTimeframe] = useState<string>(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
+  });
 
   // Determine selected month range for calculations (using local timezone formatting)
   const dateRange = useMemo(() => {
-    if (!selectedTimeframe) {
+    const start = selectedTimeframe || (() => {
       const today = new Date();
-      const start = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
-      return { start, end: undefined };
-    }
-    const start = selectedTimeframe;
+      return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
+    })();
     const parts = start.split("-");
     const year = parseInt(parts[0], 10);
     const month = parseInt(parts[1], 10);
@@ -106,10 +103,11 @@ export default function Dashboard() {
 
   const { data: incomeData } = useTransactions(incomeParams);
 
-  // Fetch all selected month's expense transactions to calculate per-account spend
+  // Fetch all selected month's expense transactions to calculate per-account spend (only included expenses)
   const expenseParams = useMemo(() => {
     return {
       type: "expense" as const,
+      is_included: true,
       date_from: dateRange.start,
       date_to: dateRange.end,
       page_size: 1000,
@@ -118,12 +116,14 @@ export default function Dashboard() {
 
   const { data: expenseData } = useTransactions(expenseParams);
 
-  // Map of account_id -> total spent cents in the selected timeframe
+  // Map of account_id -> total spent cents in the selected timeframe (only included transactions)
   const spentByAccount = useMemo(() => {
     const map: Record<string, number> = {};
     if (expenseData?.items) {
       expenseData.items.forEach((item) => {
-        map[item.account_id] = (map[item.account_id] || 0) + item.amount_cents;
+        if (item.is_included !== false) {
+          map[item.account_id] = (map[item.account_id] || 0) + item.amount_cents;
+        }
       });
     }
     return map;
@@ -333,6 +333,11 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* Shared Splits & Balances */}
+      <div className="mb-6">
+        <BalancesCard />
+      </div>
+
       {/* Budget Progress Area */}
       <div className="bg-surface p-6 rounded-xl border border-border">
         {budgetLoading ? (
@@ -471,7 +476,7 @@ export default function Dashboard() {
           </div>
         ) : !txnData || txnData.items.length === 0 ? (
           <div className="p-12 text-center text-text-secondary text-sm flex flex-col items-center justify-center gap-3">
-            <span>No transactions yet</span>
+            <span>No transactions yet for this month</span>
             <button
               onClick={() => setShowAddModal(true)}
               className="px-4 py-2 bg-accent hover:bg-accent/90 text-text-primary rounded-lg text-xs font-semibold transition-all shadow-md shadow-accent/10"
@@ -490,13 +495,24 @@ export default function Dashboard() {
                   <span className="text-sm font-semibold text-text-primary block break-words">
                     {txn.description || "Unlabeled Transaction"}
                   </span>
-                  <span className="text-xs text-text-secondary">{txn.category}</span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-text-secondary">{txn.category}</span>
+                    {txn.is_included === false && (
+                      <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-surface-raised border border-border text-text-muted">
+                        Excluded
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 mt-1 sm:mt-0 shrink-0">
                   <span className="text-xs text-text-muted">{formatDate(txn.txn_date)}</span>
                   <span
                     className={`text-sm font-semibold font-mono ${
-                      txn.type === "income" ? "text-success" : "text-danger"
+                      txn.type === "income"
+                        ? "text-success"
+                        : txn.is_included === false
+                        ? "text-text-muted line-through"
+                        : "text-danger"
                     }`}
                   >
                     {txn.type === "income" ? "+ " : "- "}

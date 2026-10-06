@@ -75,7 +75,7 @@ class SyncService:
         response = (
             await self.db.table("transactions")
             .select(
-                "id, account_id, type, amount_cents, category, description, txn_date, created_at, accounts(name)"
+                "id, account_id, type, amount_cents, category, description, txn_date, is_included, created_at, accounts(name)"
             )
             .eq("user_id", user_id)
             .neq("category", "Owed to Me")
@@ -104,6 +104,9 @@ class SyncService:
             # Get Account (Payment Method) name
             payment_method = row.get("accounts", {}).get("name") or "Unknown"
 
+            # Toggle status for Databricks export
+            to_be_included_val = "TRUE" if row.get("is_included", True) is not False else "FALSE"
+
             mapped_rows.append({
                 "Name": name,
                 "Item": row.get("description") or row.get("category") or "Expense",
@@ -111,6 +114,7 @@ class SyncService:
                 "Payment Method": payment_method,
                 "Date": formatted_date,
                 "Category": row.get("category"),
+                "To Be Included": to_be_included_val,
             })
 
         output = io.StringIO()
@@ -121,6 +125,7 @@ class SyncService:
             "Payment Method",
             "Date",
             "Category",
+            "To Be Included",
         ]
         writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()

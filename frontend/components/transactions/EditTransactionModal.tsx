@@ -25,6 +25,7 @@ const editTransactionSchema = z.object({
   category: z.string().min(1, "Select a category"),
   description: z.string().optional(),
   txn_date: z.string().min(1, "Date is required"),
+  is_included: z.boolean(),
 });
 
 type EditTransactionForm = z.infer<typeof editTransactionSchema>;
@@ -61,6 +62,7 @@ export default function EditTransactionModal({
       category: "",
       description: "",
       txn_date: "",
+      is_included: true,
     },
   });
 
@@ -89,6 +91,7 @@ export default function EditTransactionModal({
         category: transaction.category,
         description: transaction.description || "",
         txn_date: transaction.txn_date,
+        is_included: transaction.is_included !== false,
       });
       setIsAddingCategory(false);
       setNewCategoryName("");
@@ -124,6 +127,7 @@ export default function EditTransactionModal({
         category: data.category,
         description: data.description?.trim() || "",
         txn_date: data.txn_date,
+        is_included: data.is_included,
       });
 
       // Refresh data across the app
@@ -375,6 +379,30 @@ export default function EditTransactionModal({
                 {errors.txn_date.message}
               </p>
             )}
+          </div>
+
+          {/* To Be Included in Expense Total Toggle */}
+          <div className="flex items-center justify-between p-3 rounded-xl bg-surface-raised/40 border border-border/60">
+            <div className="space-y-0.5 pr-2">
+              <label
+                htmlFor="edit-txn-is-included"
+                className="text-xs font-semibold text-text-primary block cursor-pointer"
+              >
+                To Be Included in Expense Total
+              </label>
+              <p className="text-[11px] text-text-muted leading-tight">
+                When enabled, this transaction counts toward your home dashboard expense metrics.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                id="edit-txn-is-included"
+                type="checkbox"
+                {...register("is_included")}
+                className="sr-only peer"
+              />
+              <div className="w-10 h-5 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent"></div>
+            </label>
           </div>
 
           {/* Actions */}

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Any
 from datetime import datetime, date
 from uuid import UUID
 
@@ -12,8 +12,12 @@ class Transaction(BaseModel):
     category: str
     description: Optional[str] = None
     txn_date: date
-    status: Optional[str] = "confirmed"  # 'confirmed' vs 'staged'
+    status: Optional[str] = "confirmed"  # 'confirmed', 'staged', 'pending', 'awaiting_clarification', 'approved', 'auto_approved'
+    is_included: bool = True
+    telegram_chat_id: Optional[str] = None
+    telegram_message_id: Optional[int] = None
     created_at: datetime
+    splits: Optional[List[Any]] = None
 
     class Config:
         from_attributes = True
@@ -25,7 +29,10 @@ class CreateTransactionDto(BaseModel):
     category: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = Field(default=None, max_length=500)
     txn_date: Optional[date] = None
-    status: Optional[str] = Field(default="confirmed", pattern="^(confirmed|staged)$")
+    status: Optional[str] = Field(default="confirmed", pattern="^(confirmed|staged|pending|awaiting_clarification|approved|auto_approved)$")
+    is_included: bool = Field(default=True)
+    telegram_chat_id: Optional[str] = None
+    telegram_message_id: Optional[int] = None
 
 class UpdateTransactionDto(BaseModel):
     account_id: Optional[UUID] = None
@@ -34,13 +41,17 @@ class UpdateTransactionDto(BaseModel):
     category: Optional[str] = Field(default=None, min_length=1, max_length=100)
     description: Optional[str] = Field(default=None, max_length=500)
     txn_date: Optional[date] = None
-    status: Optional[str] = Field(default=None, pattern="^(confirmed|staged)$")
+    status: Optional[str] = Field(default=None, pattern="^(confirmed|staged|pending|awaiting_clarification|approved|auto_approved)$")
+    is_included: Optional[bool] = None
+    telegram_chat_id: Optional[str] = None
+    telegram_message_id: Optional[int] = None
 
 class TransactionQuery(BaseModel):
     account_id: Optional[UUID] = None
     category: Optional[str] = None
     type: Optional[str] = Field(default=None, pattern="^(income|expense)$")
     status: Optional[str] = Field(default="confirmed")
+    is_included: Optional[bool] = None
     date_from: Optional[date] = None
     date_to: Optional[date] = None
     page: int = Field(default=1, ge=1)

@@ -44,12 +44,13 @@ class BudgetService:
             total_cents = budget["total_cents"]
             category_limits = budget.get("category_limits") or {}
 
-        # 3. Retrieve all expense transactions for the current month
+        # 3. Retrieve all expense transactions for the current month (only included transactions)
         txn_response = (
             await self.db.table("transactions")
-            .select("amount_cents, category")
+            .select("amount_cents, category, is_included")
             .eq("user_id", user_id)
             .eq("type", "expense")
+            .neq("is_included", False)
             .gte("txn_date", current_month_start.isoformat())
             .lte("txn_date", current_month_end.isoformat())
             .execute()

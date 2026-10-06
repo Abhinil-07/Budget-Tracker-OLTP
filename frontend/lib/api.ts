@@ -7,6 +7,7 @@ import { GymSession, CreateGymSessionDto, UpdateGymSessionDto } from "../types/g
 import { MealLog, CreateMealLogDto, UpdateMealLogDto } from "../types/food";
 import { StudyLog, CreateStudyLogDto, UpdateStudyLogDto, StudyGoal, CreateStudyGoalDto, UpdateStudyGoalDto } from "../types/study";
 import { MediaItem, CreateMediaItemDto, UpdateMediaItemDto } from "../types/media";
+import { Person, PersonBalance, Settlement } from "../types/split";
 
 import { getInMemoryToken } from "../stores/useAuthStore";
 
@@ -272,6 +273,15 @@ export const api = {
     delete: (id: string) =>
       request<{ success: boolean; message: string; id: string }>(`/api/media/${id}`, {
         method: "DELETE",
+      }),
+  },
+  splits: {
+    balances: () => request<PersonBalance[]>("/api/splits/balances"),
+    people: () => request<Person[]>("/api/splits/people"),
+    settle: (body: { from_person: string; to_person: string; amount_paise: number; note?: string; date?: string }) =>
+      request<Settlement>("/api/splits/settle", {
+        method: "POST",
+        body: JSON.stringify(body),
       }),
   },
 };

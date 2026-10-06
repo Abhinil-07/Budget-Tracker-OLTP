@@ -4,6 +4,7 @@ from typing import List
 
 from models.transaction import Transaction, CreateTransactionDto, TransactionQuery, PaginatedTransactions, UpdateTransactionDto
 from exceptions import NotFoundError, ValidationError
+from config import settings
 
 class TransactionService:
     def __init__(self, db: AsyncClient):
@@ -25,6 +26,8 @@ class TransactionService:
             q = q.eq("category", query.category)
         if query.type:
             q = q.eq("type", query.type)
+        if query.is_included is not None:
+            q = q.eq("is_included", query.is_included)
         if query.date_from:
             q = q.gte("txn_date", query.date_from.isoformat())
         if query.date_to:
@@ -40,7 +43,26 @@ class TransactionService:
             .execute()
         )
         
-        items = [Transaction(**row) for row in response.data]
+        items = []
+        txn_ids = [r["id"] for r in (response.data or [])]
+        splits_by_txn = {}
+        if txn_ids:
+            try:
+                splits_res = (
+                    await self.db.table("transaction_splits")
+                    .select("*, person:people(*)")
+                    .in_("transaction_id", txn_ids)
+                    .execute()
+                )
+                if splits_res.data:
+                    for s in splits_res.data:
+                        splits_by_txn.setdefault(s["transaction_id"], []).append(s)
+            except Exception as e:
+                print("Warning: could not load transaction splits:", e)
+
+        for row in (response.data or []):
+            row["splits"] = splits_by_txn.get(row["id"], [])
+            items.append(Transaction(**row))
         total = response.count if response.count is not None else 0
         
         return PaginatedTransactions(
@@ -90,6 +112,7 @@ class TransactionService:
             "category": dto.category,
             "description": dto.description,
             "txn_date": txn_date.isoformat(),
+            "is_included": dto.is_included if dto.is_included is not None else True,
         }
         
         # 4. Insert transaction row
@@ -244,6 +267,8 @@ class TransactionService:
             update_data["description"] = dto.description
         if dto.txn_date is not None:
             update_data["txn_date"] = dto.txn_date.isoformat()
+        if dto.is_included is not None:
+            update_data["is_included"] = dto.is_included
             
         if not update_data:
             return Transaction(**old_txn)
@@ -292,7 +317,8 @@ class TransactionService:
                 "amount_cents": old_txn["amount_cents"],
                 "category": old_txn["category"],
                 "description": old_txn["description"],
-                "txn_date": old_txn["txn_date"]
+                "txn_date": old_txn["txn_date"],
+                "is_included": old_txn.get("is_included", True)
             }
             await self.db.table("transactions").update(revert_data).eq("id", transaction_id).eq("user_id", user_id).execute()
             raise ValidationError(f"Failed to adjust account balances for transaction update: {str(e)}")
@@ -344,6 +370,7 @@ class TransactionService:
                 "category": dto.category,
                 "description": dto.description,
                 "txn_date": txn_date.isoformat(),
+                "is_included": dto.is_included if dto.is_included is not None else True,
             })
 
         # 3. Batch insert transaction records
@@ -519,6 +546,36 @@ class TransactionService:
                     except Exception as fallback_e:
                         print("Fallback staging insert failed:", fallback_e)
 
+                # Dispatch Telegram split notification if configured
+                if parsed.get("staged_id") and settings.telegram_bot_token and settings.telegram_allowed_chat_id:
+                    try:
+                        import httpx
+                        amt_val = parsed["amount_cents"] / 100
+                        amt_str = f"₹{amt_val:.0f}" if parsed["amount_cents"] % 100 == 0 else f"₹{amt_val:.2f}"
+                        merchant_name = parsed.get("description") or "Merchant"
+                        telegram_text = f"{amt_str} at {merchant_name}. How do we split?"
+
+                        telegram_url = f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage"
+                        async with httpx.AsyncClient(timeout=10.0) as client:
+                            tg_resp = await client.post(
+                                telegram_url,
+                                json={
+                                    "chat_id": settings.telegram_allowed_chat_id,
+                                    "text": telegram_text,
+                                }
+                            )
+                            if tg_resp.is_success:
+                                tg_data = tg_resp.json()
+                                msg_id = tg_data.get("result", {}).get("message_id")
+                                if msg_id:
+                                    await self.db.table("transactions").update({
+                                        "telegram_chat_id": str(settings.telegram_allowed_chat_id),
+                                        "telegram_message_id": msg_id,
+                                        "status": "pending"
+                                    }).eq("id", parsed["staged_id"]).execute()
+                    except Exception as tg_err:
+                        print("[Telegram Notification Alert] Warning: Failed to send Telegram alert:", tg_err)
+
         except Exception as global_e:
             print("Global stage_parsed_text error:", global_e)
 
@@ -587,6 +644,7 @@ class TransactionService:
             "category": dto.category if dto.category else existing["category"],
             "description": dto.description if dto.description is not None else existing["description"],
             "txn_date": txn_date_val,
+            "is_included": dto.is_included if dto.is_included is not None else existing.get("is_included", True),
             "status": "confirmed"
         }
 

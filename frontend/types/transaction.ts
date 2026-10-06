@@ -1,4 +1,4 @@
-import { Category } from "../lib/constants";
+import { TransactionSplit } from "./split";
 
 export type TransactionType = "income" | "expense";
 
@@ -11,6 +11,10 @@ export interface Transaction {
   description?: string;
   txn_date: string;
   status?: string;
+  is_included?: boolean;
+  telegram_chat_id?: string;
+  telegram_message_id?: number;
+  splits?: TransactionSplit[];
   created_at: string;
 }
 
@@ -21,12 +25,14 @@ export interface CreateTransactionDto {
   category: string;
   description?: string;
   txn_date: string;
+  is_included?: boolean;
 }
 
 export interface TransactionQuery {
   account_id?: string;
   category?: string;
   type?: TransactionType;
+  is_included?: boolean;
   date_from?: string;
   date_to?: string;
   page?: number;
@@ -40,6 +46,7 @@ export interface UpdateTransactionDto {
   category?: string;
   description?: string;
   txn_date?: string;
+  is_included?: boolean;
 }
 
 export interface PaginatedTransactions {

@@ -12,6 +12,7 @@ from routers.gym import router as gym_router
 from routers.food import router as food_router
 from routers.study import router as study_router
 from routers.media import router as media_router
+from routers.splits import router as splits_router
 
 app = FastAPI(
     title="Personal Finance Command Center API",
@@ -41,6 +42,7 @@ app.include_router(gym_router, prefix="/api")
 app.include_router(food_router, prefix="/api")
 app.include_router(study_router, prefix="/api")
 app.include_router(media_router, prefix="/api")
+app.include_router(splits_router, prefix="/api")
 
 @app.get("/health")
 def health_check():

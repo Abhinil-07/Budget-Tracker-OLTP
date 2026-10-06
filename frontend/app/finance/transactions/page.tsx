@@ -39,6 +39,7 @@ import {
   Pencil,
   Upload,
   Download,
+  Users,
 } from "lucide-react";
 import { Transaction } from "@/types/transaction";
 
@@ -54,6 +55,7 @@ export default function TransactionsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
+  const [selectedIncluded, setSelectedIncluded] = useState<string>("all");
   const [selectedDateRange, setSelectedDateRange] = useState<string>("all");
   const [customDateFrom, setCustomDateFrom] = useState<string>("");
   const [customDateTo, setCustomDateTo] = useState<string>("");
@@ -99,7 +101,7 @@ export default function TransactionsPage() {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [selectedAccountId, searchQuery, selectedCategory, selectedType, selectedDateRange, customDateFrom, customDateTo]);
+  }, [selectedAccountId, searchQuery, selectedCategory, selectedType, selectedIncluded, selectedDateRange, customDateFrom, customDateTo]);
 
   // Compute date boundaries
   const dateBounds = useMemo(() => {
@@ -156,10 +158,11 @@ export default function TransactionsPage() {
       ...(selectedAccountId ? { account_id: selectedAccountId } : {}),
       ...(selectedCategory !== "all" ? { category: selectedCategory } : {}),
       ...(selectedType !== "all" ? { type: selectedType as any } : {}),
+      ...(selectedIncluded !== "all" ? { is_included: selectedIncluded === "included" } : {}),
       ...(dateBounds.date_from ? { date_from: dateBounds.date_from } : {}),
       ...(dateBounds.date_to ? { date_to: dateBounds.date_to } : {}),
     };
-  }, [page, selectedAccountId, selectedCategory, selectedType, pageSize, dateBounds]);
+  }, [page, selectedAccountId, selectedCategory, selectedType, selectedIncluded, pageSize, dateBounds]);
 
   const {
     data: txnData,
@@ -265,28 +268,49 @@ export default function TransactionsPage() {
     }
   };
 
+  const [togglingIncludedIds, setTogglingIncludedIds] = useState<Record<string, boolean>>({});
+
+  const handleToggleInclude = async (txn: Transaction, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newStatus = txn.is_included === false ? true : false;
+    setTogglingIncludedIds((prev) => ({ ...prev, [txn.id]: true }));
+    try {
+      await api.transactions.update(txn.id, {
+        is_included: newStatus,
+      });
+      // Invalidate transactions and budget caches so home and transactions update
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["budget"] });
+    } catch (err) {
+      console.error("Failed to update include status:", err);
+      alert("Failed to update transaction inclusion status.");
+    } finally {
+      setTogglingIncludedIds((prev) => ({ ...prev, [txn.id]: false }));
+    }
+  };
+
   const handleExportCSV = () => {
     if (!txnData || txnData.items.length === 0) return;
-    const headers = ["Date", "Description", "Category", "Type", "Amount (INR)", "Account"];
+    const headers = ["Date", "Description", "Category", "Type", "Amount (INR)", "Account", "To Be Included"];
     const rows = txnData.items.map((txn) => {
       const acc = accounts.find((a) => a.id === txn.account_id);
       return [
         txn.txn_date,
-        `"${txn.description || ""}"`,
-        txn.category,
+        `"${(txn.description || "").replace(/"/g, '""')}"`,
+        `"${txn.category.replace(/"/g, '""')}"`,
         txn.type,
         (txn.amount_cents / 100).toFixed(2),
-        acc ? `"${acc.name}"` : "Unknown",
+        acc ? `"${acc.name.replace(/"/g, '""')}"` : "Unknown",
+        txn.is_included !== false ? "TRUE" : "FALSE",
       ];
     });
 
     const csvContent =
       "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+      encodeURIComponent([headers.join(","), ...rows.map((e) => e.join(","))].join("\n"));
 
-    const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
+    link.setAttribute("href", csvContent);
     link.setAttribute("download", `transactions_export_${new Date().toISOString().split("T")[0]}.csv`);
     document.body.appendChild(link);
     link.click();
@@ -308,7 +332,7 @@ export default function TransactionsPage() {
         return;
       }
 
-      const headers = ["Date", "Description", "Category", "Amount (INR)", "Account", "Account Type", "Status"];
+      const headers = ["Date", "Description", "Category", "Amount (INR)", "Account", "Account Type", "Status", "To Be Included"];
       const rows = items.map((txn) => {
         const acc = accounts.find((a) => a.id === txn.account_id);
         const accTypeLabel =
@@ -326,6 +350,7 @@ export default function TransactionsPage() {
           acc ? `"${acc.name.replace(/"/g, '""')}"` : '"Unknown"',
           `"${accTypeLabel}"`,
           `"${txn.status || "confirmed"}"`,
+          txn.is_included !== false ? "TRUE" : "FALSE",
         ];
       });
 
@@ -371,26 +396,26 @@ export default function TransactionsPage() {
       document.body.removeChild(link);
     } else {
       // CSV format
-      const headers = ["Date", "Description", "Category", "Type", "Amount (INR)", "Account"];
+      const headers = ["Date", "Description", "Category", "Type", "Amount (INR)", "Account", "To Be Included"];
       const rows = itemsToExport.map((txn) => {
         const acc = accounts.find((a) => a.id === txn.account_id);
         return [
           txn.txn_date,
-          `"${txn.description || ""}"`,
-          txn.category,
+          `"${(txn.description || "").replace(/"/g, '""')}"`,
+          `"${txn.category.replace(/"/g, '""')}"`,
           txn.type,
           (txn.amount_cents / 100).toFixed(2),
-          acc ? `"${acc.name}"` : "Unknown",
+          acc ? `"${acc.name.replace(/"/g, '""')}"` : "Unknown",
+          txn.is_included !== false ? "TRUE" : "FALSE",
         ];
       });
 
       const csvContent =
         "data:text/csv;charset=utf-8," +
-        [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+        encodeURIComponent([headers.join(","), ...rows.map((e) => e.join(","))].join("\n"));
 
-      const encodedUri = encodeURI(csvContent);
       const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
+      link.setAttribute("href", csvContent);
       link.setAttribute("download", `statement_${selectedAccount?.name || "account"}_${new Date().toISOString().split("T")[0]}.csv`);
       document.body.appendChild(link);
       link.click();
@@ -713,6 +738,17 @@ export default function TransactionsPage() {
                     <option value="custom">Custom Range...</option>
                   </select>
 
+                  {/* Inclusion Status Filter */}
+                  <select
+                    value={selectedIncluded}
+                    onChange={(e) => setSelectedIncluded(e.target.value)}
+                    className="bg-surface-raised border border-border rounded-lg px-3 py-1.5 text-xs font-medium text-text-primary focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="included">Included Only</option>
+                    <option value="excluded">Excluded Only</option>
+                  </select>
+
                   {/* Dump All Expenses CSV Button */}
                   <button
                     onClick={handleExportAllExpensesCSV}
@@ -864,12 +900,59 @@ export default function TransactionsPage() {
                             </div>
                           </div>
 
+                          {/* Splits breakdown pill */}
+                          {txn.splits && txn.splits.length > 0 && (
+                            <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] text-text-muted font-mono flex items-center gap-1">
+                                <Users className="h-3 w-3 text-accent" />
+                                Splits:
+                              </span>
+                              {txn.splits.map((s) => (
+                                <span
+                                  key={s.id}
+                                  className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                                    s.person?.is_me
+                                      ? "bg-accent/10 border-accent/30 text-accent font-medium"
+                                      : "bg-surface-raised border-border text-text-primary"
+                                  }`}
+                                >
+                                  {s.person?.name || "Person"}: {formatCurrency(s.amount_paise, "INR")}
+                                  {s.note ? ` • ${s.note}` : ""}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
                           {/* Bottom Row: Category badge & Ref No on left, Balance on right */}
                           <div className="flex items-center justify-between mt-2.5">
                             <div className="flex items-center gap-2 text-xs text-[#8888AA] font-mono flex-wrap">
                               <span className="bg-accent/10 border border-accent/25 text-accent text-[9px] px-1.5 py-0.5 rounded font-medium uppercase tracking-wider select-none">
                                 {txn.category}
                               </span>
+
+                              {/* To Be Included Toggle Button */}
+                              <button
+                                onClick={(e) => handleToggleInclude(txn, e)}
+                                disabled={Boolean(togglingIncludedIds[txn.id])}
+                                className={`text-[9px] px-2 py-0.5 rounded font-semibold tracking-wider uppercase transition-all flex items-center gap-1 border select-none ${
+                                  txn.is_included !== false
+                                    ? "bg-accent/15 border-accent/40 text-accent hover:bg-accent/25"
+                                    : "bg-surface-raised border-border text-text-muted hover:text-text-primary hover:border-text-secondary"
+                                } disabled:opacity-50`}
+                                title={txn.is_included !== false ? "Included in Expense Total (click to exclude)" : "Excluded from Expense Total (click to include)"}
+                              >
+                                <span
+                                  className={`inline-block w-1.5 h-1.5 rounded-full ${
+                                    txn.is_included !== false ? "bg-accent animate-pulse" : "bg-text-muted"
+                                  }`}
+                                />
+                                {togglingIncludedIds[txn.id]
+                                  ? "Updating..."
+                                  : txn.is_included !== false
+                                  ? "To Be Included: YES"
+                                  : "To Be Included: NO"}
+                              </button>
+
                               <span>•</span>
                               <span>Ref No: {txn.id.replace(/[^0-9]/g, "").slice(0, 12) || txn.id.slice(0, 12)}</span>
                               <button

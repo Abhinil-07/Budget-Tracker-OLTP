@@ -26,6 +26,7 @@ const addTransactionSchema = z.object({
   category: z.string().min(1, "Select a category"),
   description: z.string().optional(),
   txn_date: z.string().min(1, "Date is required"),
+  is_included: z.boolean(),
 });
 
 type AddTransactionForm = z.infer<typeof addTransactionSchema>;
@@ -62,6 +63,7 @@ export default function AddTransactionModal({
       category: "",
       description: "",
       txn_date: today,
+      is_included: true,
     },
   });
 
@@ -282,6 +284,7 @@ export default function AddTransactionModal({
         category: "",
         description: "",
         txn_date: today,
+        is_included: true,
       });
       setIsSplitEnabled(false);
       setSplitCount(2);
@@ -322,6 +325,7 @@ export default function AddTransactionModal({
           category: data.category,
           description: data.description ? `${data.description.trim()} (My Share)` : "My Share",
           txn_date: data.txn_date,
+          is_included: data.is_included,
         });
 
         // 2. Create Transaction 2 (Roommate Share)
@@ -332,6 +336,7 @@ export default function AddTransactionModal({
           category: "Owed to Me",
           description: data.description ? `${data.description.trim()} (Roommate Share)` : "Roommate Share",
           txn_date: data.txn_date,
+          is_included: data.is_included,
         });
       } else {
         // Standard single transaction logging
@@ -342,6 +347,7 @@ export default function AddTransactionModal({
           category: data.category,
           description: data.description?.trim() || undefined,
           txn_date: data.txn_date,
+          is_included: data.is_included,
         });
       }
 
@@ -696,6 +702,30 @@ export default function AddTransactionModal({
                 {errors.txn_date.message}
               </p>
             )}
+          </div>
+
+          {/* To Be Included in Expense Total Toggle */}
+          <div className="flex items-center justify-between p-3 rounded-xl bg-surface-raised/40 border border-border/60">
+            <div className="space-y-0.5 pr-2">
+              <label
+                htmlFor="txn-is-included"
+                className="text-xs font-semibold text-text-primary block cursor-pointer"
+              >
+                To Be Included in Expense Total
+              </label>
+              <p className="text-[11px] text-text-muted leading-tight">
+                When enabled, this transaction counts toward your home dashboard expense metrics.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                id="txn-is-included"
+                type="checkbox"
+                {...register("is_included")}
+                className="sr-only peer"
+              />
+              <div className="w-10 h-5 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent"></div>
+            </label>
           </div>
 
           {/* Actions */}
