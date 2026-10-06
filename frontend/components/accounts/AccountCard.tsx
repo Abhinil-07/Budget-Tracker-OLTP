@@ -8,6 +8,7 @@ import { Landmark, CreditCard, Wallet } from "lucide-react";
 interface AccountCardProps {
   account: Account;
   spentThisMonthCents?: number;
+  incomeThisMonthCents?: number;
   onClick?: () => void;
   isSelected?: boolean;
 }
@@ -15,6 +16,7 @@ interface AccountCardProps {
 export default function AccountCard({
   account,
   spentThisMonthCents = 0,
+  incomeThisMonthCents = 0,
   onClick,
   isSelected,
 }: AccountCardProps) {
@@ -44,6 +46,9 @@ export default function AccountCard({
     }
   };
 
+  // Net activity for the active period (starts at 0 on a new month)
+  const monthlyNetCents = incomeThisMonthCents - spentThisMonthCents;
+
   return (
     <div
       onClick={onClick}
@@ -66,7 +71,7 @@ export default function AccountCard({
         </div>
       </div>
 
-      {/* Middle row: Live Balance & Spent Amount */}
+      {/* Middle row: Active Month Activity (starts at 0 each month) */}
       <div className="my-3 flex items-end justify-between gap-3">
         <div>
           <div
@@ -74,35 +79,46 @@ export default function AccountCard({
               isCreditCard ? "text-danger" : "text-text-muted"
             }`}
           >
-            {isCreditCard ? "Owed (Debt)" : "Balance"}
+            {isCreditCard ? "Spent This Month" : "Net This Month"}
           </div>
           <div
             className={`font-mono text-2xl font-bold tracking-tight transition-all duration-300 ${
               isCreditCard
-                ? "text-danger"
-                : account.balance_cents >= 0
+                ? spentThisMonthCents > 0
+                  ? "text-danger"
+                  : "text-text-muted"
+                : monthlyNetCents > 0
                 ? "text-success"
-                : "text-danger"
+                : monthlyNetCents < 0
+                ? "text-danger"
+                : "text-text-muted"
             }`}
           >
-            {formatCurrency(account.balance_cents, account.currency)}
+            {isCreditCard
+              ? formatCurrency(spentThisMonthCents, account.currency)
+              : formatCurrency(monthlyNetCents, account.currency)}
           </div>
         </div>
 
         <div className="text-right flex flex-col items-end">
           <span className="text-[10px] uppercase tracking-wider text-text-muted font-semibold mb-0.5">
-            Spent Period
+            {isCreditCard ? "Credits (Paid)" : "Spent Period"}
           </span>
           <span className="font-mono text-sm font-bold text-text-primary bg-surface-raised px-2.5 py-1 rounded border border-border/80">
-            {formatCurrency(spentThisMonthCents, account.currency)}
+            {isCreditCard
+              ? formatCurrency(incomeThisMonthCents, account.currency)
+              : formatCurrency(spentThisMonthCents, account.currency)}
           </span>
         </div>
       </div>
 
-      {/* Bottom row: account number and/or status */}
+      {/* Bottom row: all-time balance context & account currency */}
       <div className="text-xs text-text-muted font-mono flex items-center justify-between mt-auto pt-2 border-t border-border/40">
-        <span>
-          {account.account_number ? `**** ${account.account_number.slice(-4)}` : "No Acc Number"}
+        <span className="text-[11px]">
+          {isCreditCard ? "Total Owed: " : "Total Balance: "}
+          <span className={`font-semibold ${isCreditCard ? "text-danger/90" : "text-text-secondary"}`}>
+            {formatCurrency(account.balance_cents, account.currency)}
+          </span>
         </span>
         <span className="text-[10px] text-text-secondary uppercase tracking-widest">
           {account.currency}

@@ -129,6 +129,17 @@ export default function Dashboard() {
     return map;
   }, [expenseData]);
 
+  // Map of account_id -> total income cents in the selected timeframe
+  const incomeByAccount = useMemo(() => {
+    const map: Record<string, number> = {};
+    if (incomeData?.items) {
+      incomeData.items.forEach((item) => {
+        map[item.account_id] = (map[item.account_id] || 0) + item.amount_cents;
+      });
+    }
+    return map;
+  }, [incomeData]);
+
   // Fetch all-time transactions for the "Owed to Me" category
   const owedParams = useMemo(() => {
     return {
@@ -325,6 +336,7 @@ export default function Dashboard() {
                 key={acc.id}
                 account={acc}
                 spentThisMonthCents={spentByAccount[acc.id] || 0}
+                incomeThisMonthCents={incomeByAccount[acc.id] || 0}
                 isSelected={selectedAccountId === acc.id}
                 onClick={() => handleAccountClick(acc.id)}
               />
