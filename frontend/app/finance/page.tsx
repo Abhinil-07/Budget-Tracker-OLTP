@@ -336,7 +336,6 @@ export default function Dashboard() {
                 key={acc.id}
                 account={acc}
                 spentThisMonthCents={spentByAccount[acc.id] || 0}
-                incomeThisMonthCents={incomeByAccount[acc.id] || 0}
                 isSelected={selectedAccountId === acc.id}
                 onClick={() => handleAccountClick(acc.id)}
               />
