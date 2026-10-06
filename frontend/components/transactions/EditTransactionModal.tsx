@@ -161,9 +161,9 @@ export default function EditTransactionModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-lg mx-4 animate-in fade-in duration-200">
+      <div className="relative bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col animate-in fade-in duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <h2 className="text-lg font-semibold text-text-primary">
             Edit Transaction
           </h2>
@@ -176,7 +176,7 @@ export default function EditTransactionModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-5 overflow-y-auto flex-1">
           {/* Root error */}
           {errors.root && (
             <div className="bg-danger/10 border border-danger/25 text-danger px-4 py-3 rounded-lg text-sm">
