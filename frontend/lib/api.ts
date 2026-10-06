@@ -112,7 +112,7 @@ export const api = {
       }),
     update: (id: string, body: UpdateAccountDto) =>
       request<Account>(`/api/accounts/${id}`, {
-        method: "PATCH",
+        method: "PUT",
         body: JSON.stringify(body),
       }),
     delete: (id: string) =>
