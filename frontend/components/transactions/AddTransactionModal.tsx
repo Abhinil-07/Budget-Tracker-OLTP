@@ -742,8 +742,8 @@ export default function AddTransactionModal({
               disabled={isSubmitting}
               className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.01] active:scale-[0.99] ${
                 selectedType === "income"
-                  ? "bg-success hover:bg-success/90 text-white shadow-success/20"
-                  : "bg-accent hover:bg-accent/90 text-text-primary shadow-accent/20"
+                  ? "bg-success hover:bg-success/90 text-white shadow-success/20 font-bold"
+                  : "bg-accent hover:bg-accent/90 text-black shadow-accent/20 font-bold"
               }`}
             >
               {isSubmitting

@@ -18,16 +18,16 @@ module.exports = {
           DEFAULT: "#27272A",
         },
         accent: {
-          DEFAULT: "#22C55E",
-          muted: "#15803D",
+          DEFAULT: "#CCFF00",
+          muted: "#84A300",
         },
         success: "#22C55E",
         danger: "#EF4444",
         warning: "#F59E0B",
         text: {
           primary: "#FAFAFA",
-          secondary: "#A1A1AA",
-          muted: "#71717A",
+          secondary: "#9CA3AF",
+          muted: "#6B7280",
         },
       },
       fontFamily: {

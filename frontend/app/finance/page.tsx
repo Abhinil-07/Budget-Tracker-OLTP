@@ -324,7 +324,7 @@ export default function Dashboard() {
             <p className="text-text-secondary text-sm font-medium">Add your first account to get started</p>
             <Link
               href="/finance/accounts"
-              className="px-4 py-2 bg-accent hover:bg-accent/90 text-text-primary rounded-lg text-xs font-semibold transition-all shadow-md shadow-accent/10"
+              className="px-4 py-2 bg-accent hover:bg-accent/90 text-black rounded-lg text-xs font-bold transition-all shadow-md shadow-accent/10"
             >
               Go to Accounts
             </Link>
@@ -367,7 +367,7 @@ export default function Dashboard() {
             <p className="text-sm text-text-secondary">Set a monthly budget to track spending</p>
             <Link
               href="/finance/budget"
-              className="px-4 py-2 bg-accent hover:bg-accent/90 text-text-primary rounded-lg text-xs font-semibold transition-all shadow-md shadow-accent/10"
+              className="px-4 py-2 bg-accent hover:bg-accent/90 text-black rounded-lg text-xs font-bold transition-all shadow-md shadow-accent/10"
             >
               Set Budget
             </Link>
@@ -490,7 +490,7 @@ export default function Dashboard() {
             <span>No transactions yet for this month</span>
             <button
               onClick={() => setShowAddModal(true)}
-              className="px-4 py-2 bg-accent hover:bg-accent/90 text-text-primary rounded-lg text-xs font-semibold transition-all shadow-md shadow-accent/10"
+              className="px-4 py-2 bg-accent hover:bg-accent/90 text-black rounded-lg text-xs font-bold transition-all shadow-md shadow-accent/10"
             >
               Add Transaction
             </button>
