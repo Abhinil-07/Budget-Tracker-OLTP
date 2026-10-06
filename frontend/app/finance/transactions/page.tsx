@@ -532,10 +532,10 @@ export default function TransactionsPage() {
         </div>
 
         {/* RIGHT PANEL: 2/3 Width Selected Account Transactions (Passbook Style) */}
-        <div className={`lg:col-span-2 bg-[#0B0F17] border border-border/80 rounded-xl flex flex-col overflow-hidden shadow-2xl ${showMobileDetail ? "block" : "hidden lg:flex"}`}>
+        <div className={`lg:col-span-2 bg-surface border border-border/80 rounded-xl flex flex-col overflow-hidden shadow-2xl ${showMobileDetail ? "block" : "hidden lg:flex"}`}>
           {/* Header Area in Mobile-Statement style */}
           {selectedAccount && (
-            <div className="p-6 bg-gradient-to-br from-[#121A2A] via-[#0E131F] to-[#0B0F17] border-b border-border/60 relative">
+            <div className="p-6 bg-gradient-to-br from-surface-raised via-surface to-background border-b border-border/60 relative">
               <div className="flex items-center justify-between mb-5 h-7">
                 {showSearchInHeader ? (
                   <div className="flex items-center gap-2 w-full animate-in fade-in slide-in-from-top-1 duration-155">
@@ -698,7 +698,7 @@ export default function TransactionsPage() {
           {activeTab === "statement" ? (
             <>
               {/* Filter Toolbar */}
-              <div className="p-4 border-b border-border/60 bg-[#0E131F]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none">
+              <div className="p-4 border-b border-border/60 bg-surface/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none">
                 <div className="flex items-center gap-2 flex-wrap flex-1">
                   {/* Type Select */}
                   <select
@@ -821,7 +821,7 @@ export default function TransactionsPage() {
               )}
 
               {/* Passbook Transactions Ledger */}
-              <div className="flex-1 overflow-y-auto min-h-[300px] bg-[#0B0F17]">
+              <div className="flex-1 overflow-y-auto min-h-[300px] bg-surface">
                 {txnsError && (
                   <div className="p-12 text-center text-danger flex flex-col items-center gap-2">
                     <AlertCircle className="h-8 w-8" />

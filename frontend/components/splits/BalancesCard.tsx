@@ -72,7 +72,7 @@ export default function BalancesCard() {
 
   if (isLoading) {
     return (
-      <div className="bg-[#0E131F] border border-border/80 rounded-xl p-5 shadow-lg animate-pulse">
+      <div className="bg-surface border border-border/80 rounded-xl p-5 shadow-lg animate-pulse">
         <div className="h-4 w-36 bg-surface-raised rounded mb-4" />
         <div className="h-10 w-48 bg-surface-raised rounded mb-4" />
         <div className="space-y-2">
@@ -84,7 +84,7 @@ export default function BalancesCard() {
   }
 
   return (
-    <div className="bg-[#0E131F] border border-border/80 rounded-xl p-5 shadow-lg relative overflow-hidden flex flex-col justify-between">
+    <div className="bg-surface border border-border/80 rounded-xl p-5 shadow-lg relative overflow-hidden flex flex-col justify-between">
       {/* Background ambient glow */}
       <div className="absolute -right-10 -bottom-10 w-36 h-36 bg-accent/5 rounded-full blur-3xl pointer-events-none" />
 

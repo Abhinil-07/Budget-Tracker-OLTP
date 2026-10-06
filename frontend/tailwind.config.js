@@ -9,29 +9,29 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: "#0A0A0A",
+        background: "#09090B",
         surface: {
-          DEFAULT: "#161616",
-          raised: "#1E1E1F",
+          DEFAULT: "#121215",
+          raised: "#18181B",
         },
         border: {
-          DEFAULT: "#2A2A2C",
+          DEFAULT: "#27272A",
         },
         accent: {
-          DEFAULT: "#D97757",
-          muted: "#6B3D2E",
+          DEFAULT: "#22C55E",
+          muted: "#15803D",
         },
         success: "#22C55E",
-        danger: "#E5484D",
+        danger: "#EF4444",
         warning: "#F59E0B",
         text: {
-          primary: "#EDEDEC",
-          secondary: "#8C8C8C",
-          muted: "#555555",
+          primary: "#FAFAFA",
+          secondary: "#A1A1AA",
+          muted: "#71717A",
         },
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "sans-serif"],
+        sans: ["var(--font-plus-jakarta-sans)", "var(--font-inter)", "sans-serif"],
         mono: ["var(--font-jetbrains-mono)", "monospace"],
       },
     },

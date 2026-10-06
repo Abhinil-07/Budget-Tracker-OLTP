@@ -248,7 +248,7 @@ export default function Dashboard() {
             </p>
           </div>
           {/* Net Worth display block */}
-          <div className="bg-[#07090E]/60 border border-border/60 px-5 py-4 rounded-xl shrink-0 flex flex-col sm:items-end gap-1 font-mono">
+          <div className="bg-background/80 border border-border/80 px-5 py-4 rounded-xl shrink-0 flex flex-col sm:items-end gap-1 font-mono">
             <span className="text-[10px] text-text-muted uppercase font-sans font-bold tracking-wider">Estimated Net Worth</span>
             <span className={`text-xl font-extrabold ${netWorthCents >= 0 ? "text-success" : "text-danger"}`}>
               {formatCurrency(netWorthCents, "INR")}
