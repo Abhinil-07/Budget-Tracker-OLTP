@@ -14,7 +14,17 @@ import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import BudgetAlertBanners from "@/components/budget/BudgetAlertBanners";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { formatDate } from "@/lib/formatDate";
-import { AlertCircle } from "lucide-react";
+import { 
+  AlertCircle, 
+  TrendingUp, 
+  TrendingDown, 
+  ArrowUp, 
+  Wallet, 
+  Users, 
+  ShoppingBag, 
+  Calendar,
+  Sparkles 
+} from "lucide-react";
 import Link from "next/link";
 
 export default function Dashboard() {
@@ -235,25 +245,53 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Welcome Banner */}
+      {/* Hero Stacked Card Deck (Inspired by Reference Design) */}
       {user && (
-        <div className="mb-6 p-6 rounded-2xl bg-gradient-to-r from-surface-raised via-surface to-surface-raised border border-border/80 relative overflow-hidden select-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-accent/5 rounded-full blur-3xl pointer-events-none" />
-          <div className="space-y-1.5">
-            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
-              Hi, <span className="text-accent">{user.email?.split("@")[0] || "Command User"}</span> 👋
-            </h2>
-            <p className="text-xs sm:text-sm text-text-secondary leading-relaxed max-w-xl">
-              Welcome to <span className="text-white font-semibold">Finance Command</span>. Take control of your money, analyze budget thresholds, and build your net worth dynamically.
-            </p>
+        <div className="mb-8 select-none">
+          {/* Main Floating Highlight Card */}
+          <div className="bg-[#D4EFE6] text-[#111317] p-6 sm:p-7 rounded-[28px] shadow-2xl relative overflow-hidden transition-all duration-300">
+            {/* Top row */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-600 block">
+                  Estimated Net Worth
+                </span>
+                <h2 className="text-sm font-semibold text-neutral-800">
+                  Welcome back, <span className="font-bold text-black">{user.email?.split("@")[0] || "User"}</span> 👋
+                </h2>
+              </div>
+
+              {/* Circular gauge badge in top-right (matching reference) */}
+              <div className="w-12 h-12 rounded-full border-2 border-neutral-900/15 bg-white/40 backdrop-blur-sm flex items-center justify-center shrink-0 shadow-sm">
+                <div className="flex flex-col items-center leading-none">
+                  <ArrowUp className="h-3.5 w-3.5 text-emerald-800 stroke-[2.5]" />
+                  <span className="text-[9px] font-extrabold text-neutral-900 mt-0.5">Live</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Huge Bold Value */}
+            <div className="my-4">
+              <div className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight font-sans text-[#111317]">
+                {formatCurrency(netWorthCents, "INR")}
+              </div>
+            </div>
+
+            {/* Bottom Inflow / Cashflow Pills */}
+            <div className="flex items-center flex-wrap gap-2 pt-2 border-t border-black/10 text-xs">
+              <div className="inline-flex items-center gap-1.5 bg-white/70 px-3 py-1 rounded-full font-semibold text-neutral-800 shadow-xs">
+                <TrendingUp className="h-3.5 w-3.5 text-emerald-700" />
+                <span>+{formatCurrency(mtdIncomeCents, "INR")} Inflow MTD</span>
+              </div>
+              <div className="inline-flex items-center gap-1.5 bg-black/5 px-3 py-1 rounded-full font-medium text-neutral-700">
+                <span>{accounts.length} Accounts Connected</span>
+              </div>
+            </div>
           </div>
-          {/* Net Worth display block */}
-          <div className="bg-background/80 border border-border/80 px-5 py-4 rounded-xl shrink-0 flex flex-col sm:items-end gap-1 font-mono">
-            <span className="text-[10px] text-text-muted uppercase font-sans font-bold tracking-wider">Estimated Net Worth</span>
-            <span className={`text-xl font-extrabold ${netWorthCents >= 0 ? "text-success" : "text-danger"}`}>
-              {formatCurrency(netWorthCents, "INR")}
-            </span>
-          </div>
+
+          {/* Stacked 3D Card Deck Silhouettes */}
+          <div className="w-[94%] mx-auto h-2.5 bg-[#181922] rounded-b-[24px] border-b border-x border-white/[0.06] opacity-80" />
+          <div className="w-[88%] mx-auto h-2 bg-[#121318] rounded-b-[20px] border-b border-x border-white/[0.04] opacity-50" />
         </div>
       )}
 
@@ -268,13 +306,16 @@ export default function Dashboard() {
       </div>
 
       {/* Timeframe Selector Panel */}
-      <div className="mb-6 p-4 rounded-xl bg-surface border border-border/60 flex items-center justify-between flex-wrap gap-3 select-none">
+      <div className="mb-6 p-4 rounded-[22px] bg-[#13141B] border border-white/[0.07] flex items-center justify-between flex-wrap gap-3 select-none">
         <div className="flex items-center gap-2.5">
-          <span className="text-xs text-text-secondary uppercase font-mono tracking-wider font-semibold">Active Period:</span>
+          <Calendar className="h-4 w-4 text-neutral-400" />
+          <span className="text-xs text-neutral-400 uppercase font-mono tracking-wider font-semibold">
+            Active Period:
+          </span>
           <select
             value={selectedTimeframe}
             onChange={(e) => setSelectedTimeframe(e.target.value)}
-            className="bg-surface-raised border border-border rounded-lg px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer min-w-[150px]"
+            className="bg-[#1A1B24] border border-white/10 rounded-xl px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:ring-1 focus:ring-white cursor-pointer min-w-[150px]"
           >
             {timeframes.map((tf: { label: string; value: string }) => (
               <option key={tf.value} value={tf.value}>
@@ -286,7 +327,7 @@ export default function Dashboard() {
         {selectedTimeframe && timeframes.length > 0 && selectedTimeframe !== timeframes[0].value && (
           <button
             onClick={() => setSelectedTimeframe(timeframes[0].value)}
-            className="text-xs text-accent hover:underline font-mono"
+            className="text-xs text-white hover:underline font-mono bg-white/10 px-3 py-1 rounded-lg"
           >
             Back to Current Month
           </button>
@@ -349,124 +390,226 @@ export default function Dashboard() {
         <BalancesCard />
       </div>
 
-      {/* Budget Progress Area */}
-      <div className="bg-surface p-6 rounded-xl border border-border">
-        {budgetLoading ? (
-          <div className="space-y-4 animate-pulse">
-            <div className="flex justify-between items-center text-sm">
-              <div className="h-4 bg-surface-raised w-1/4 rounded" />
-              <div className="h-4 bg-surface-raised w-1/3 rounded" />
-            </div>
-            <div className="w-full bg-border rounded-full h-3 overflow-hidden">
-              <div className="h-full bg-surface-raised rounded w-full" />
-            </div>
-            <div className="h-3 bg-surface-raised w-1/6 rounded" />
-          </div>
-        ) : totalBudgetCents === 0 ? (
-          <div className="text-center py-4 flex flex-col items-center gap-3">
-            <p className="text-sm text-text-secondary">Set a monthly budget to track spending</p>
-            <Link
-              href="/finance/budget"
-              className="px-4 py-2 bg-accent hover:bg-accent/90 text-black rounded-lg text-xs font-bold transition-all shadow-md shadow-accent/10"
-            >
-              Set Budget
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center text-sm">
-              <span className="font-semibold text-text-primary">Monthly Budget Progress</span>
-              <span className="text-text-secondary font-mono">
-                {formatCurrency(mtdSpentCents, "INR")} / {formatCurrency(totalBudgetCents, "INR")} ({Math.round(percentageUsed)}%)
-              </span>
-            </div>
-            <div className="w-full bg-border rounded-full h-3 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  percentageUsed >= 90
-                    ? "bg-danger"
-                    : percentageUsed >= 75
-                    ? "bg-warning"
-                    : "bg-success"
-                }`}
-                style={{ width: `${percentageUsed}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between text-xs text-text-secondary font-mono">
-              <span>{formatCurrency(remainingCents, "INR")} remaining</span>
-              {percentageUsed >= 80 && (
-                <span className="text-warning font-semibold">
-                  Warning: Budget threshold crossed (80%+)
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Statistics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Primary 4 Metric Cards (Directly matching Left Device in Reference) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         {budgetLoading ? (
           [1, 2, 3, 4].map((n) => (
-            <div key={n} className="bg-surface p-6 rounded-xl border border-border animate-pulse space-y-3">
-              <div className="h-3 bg-surface-raised w-1/3 rounded" />
-              <div className="h-6 bg-surface-raised w-1/2 rounded" />
+            <div key={n} className="bg-[#13141B] p-6 rounded-[26px] border border-white/[0.06] animate-pulse space-y-3 h-[150px] flex flex-col justify-between">
+              <div className="h-10 w-10 bg-white/10 rounded-full" />
+              <div>
+                <div className="h-6 bg-white/10 w-3/4 rounded-md mb-2" />
+                <div className="h-3 bg-white/10 w-1/2 rounded" />
+              </div>
             </div>
           ))
         ) : (
           <>
-            <div className="bg-surface p-6 rounded-xl border border-border">
-              <div className="text-xs text-text-muted uppercase tracking-wider mb-2">
-                Spent MTD
+            {/* Card 1: Spent MTD (Pale Blush/Peach) */}
+            <div className="bg-[#FDECE8] text-[#111317] p-6 rounded-[26px] shadow-lg border border-black/5 flex flex-col justify-between min-h-[160px] transition-all duration-300 hover:scale-[1.02] select-none">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-full border border-black/10 bg-white/80 flex items-center justify-center text-[#E11D48] shadow-xs">
+                  <TrendingDown className="h-5 w-5 stroke-[2.2]" />
+                </div>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#E11D48] bg-white/60 px-2 py-0.5 rounded-full">
+                  Outflow
+                </span>
               </div>
-              <div className="font-mono text-xl font-bold text-danger">
-                {formatCurrency(mtdSpentCents, "INR")}
-              </div>
-            </div>
-            <div className="bg-surface p-6 rounded-xl border border-border">
-              <div className="text-xs text-text-muted uppercase tracking-wider mb-2">
-                Remaining Budget
-              </div>
-              <div className="font-mono text-xl font-bold text-text-primary">
-                {formatCurrency(remainingCents, "INR")}
-              </div>
-            </div>
-            <div className="bg-surface p-6 rounded-xl border border-border">
-              <div className="text-xs text-text-muted uppercase tracking-wider mb-2">
-                Income MTD
-              </div>
-              <div className="font-mono text-xl font-bold text-success">
-                {formatCurrency(mtdIncomeCents, "INR")}
+              <div className="mt-3">
+                <div className="text-2xl lg:text-3xl font-extrabold tracking-tight font-sans text-[#111317]">
+                  {formatCurrency(mtdSpentCents, "INR")}
+                </div>
+                <span className="text-xs font-semibold text-neutral-600 block mt-0.5">
+                  Spent MTD
+                </span>
               </div>
             </div>
-            <div className="bg-surface p-6 rounded-xl border border-border">
-              <div className="text-xs text-text-muted uppercase tracking-wider mb-2">
-                Owed to Me
+
+            {/* Card 2: Remaining Budget (Pale Mint) */}
+            <div className="bg-[#D4EFE6] text-[#111317] p-6 rounded-[26px] shadow-lg border border-black/5 flex flex-col justify-between min-h-[160px] transition-all duration-300 hover:scale-[1.02] select-none">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-full border border-black/10 bg-white/80 flex items-center justify-center text-[#059669] shadow-xs">
+                  <Wallet className="h-5 w-5 stroke-[2.2]" />
+                </div>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#059669] bg-white/60 px-2 py-0.5 rounded-full">
+                  Budget
+                </span>
               </div>
-              <div className="font-mono text-xl font-bold text-accent">
-                {formatCurrency(totalOwedCents, "INR")}
+              <div className="mt-3">
+                <div className="text-2xl lg:text-3xl font-extrabold tracking-tight font-sans text-[#111317]">
+                  {formatCurrency(remainingCents, "INR")}
+                </div>
+                <span className="text-xs font-semibold text-neutral-600 block mt-0.5">
+                  Remaining Budget
+                </span>
+              </div>
+            </div>
+
+            {/* Card 3: Income MTD (Pale Lavender) */}
+            <div className="bg-[#ECEBFB] text-[#111317] p-6 rounded-[26px] shadow-lg border border-black/5 flex flex-col justify-between min-h-[160px] transition-all duration-300 hover:scale-[1.02] select-none">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-full border border-black/10 bg-white/80 flex items-center justify-center text-[#4F46E5] shadow-xs">
+                  <TrendingUp className="h-5 w-5 stroke-[2.2]" />
+                </div>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#4F46E5] bg-white/60 px-2 py-0.5 rounded-full">
+                  Income
+                </span>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl lg:text-3xl font-extrabold tracking-tight font-sans text-[#111317]">
+                  {formatCurrency(mtdIncomeCents, "INR")}
+                </div>
+                <span className="text-xs font-semibold text-neutral-600 block mt-0.5">
+                  Income MTD
+                </span>
+              </div>
+            </div>
+
+            {/* Card 4: Owed to Me (Crisp Porcelain / Cream) */}
+            <div className="bg-[#F8F9FA] text-[#111317] p-6 rounded-[26px] shadow-lg border border-black/5 flex flex-col justify-between min-h-[160px] transition-all duration-300 hover:scale-[1.02] select-none">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-full border border-black/10 bg-white flex items-center justify-center text-neutral-900 shadow-xs">
+                  <Users className="h-5 w-5 stroke-[2.2]" />
+                </div>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-neutral-700 bg-neutral-200/60 px-2 py-0.5 rounded-full">
+                  Splits
+                </span>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl lg:text-3xl font-extrabold tracking-tight font-sans text-[#111317]">
+                  {formatCurrency(totalOwedCents, "INR")}
+                </div>
+                <span className="text-xs font-semibold text-neutral-600 block mt-0.5">
+                  Owed to Me
+                </span>
               </div>
             </div>
           </>
         )}
       </div>
 
-      {/* Recent Transactions List */}
-      <div className="bg-surface rounded-xl border border-border overflow-hidden">
-        <div className="px-6 py-4 border-b border-border flex justify-between items-center">
+      {/* Monthly Budget Progress (Inspired by Right Device in Reference with Circular Dial) */}
+      <div className="bg-[#13141B] p-6 sm:p-7 rounded-[26px] border border-white/[0.07] shadow-xl mb-8">
+        {budgetLoading ? (
+          <div className="space-y-4 animate-pulse">
+            <div className="h-5 bg-white/10 w-1/3 rounded" />
+            <div className="h-4 bg-white/10 w-full rounded" />
+          </div>
+        ) : totalBudgetCents === 0 ? (
+          <div className="text-center py-6 flex flex-col items-center gap-3">
+            <p className="text-sm text-neutral-400">Set a monthly budget to track spending thresholds</p>
+            <Link
+              href="/finance/budget"
+              className="px-5 py-2.5 bg-white hover:bg-neutral-200 text-black rounded-full text-xs font-bold transition-all shadow-lg"
+            >
+              Set Budget
+            </Link>
+          </div>
+        ) : (
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            {/* Left circular gauge indicator */}
+            <div className="flex items-center gap-5">
+              <div className="relative w-20 h-20 shrink-0 flex items-center justify-center">
+                <svg className="w-20 h-20 -rotate-90" viewBox="0 0 36 36">
+                  {/* Background track circle */}
+                  <path
+                    className="text-white/10"
+                    strokeWidth="3.5"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  {/* Active progress stroke */}
+                  <path
+                    className={
+                      percentageUsed >= 90
+                        ? "text-[#EF4444]"
+                        : percentageUsed >= 75
+                        ? "text-[#F59E0B]"
+                        : "text-[#D4EFE6]"
+                    }
+                    strokeDasharray={`${Math.min(percentageUsed, 100)}, 100`}
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-base font-extrabold text-white">
+                    {Math.round(percentageUsed)}%
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 block mb-0.5">
+                  Monthly Budget Status
+                </span>
+                <div className="text-lg sm:text-xl font-bold text-white tracking-tight">
+                  {formatCurrency(mtdSpentCents, "INR")}
+                  <span className="text-neutral-500 font-normal text-sm ml-1.5">
+                    of {formatCurrency(totalBudgetCents, "INR")}
+                  </span>
+                </div>
+                <div className="text-xs text-neutral-400 mt-1 flex items-center gap-2">
+                  <span className="font-semibold text-white">
+                    {formatCurrency(remainingCents, "INR")}
+                  </span>{" "}
+                  available
+                  {percentageUsed >= 80 && (
+                    <span className="text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                      Crossed 80%
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right progress bar and manage link */}
+            <div className="flex-1 max-w-md flex flex-col gap-2">
+              <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden p-0.5">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    percentageUsed >= 90
+                      ? "bg-danger"
+                      : percentageUsed >= 75
+                      ? "bg-warning"
+                      : "bg-[#D4EFE6]"
+                  }`}
+                  style={{ width: `${Math.min(percentageUsed, 100)}%` }}
+                />
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-neutral-500">Threshold tracker</span>
+                <Link
+                  href="/finance/budget"
+                  className="text-xs font-semibold text-white/80 hover:text-white hover:underline"
+                >
+                  Edit Category Budgets &rarr;
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Recent Transactions List (Matching Center Device Bottom List) */}
+      <div className="bg-[#13141B] rounded-[26px] border border-white/[0.07] overflow-hidden shadow-xl">
+        <div className="px-6 py-5 border-b border-white/[0.06] flex justify-between items-center">
           <div>
-            <h3 className="font-semibold text-text-primary">Recent Transactions</h3>
+            <h3 className="font-bold text-base text-white">Recent Transactions</h3>
             {selectedAccountId && (
-              <p className="text-xs text-accent mt-0.5 font-mono">
+              <p className="text-xs text-neutral-400 mt-0.5 font-mono">
                 Filtered by selected account
               </p>
             )}
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-text-secondary font-mono hidden sm:inline">Showing last 10</span>
+            <span className="text-xs text-neutral-500 font-mono hidden sm:inline">Showing last 10</span>
             <Link
               href="/finance/transactions"
-              className="text-xs font-semibold text-accent hover:text-accent/80 transition-colors"
+              className="text-xs font-semibold bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-full transition-colors"
             >
               View All & Filter &rarr;
             </Link>
@@ -474,64 +617,90 @@ export default function Dashboard() {
         </div>
 
         {txnsLoading ? (
-          <div className="divide-y divide-border p-6 space-y-4">
+          <div className="divide-y divide-white/[0.05] p-6 space-y-4">
             {[1, 2, 3].map((n) => (
               <div key={n} className="flex justify-between items-center animate-pulse py-2">
-                <div className="flex flex-col gap-2 w-1/3">
-                  <div className="h-4 bg-surface-raised rounded w-3/4" />
-                  <div className="h-3 bg-surface-raised rounded w-1/2" />
+                <div className="flex items-center gap-3 w-1/3">
+                  <div className="w-10 h-10 rounded-full bg-white/10" />
+                  <div className="space-y-1.5 flex-1">
+                    <div className="h-4 bg-white/10 rounded w-3/4" />
+                    <div className="h-3 bg-white/10 rounded w-1/2" />
+                  </div>
                 </div>
-                <div className="h-6 bg-surface-raised rounded w-20" />
+                <div className="h-6 bg-white/10 rounded w-20" />
               </div>
             ))}
           </div>
         ) : !txnData || txnData.items.length === 0 ? (
-          <div className="p-12 text-center text-text-secondary text-sm flex flex-col items-center justify-center gap-3">
+          <div className="p-12 text-center text-neutral-400 text-sm flex flex-col items-center justify-center gap-3">
             <span>No transactions yet for this month</span>
             <button
               onClick={() => setShowAddModal(true)}
-              className="px-4 py-2 bg-accent hover:bg-accent/90 text-black rounded-lg text-xs font-bold transition-all shadow-md shadow-accent/10"
+              className="px-5 py-2.5 bg-white hover:bg-neutral-200 text-black rounded-full text-xs font-bold transition-all shadow-md"
             >
               Add Transaction
             </button>
           </div>
         ) : (
-          <div className="divide-y divide-border">
-            {txnData.items.map((txn) => (
-              <div
-                key={txn.id}
-                className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-surface-raised transition-colors duration-150 gap-2 sm:gap-6"
-              >
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-semibold text-text-primary block break-words">
-                    {txn.description || "Unlabeled Transaction"}
-                  </span>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-text-secondary">{txn.category}</span>
-                    {txn.is_included === false && (
-                      <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-surface-raised border border-border text-text-muted">
-                        Excluded
+          <div className="divide-y divide-white/[0.05]">
+            {txnData.items.map((txn) => {
+              const isIncome = txn.type === "income";
+              return (
+                <div
+                  key={txn.id}
+                  className="px-6 py-4 flex items-center justify-between hover:bg-white/[0.03] transition-colors duration-150 gap-4"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    {/* Circular Icon Pill (Matching Reference) */}
+                    <div
+                      className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 border ${
+                        isIncome
+                          ? "bg-[#D4EFE6]/10 border-[#D4EFE6]/20 text-[#6EE7B7]"
+                          : "bg-[#FDECE8]/10 border-[#FDECE8]/20 text-[#FFA494]"
+                      }`}
+                    >
+                      {isIncome ? (
+                        <TrendingUp className="h-5 w-5" />
+                      ) : (
+                        <ShoppingBag className="h-5 w-5" />
+                      )}
+                    </div>
+
+                    <div className="min-w-0">
+                      <span className="text-sm font-bold text-white block truncate">
+                        {txn.description || "Unlabeled Transaction"}
                       </span>
-                    )}
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs text-neutral-400">{txn.category}</span>
+                        {txn.is_included === false && (
+                          <span className="text-[10px] font-mono font-medium px-2 py-0.2 rounded-full bg-white/5 border border-white/10 text-neutral-500">
+                            Excluded
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-end shrink-0">
+                    <span
+                      className={`text-sm sm:text-base font-extrabold font-sans tracking-tight ${
+                        isIncome
+                          ? "text-[#6EE7B7]"
+                          : txn.is_included === false
+                          ? "text-neutral-500 line-through"
+                          : "text-white"
+                      }`}
+                    >
+                      {isIncome ? "+" : "-"}
+                      {formatCurrency(txn.amount_cents, "INR")}
+                    </span>
+                    <span className="text-[11px] text-neutral-500 font-medium">
+                      {formatDate(txn.txn_date)}
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 mt-1 sm:mt-0 shrink-0">
-                  <span className="text-xs text-text-muted">{formatDate(txn.txn_date)}</span>
-                  <span
-                    className={`text-sm font-semibold font-mono ${
-                      txn.type === "income"
-                        ? "text-success"
-                        : txn.is_included === false
-                        ? "text-text-muted line-through"
-                        : "text-danger"
-                    }`}
-                  >
-                    {txn.type === "income" ? "+ " : "- "}
-                    {formatCurrency(txn.amount_cents, "INR")}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

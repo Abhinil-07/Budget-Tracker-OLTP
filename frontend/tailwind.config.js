@@ -9,25 +9,33 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: "#000000",
+        background: "#0A0B0E",
         surface: {
-          DEFAULT: "#0C0C0E",
-          raised: "#16161A",
+          DEFAULT: "#121318",
+          raised: "#181920",
+          card: "#14151C",
+        },
+        pastel: {
+          mint: "#D4EFE6",
+          lavender: "#ECEBFB",
+          peach: "#FDECE8",
+          cream: "#F8F9FA",
+          ink: "#111317",
         },
         border: {
-          DEFAULT: "#222226",
+          DEFAULT: "#1F2027",
         },
         accent: {
           DEFAULT: "#FFFFFF",
-          muted: "#52525B",
+          muted: "#71717A",
         },
         success: "#22C55E",
         danger: "#EF4444",
         warning: "#F59E0B",
         text: {
           primary: "#FFFFFF",
-          secondary: "#A1A1AA",
-          muted: "#52525B",
+          secondary: "#9496A1",
+          muted: "#525462",
         },
       },
       fontFamily: {

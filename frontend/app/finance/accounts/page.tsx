@@ -205,7 +205,7 @@ export default function AccountsPage() {
               return (
                 <div
                   key={acc.id}
-                  className="bg-surface border border-border hover:border-text-muted rounded-xl p-6 flex flex-col justify-between shadow-lg transition-all group"
+                  className="bg-[#13141B] border border-white/[0.07] hover:border-white/20 rounded-[26px] p-6 flex flex-col justify-between shadow-xl transition-all group"
                 >
                   {/* Card Content (Header & Body) */}
                   <div className="flex-1">

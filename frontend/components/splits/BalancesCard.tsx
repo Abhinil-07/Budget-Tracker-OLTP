@@ -72,27 +72,35 @@ export default function BalancesCard() {
 
   if (isLoading) {
     return (
-      <div className="bg-surface border border-border/80 rounded-xl p-5 shadow-lg animate-pulse">
-        <div className="h-4 w-36 bg-surface-raised rounded mb-4" />
-        <div className="h-10 w-48 bg-surface-raised rounded mb-4" />
+      <div className="bg-[#13141B] border border-white/[0.07] rounded-[26px] p-6 shadow-xl animate-pulse">
+        <div className="h-4 w-36 bg-white/10 rounded mb-4" />
+        <div className="h-10 w-48 bg-white/10 rounded mb-4" />
         <div className="space-y-2">
-          <div className="h-6 bg-surface-raised rounded w-full" />
-          <div className="h-6 bg-surface-raised rounded w-full" />
+          <div className="h-6 bg-white/10 rounded w-full" />
+          <div className="h-6 bg-white/10 rounded w-full" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-surface border border-border/80 rounded-xl p-5 shadow-lg relative overflow-hidden flex flex-col justify-between">
-      {/* Background ambient glow */}
-      <div className="absolute -right-10 -bottom-10 w-36 h-36 bg-accent/5 rounded-full blur-3xl pointer-events-none" />
-
+    <div className="bg-[#13141B] border border-white/[0.07] rounded-[26px] p-6 shadow-xl relative overflow-hidden flex flex-col justify-between">
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2 text-text-secondary text-xs font-semibold uppercase tracking-wider">
-            <Users className="h-4 w-4 text-accent" />
-            <span>Shared Splits & Balances</span>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white">
+              <Users className="h-5 w-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-white text-sm">Shared Splits & Balances</h4>
+              <span className="text-[11px] text-neutral-400">
+                {totalNetOwedToMe > 0
+                  ? "Net owed to you across splits"
+                  : totalNetOwedToMe < 0
+                  ? "Net amount you owe others"
+                  : "All friend splits are settled"}
+              </span>
+            </div>
           </div>
 
           <button
@@ -101,51 +109,44 @@ export default function BalancesCard() {
                 handleOpenSettle(balances[0].person_id, balances[0].net_balance_paise);
               }
             }}
-            className="text-[11px] font-medium text-accent hover:underline flex items-center gap-1"
+            className="text-xs font-semibold bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-full transition-colors"
           >
             Record Repayment
           </button>
         </div>
 
         <div className="mb-4">
-          <div className="text-2xl font-bold font-mono tracking-tight text-white">
+          <div className="text-2xl sm:text-3xl font-extrabold tracking-tight font-sans text-white">
             {totalNetOwedToMe >= 0 ? "+" : "-"}
             {formatCurrency(Math.abs(totalNetOwedToMe), "INR")}
-          </div>
-          <div className="text-xs text-[#8888AA] font-medium mt-0.5">
-            {totalNetOwedToMe > 0
-              ? "Net owed to you across all splits"
-              : totalNetOwedToMe < 0
-              ? "Net amount you owe others"
-              : "All shared splits are fully settled up"}
           </div>
         </div>
 
         {/* Per-person list */}
         {balances.length === 0 ? (
-          <div className="py-4 text-center text-xs text-text-secondary font-mono border-t border-border/40">
+          <div className="py-4 text-center text-xs text-neutral-400 font-mono border-t border-white/[0.06]">
             No friend splits recorded yet. Reply to Telegram bot to split an expense!
           </div>
         ) : (
-          <div className="divide-y divide-border/40 border-t border-border/40">
+          <div className="divide-y divide-white/[0.05] border-t border-white/[0.06]">
             {balances.map((b) => {
               const owesMe = b.net_balance_paise > 0;
               const iOwe = b.net_balance_paise < 0;
               const isSettled = b.net_balance_paise === 0;
 
               return (
-                <div key={b.person_id} className="py-2.5 flex items-center justify-between text-xs">
+                <div key={b.person_id} className="py-3 flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-white">{b.name}</span>
+                    <span className="font-semibold text-white">{b.name}</span>
                     {b.aliases && b.aliases.length > 0 && (
-                      <span className="text-[10px] text-text-muted">({b.aliases.join(", ")})</span>
+                      <span className="text-[10px] text-neutral-500">({b.aliases.join(", ")})</span>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2.5">
                     <span
-                      className={`font-mono font-semibold ${
-                        owesMe ? "text-success" : iOwe ? "text-danger" : "text-text-secondary"
+                      className={`font-sans font-bold ${
+                        owesMe ? "text-[#6EE7B7]" : iOwe ? "text-[#FFA494]" : "text-neutral-400"
                       }`}
                     >
                       {owesMe && `owes you ${formatCurrency(b.net_balance_paise, "INR")}`}
@@ -156,7 +157,7 @@ export default function BalancesCard() {
                     {owesMe && (
                       <button
                         onClick={() => handleOpenSettle(b.person_id, b.net_balance_paise)}
-                        className="px-2 py-0.5 bg-accent/15 hover:bg-accent/25 text-accent border border-accent/30 rounded text-[10px] font-medium transition-colors"
+                        className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white rounded-full text-[10px] font-semibold transition-colors"
                         title="Record a repayment"
                       >
                         Settle

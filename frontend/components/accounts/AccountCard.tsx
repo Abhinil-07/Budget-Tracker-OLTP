@@ -20,93 +20,108 @@ export default function AccountCard({
 }: AccountCardProps) {
   const isCreditCard = account.type === "credit_card";
 
-  // Select icon
-  const getIcon = () => {
+  // Select icon and custom pill styling matching reference
+  const getBadgeStyle = () => {
     switch (account.type) {
       case "credit_card":
-        return <CreditCard className="h-5 w-5 text-danger" />;
+        return {
+          icon: <CreditCard className="h-5 w-5 text-[#FFA494]" />,
+          bg: "bg-[#FDECE8]/10 border-[#FDECE8]/20",
+          tag: "Credit Card",
+          tagColor: "text-[#FFA494] bg-[#FDECE8]/10",
+        };
       case "current":
-        return <Landmark className="h-5 w-5 text-accent" />;
+        return {
+          icon: <Landmark className="h-5 w-5 text-[#C4B5FD]" />,
+          bg: "bg-[#ECEBFB]/10 border-[#ECEBFB]/20",
+          tag: "Current",
+          tagColor: "text-[#C4B5FD] bg-[#ECEBFB]/10",
+        };
       default:
-        return <Wallet className="h-5 w-5 text-success" />;
+        return {
+          icon: <Wallet className="h-5 w-5 text-[#6EE7B7]" />,
+          bg: "bg-[#D4EFE6]/10 border-[#D4EFE6]/20",
+          tag: "Savings",
+          tagColor: "text-[#6EE7B7] bg-[#D4EFE6]/10",
+        };
     }
   };
 
-  // Select type label
-  const getTypeLabel = () => {
-    switch (account.type) {
-      case "credit_card":
-        return "Credit Card";
-      case "current":
-        return "Current Account";
-      default:
-        return "Savings Account";
-    }
-  };
+  const badge = getBadgeStyle();
 
   return (
     <div
       onClick={onClick}
-      className={`bg-surface p-5 rounded-xl border transition-all duration-200 flex flex-col justify-between min-h-[160px] cursor-pointer group hover:scale-[1.01] ${
+      className={`p-6 rounded-[26px] border transition-all duration-300 flex flex-col justify-between min-h-[190px] cursor-pointer group hover:scale-[1.01] shadow-xl relative overflow-hidden select-none ${
         isSelected
-          ? "border-accent ring-1 ring-accent bg-surface-raised"
-          : "border-border hover:border-accent/40"
+          ? "border-white/80 ring-2 ring-white/20 bg-[#181922]"
+          : "bg-[#13141B] border-white/[0.07] hover:border-white/25 hover:bg-[#161720]"
       }`}
     >
-      {/* Top row */}
-      <div className="flex items-center justify-between text-text-secondary text-sm">
-        <span className="font-semibold text-text-primary group-hover:text-accent transition-colors duration-150">
-          {account.name}
-        </span>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] bg-surface-raised px-2 py-0.5 rounded border border-border text-text-muted">
-            {getTypeLabel()}
+      {/* Top Header Row */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div
+            className={`w-11 h-11 rounded-full border flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${badge.bg}`}
+          >
+            {badge.icon}
+          </div>
+          <div>
+            <h4 className="font-bold text-white text-base tracking-tight group-hover:text-white transition-colors">
+              {account.name}
+            </h4>
+            <span
+              className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full inline-block mt-0.5 ${badge.tagColor}`}
+            >
+              {badge.tag}
+            </span>
+          </div>
+        </div>
+
+        {isSelected && (
+          <span className="text-[10px] font-bold uppercase tracking-wider bg-white text-black px-2.5 py-0.5 rounded-full">
+            Active
           </span>
-          {getIcon()}
+        )}
+      </div>
+
+      {/* Balance Row */}
+      <div className="my-3">
+        <div className="text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1">
+          {isCreditCard ? "Amount Owed (Debt)" : "Available Balance"}
+        </div>
+        <div
+          className={`text-2xl sm:text-3xl font-extrabold tracking-tight font-sans ${
+            isCreditCard
+              ? "text-[#FF8470]"
+              : account.balance_cents >= 0
+              ? "text-white"
+              : "text-[#FF8470]"
+          }`}
+        >
+          {formatCurrency(account.balance_cents, account.currency)}
         </div>
       </div>
 
-      {/* Middle row: Live Balance & Spent Amount */}
-      <div className="my-3 flex items-end justify-between gap-3">
-        <div>
-          <div
-            className={`text-[10px] uppercase tracking-wider font-semibold mb-0.5 ${
-              isCreditCard ? "text-danger" : "text-text-muted"
-            }`}
-          >
-            {isCreditCard ? "Owed (Debt)" : "Balance"}
-          </div>
-          <div
-            className={`font-mono text-2xl font-bold tracking-tight transition-all duration-300 ${
-              isCreditCard
-                ? "text-danger"
-                : account.balance_cents >= 0
-                ? "text-success"
-                : "text-danger"
-            }`}
-          >
-            {formatCurrency(account.balance_cents, account.currency)}
-          </div>
-        </div>
-
-        <div className="text-right flex flex-col items-end">
-          <span className="text-[10px] uppercase tracking-wider text-text-muted font-semibold mb-0.5">
-            Spent Period
+      {/* Bottom Spend Inset Pill */}
+      <div className="bg-[#1A1B24] border border-white/[0.05] rounded-2xl px-3.5 py-2.5 flex items-center justify-between text-xs mt-auto">
+        <div className="flex flex-col">
+          <span className="text-[10px] text-neutral-400 font-medium uppercase tracking-wider">
+            Spent This Month
           </span>
-          <span className="font-mono text-sm font-bold text-text-primary bg-surface-raised px-2.5 py-1 rounded border border-border/80">
+          <span className="font-bold text-white tracking-tight text-sm">
             {formatCurrency(spentThisMonthCents, account.currency)}
           </span>
         </div>
-      </div>
 
-      {/* Bottom row: account number and/or status */}
-      <div className="text-xs text-text-muted font-mono flex items-center justify-between mt-auto pt-2 border-t border-border/40">
-        <span>
-          {account.account_number ? `**** ${account.account_number.slice(-4)}` : "No Acc Number"}
-        </span>
-        <span className="text-[10px] text-text-secondary uppercase tracking-widest">
-          {account.currency}
-        </span>
+        <div className="text-right flex flex-col items-end">
+          <span className="text-[10px] text-neutral-500 font-mono">
+            {account.account_number ? `•••• ${account.account_number.slice(-4)}` : "No Num"}
+          </span>
+          <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">
+            {account.currency}
+          </span>
+        </div>
       </div>
     </div>
   );
