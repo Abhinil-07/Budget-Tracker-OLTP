@@ -32,6 +32,7 @@ async def create_account(
     return ApiResponse(data=account)
 
 @router.patch("/{account_id}", response_model=ApiResponse[AccountResponse])
+@router.put("/{account_id}", response_model=ApiResponse[AccountResponse])
 async def update_account(
     account_id: str,
     dto: UpdateAccountDto,
