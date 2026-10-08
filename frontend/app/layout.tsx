@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import ServiceWorkerRegister from "../components/providers/ServiceWorkerRegister";
 import QueryProvider from "../components/providers/QueryProvider";
 import "./globals.css";
 
@@ -18,6 +19,16 @@ export const metadata: Metadata = {
   title: "Finance Command Center",
   description: "Manage accounts, track balances, and analyze spending in real-time.",
   applicationName: "Finance",
+  manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -46,6 +57,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="bg-background text-text-primary antialiased min-h-screen font-sans select-none">
         <QueryProvider>
+          <ServiceWorkerRegister />
           {children}
         </QueryProvider>
       </body>
