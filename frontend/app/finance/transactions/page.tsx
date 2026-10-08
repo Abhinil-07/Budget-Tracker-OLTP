@@ -4,17 +4,18 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useTransactions } from "@/hooks/useTransactions";
+import { useCategories } from "@/hooks/useCategories";
 import PageWrapper from "@/components/layout/PageWrapper";
+import AccountCard from "@/components/accounts/AccountCard";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import EditTransactionModal from "@/components/transactions/EditTransactionModal";
 import BulkImportModal from "@/components/transactions/BulkImportModal";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { formatDate } from "@/lib/formatDate";
 import { CATEGORIES } from "@/lib/constants";
-import type { AccountType } from "@/lib/constants";
-import { useCategories } from "@/hooks/useCategories";
 import { api, ApiError } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   Filter,
@@ -26,32 +27,46 @@ import {
   FileSpreadsheet,
   AlertCircle,
   X,
-  Landmark,
-  Briefcase,
   CreditCard,
-  Copy,
   ArrowLeft,
-  MoreVertical,
-  EyeOff,
-  ArrowUpDown,
+  ArrowRight,
   RefreshCw,
   Plus,
   Pencil,
   Upload,
   Download,
-  Users,
+  Calendar,
+  Layers,
+  Sparkles,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Transaction } from "@/types/transaction";
 
 export default function TransactionsPage() {
   const queryClient = useQueryClient();
   const { token, hydrated, hydrate } = useAuthStore();
+
+  // Modals & Actions
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
+  const [deletingTxn, setDeletingTxn] = useState<Transaction | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isExportingAll, setIsExportingAll] = useState(false);
 
-  // States for selected account, filters, search, and page navigation
-  const [selectedAccountId, setSelectedAccountId] = useState<string>("");
-  const [showMobileDetail, setShowMobileDetail] = useState(false);
+  // Splash Loading Screen (matches the video intro)
+  const [showIntroLoading, setShowIntroLoading] = useState(true);
+
+  // Carousel Active Card Index (0 to accounts.length - 1)
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [isAllAccountsMode, setIsAllAccountsMode] = useState(false);
+
+  // Search & Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
@@ -60,27 +75,13 @@ export default function TransactionsPage() {
   const [customDateFrom, setCustomDateFrom] = useState<string>("");
   const [customDateTo, setCustomDateTo] = useState<string>("");
   const [page, setPage] = useState(1);
-  const [activeTab, setActiveTab] = useState<"statement" | "get-statement">("statement");
-  const [showSearchInHeader, setShowSearchInHeader] = useState(false);
-  const [showThreeDotsMenu, setShowThreeDotsMenu] = useState(false);
-  const [statementDateFrom, setStatementDateFrom] = useState("");
-  const [statementDateTo, setStatementDateTo] = useState("");
-  const [exportFormat, setExportFormat] = useState("csv");
-  const [isExportingAll, setIsExportingAll] = useState(false);
   const pageSize = 15;
-
-  // Confirm delete dialog state
-  const [deletingTxn, setDeletingTxn] = useState<Transaction | null>(null);
-  const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   // Hydrate auth
   useEffect(() => {
     hydrate();
   }, [hydrate]);
 
-  // Redirect if not logged in
   useEffect(() => {
     if (hydrated && !token) {
       window.location.href = "/login";
@@ -91,17 +92,40 @@ export default function TransactionsPage() {
   const { data: accounts = [], isLoading: accountsLoading } = useAccounts();
   const { categories } = useCategories();
 
-  // Select the first account by default on load
+  // Stop intro loading once accounts are fetched or after brief splash
   useEffect(() => {
-    if (accounts.length > 0 && !selectedAccountId) {
-      setSelectedAccountId(accounts[0].id);
-    }
-  }, [accounts, selectedAccountId]);
+    const timer = setTimeout(() => {
+      setShowIntroLoading(false);
+    }, 1100);
+    return () => clearTimeout(timer);
+  }, []);
 
-  // Reset page when filters change
+  // Sync selected account with carousel index
+  const activeAccount = useMemo(() => {
+    if (accounts.length === 0) return null;
+    const safeIndex = Math.min(Math.max(0, carouselIndex), accounts.length - 1);
+    return accounts[safeIndex];
+  }, [accounts, carouselIndex]);
+
+  const selectedAccountId = useMemo(() => {
+    if (isAllAccountsMode) return "";
+    return activeAccount ? activeAccount.id : "";
+  }, [isAllAccountsMode, activeAccount]);
+
+  // Reset page when filters or card changes
   useEffect(() => {
     setPage(1);
-  }, [selectedAccountId, searchQuery, selectedCategory, selectedType, selectedIncluded, selectedDateRange, customDateFrom, customDateTo]);
+  }, [
+    carouselIndex,
+    isAllAccountsMode,
+    searchQuery,
+    selectedCategory,
+    selectedType,
+    selectedIncluded,
+    selectedDateRange,
+    customDateFrom,
+    customDateTo,
+  ]);
 
   // Compute date boundaries
   const dateBounds = useMemo(() => {
@@ -151,7 +175,7 @@ export default function TransactionsPage() {
     return { date_from: undefined, date_to: undefined };
   }, [selectedDateRange, customDateFrom, customDateTo]);
 
-  // Fetch paginated transactions with filters
+  // Fetch paginated transactions for active account (or all)
   const transactionParams = useMemo(() => {
     return {
       page,
@@ -171,22 +195,21 @@ export default function TransactionsPage() {
     error: txnsError,
   } = useTransactions(transactionParams);
 
-  // Fetch ALL transactions for the selected account to compute accurate running balances
+  // Fetch all transactions for this account to compute chronological running balances
   const { data: allAccountTxns } = useTransactions(
-    useMemo(() => ({
-      account_id: selectedAccountId || undefined,
-      page: 1,
-      page_size: 10000, // Load all to compute complete chronological ledger
-    }), [selectedAccountId])
+    useMemo(
+      () => ({
+        account_id: selectedAccountId || undefined,
+        page: 1,
+        page_size: 10000,
+      }),
+      [selectedAccountId]
+    )
   );
 
-  const selectedAccount = useMemo(() => {
-    return accounts.find((a) => a.id === selectedAccountId);
-  }, [accounts, selectedAccountId]);
-
-  // Calculate client-side running balances mapping each transaction ID to its balance after
+  // Calculate running balances
   const runningBalances = useMemo(() => {
-    if (!selectedAccount || !allAccountTxns) {
+    if (!activeAccount || !allAccountTxns || isAllAccountsMode) {
       return {};
     }
 
@@ -197,13 +220,13 @@ export default function TransactionsPage() {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
 
-    let currentBalance = selectedAccount.balance_cents;
+    let currentBalance = activeAccount.balance_cents;
 
     for (let i = 0; i < sortedTxns.length; i++) {
       const txn = sortedTxns[i];
       balancesMap[txn.id] = currentBalance;
 
-      const accType = selectedAccount.type;
+      const accType = activeAccount.type;
       let delta = 0;
       if (accType === "credit_card") {
         delta = txn.type === "expense" ? txn.amount_cents : -txn.amount_cents;
@@ -215,9 +238,33 @@ export default function TransactionsPage() {
     }
 
     return balancesMap;
-  }, [selectedAccount, allAccountTxns]);
+  }, [activeAccount, allAccountTxns, isAllAccountsMode]);
 
-  // Filter items client-side by description if searchQuery is active
+  // Monthly stats for the active account
+  const cardMonthlyStats = useMemo(() => {
+    if (!allAccountTxns?.items) return { spent: 0, income: 0 };
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth();
+
+    let spent = 0;
+    let income = 0;
+
+    allAccountTxns.items.forEach((item) => {
+      const d = new Date(item.txn_date);
+      if (d.getFullYear() === curYear && d.getMonth() === curMonth) {
+        if (item.type === "expense" && item.is_included !== false) {
+          spent += item.amount_cents;
+        } else if (item.type === "income") {
+          income += item.amount_cents;
+        }
+      }
+    });
+
+    return { spent, income };
+  }, [allAccountTxns]);
+
+  // Client-side search filtering by description
   const filteredTxnItems = useMemo(() => {
     if (!txnData) return [];
     if (!searchQuery.trim()) return txnData.items;
@@ -243,11 +290,7 @@ export default function TransactionsPage() {
     );
   }, [filteredTxnItems]);
 
-  const handleDeleteClick = (txn: Transaction) => {
-    setDeletingTxn(txn);
-    setDeleteError(null);
-  };
-
+  // Delete transaction handler
   const handleConfirmDelete = async () => {
     if (!deletingTxn) return;
     setIsDeleting(true);
@@ -269,8 +312,8 @@ export default function TransactionsPage() {
     }
   };
 
+  // Toggle included in budget
   const [togglingIncludedIds, setTogglingIncludedIds] = useState<Record<string, boolean>>({});
-
   const handleToggleInclude = async (txn: Transaction, e: React.MouseEvent) => {
     e.stopPropagation();
     const newStatus = txn.is_included === false ? true : false;
@@ -279,7 +322,6 @@ export default function TransactionsPage() {
       await api.transactions.update(txn.id, {
         is_included: newStatus,
       });
-      // Invalidate transactions and budget caches so home and transactions update
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["budget"] });
     } catch (err) {
@@ -290,9 +332,13 @@ export default function TransactionsPage() {
     }
   };
 
+  // Export CSV
   const handleExportCSV = () => {
-    if (!txnData || txnData.items.length === 0) return;
-    const headers = ["Date", "Description", "Category", "Type", "Amount (INR)", "Account", "To Be Included"];
+    if (!txnData || txnData.items.length === 0) {
+      alert("No transactions to export for this view.");
+      return;
+    }
+    const headers = ["Date", "Description", "Category", "Type", "Amount (INR)", "Account", "Included in Budget"];
     const rows = txnData.items.map((txn) => {
       const acc = accounts.find((a) => a.id === txn.account_id);
       return [
@@ -312,12 +358,13 @@ export default function TransactionsPage() {
 
     const link = document.createElement("a");
     link.setAttribute("href", csvContent);
-    link.setAttribute("download", `transactions_export_${new Date().toISOString().split("T")[0]}.csv`);
+    link.setAttribute("download", `transactions_${activeAccount?.name || "all"}_${new Date().toISOString().split("T")[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
+  // Dump all expenses across all accounts
   const handleExportAllExpensesCSV = async () => {
     setIsExportingAll(true);
     try {
@@ -333,24 +380,16 @@ export default function TransactionsPage() {
         return;
       }
 
-      const headers = ["Date", "Description", "Category", "Amount (INR)", "Account", "Account Type", "Status", "To Be Included"];
+      const headers = ["Date", "Description", "Category", "Amount (INR)", "Account", "Account Type", "Included in Budget"];
       const rows = items.map((txn) => {
         const acc = accounts.find((a) => a.id === txn.account_id);
-        const accTypeLabel =
-          acc?.type === "credit_card"
-            ? "Credit Card"
-            : acc?.type === "current"
-            ? "Current Account"
-            : "Savings Account";
-
         return [
           txn.txn_date,
           `"${(txn.description || "").replace(/"/g, '""')}"`,
           `"${txn.category.replace(/"/g, '""')}"`,
           (txn.amount_cents / 100).toFixed(2),
-          acc ? `"${acc.name.replace(/"/g, '""')}"` : '"Unknown"',
-          `"${accTypeLabel}"`,
-          `"${txn.status || "confirmed"}"`,
+          acc ? `"${acc.name.replace(/"/g, '""')}"` : "Unknown",
+          acc?.type || "unknown",
           txn.is_included !== false ? "TRUE" : "FALSE",
         ];
       });
@@ -361,804 +400,679 @@ export default function TransactionsPage() {
 
       const link = document.createElement("a");
       link.setAttribute("href", csvContent);
-      link.setAttribute("download", `all_expenses_dump_${new Date().toISOString().split("T")[0]}.csv`);
+      link.setAttribute("download", `all_expenses_${new Date().toISOString().split("T")[0]}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     } catch (err) {
-      console.error("Failed to export all expenses:", err);
-      alert("Failed to export all expenses. Please try again.");
+      console.error("Export all failed:", err);
+      alert("Failed to dump expenses CSV.");
     } finally {
       setIsExportingAll(false);
     }
   };
 
-  const handleDownloadCustomStatement = () => {
-    if (!txnData || txnData.items.length === 0) return;
-    
-    // Filter items based on date range
-    let itemsToExport = txnData.items;
-    if (statementDateFrom) {
-      const fromDate = new Date(statementDateFrom);
-      itemsToExport = itemsToExport.filter(txn => new Date(txn.txn_date) >= fromDate);
-    }
-    if (statementDateTo) {
-      const toDate = new Date(statementDateTo);
-      itemsToExport = itemsToExport.filter(txn => new Date(txn.txn_date) <= toDate);
-    }
-
-    if (exportFormat === "json") {
-      const jsonContent = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(itemsToExport, null, 2));
-      const link = document.createElement("a");
-      link.setAttribute("href", jsonContent);
-      link.setAttribute("download", `statement_${selectedAccount?.name || "account"}_${new Date().toISOString().split("T")[0]}.json`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else {
-      // CSV format
-      const headers = ["Date", "Description", "Category", "Type", "Amount (INR)", "Account", "To Be Included"];
-      const rows = itemsToExport.map((txn) => {
-        const acc = accounts.find((a) => a.id === txn.account_id);
-        return [
-          txn.txn_date,
-          `"${(txn.description || "").replace(/"/g, '""')}"`,
-          `"${txn.category.replace(/"/g, '""')}"`,
-          txn.type,
-          (txn.amount_cents / 100).toFixed(2),
-          acc ? `"${acc.name.replace(/"/g, '""')}"` : "Unknown",
-          txn.is_included !== false ? "TRUE" : "FALSE",
-        ];
-      });
-
-      const csvContent =
-        "data:text/csv;charset=utf-8," +
-        encodeURIComponent([headers.join(","), ...rows.map((e) => e.join(","))].join("\n"));
-
-      const link = document.createElement("a");
-      link.setAttribute("href", csvContent);
-      link.setAttribute("download", `statement_${selectedAccount?.name || "account"}_${new Date().toISOString().split("T")[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+  // Handle Swipe navigation
+  const handleSwipePrev = () => {
+    if (carouselIndex > 0) {
+      setCarouselIndex((prev) => prev - 1);
+      setIsAllAccountsMode(false);
     }
   };
 
-  // Helper to get Account Type Icon
-  const getAccountIcon = (type: AccountType) => {
-    switch (type) {
-      case "savings":
-        return <Landmark className="h-5 w-5" />;
-      case "current":
-        return <Briefcase className="h-5 w-5" />;
-      case "credit_card":
-        return <CreditCard className="h-5 w-5" />;
+  const handleSwipeNext = () => {
+    if (carouselIndex < accounts.length - 1) {
+      setCarouselIndex((prev) => prev + 1);
+      setIsAllAccountsMode(false);
     }
   };
 
-  if (!hydrated || !token) {
+  const totalPages = txnData ? Math.ceil(txnData.total / pageSize) : 1;
+
+  // 1. Cool Animated Loading Screen (matching video intro)
+  if (showIntroLoading || (!hydrated || !token)) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-accent border-r-2" />
-          <span className="text-sm text-text-secondary font-mono">Loading...</span>
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 relative overflow-hidden select-none">
+        {/* Ambient background glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/3 left-1/3 w-80 h-80 bg-violet-500/10 rounded-full blur-[100px] pointer-events-none" />
+
+        {/* Stacked Fanning Animated Cards */}
+        <div className="relative w-72 h-44 sm:w-80 sm:h-48 mb-10 flex items-center justify-center">
+          {/* Card 1: Sage Green (Bottom tilt left) */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, rotate: -20, y: 30 }}
+            animate={{ opacity: 0.65, scale: 0.9, rotate: -8, y: 12, x: -28 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="absolute inset-0 rounded-[28px] border border-[#8AA99E]/40 shadow-2xl p-5 flex flex-col justify-between"
+            style={{
+              background: "radial-gradient(125% 125% at 50% 50%, #050908 0%, #152722 65%, #76988C 100%)",
+            }}
+          >
+            <div className="flex justify-between items-center text-[10px] text-white/50 font-bold uppercase tracking-wider">
+              <span>Digital Card</span>
+              <span>•••• 8421</span>
+            </div>
+            <div className="h-4 w-28 bg-white/20 rounded-full" />
+          </motion.div>
+
+          {/* Card 2: Royal Blue (Mid tilt right) */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, rotate: 20, y: 20 }}
+            animate={{ opacity: 0.75, scale: 0.95, rotate: 6, y: -6, x: 24 }}
+            transition={{ duration: 0.9, delay: 0.1, ease: "easeOut" }}
+            className="absolute inset-0 rounded-[28px] border border-[#4A7CE0]/50 shadow-2xl p-5 flex flex-col justify-between"
+            style={{
+              background: "radial-gradient(125% 125% at 50% 50%, #02030B 0%, #0F2554 65%, #273A71 100%)",
+            }}
+          >
+            <div className="flex justify-between items-center text-[10px] text-white/60 font-bold uppercase tracking-wider">
+              <span>Sapphire Reserve</span>
+              <span>•••• 4120</span>
+            </div>
+            <div className="h-4 w-32 bg-white/25 rounded-full" />
+          </motion.div>
+
+          {/* Card 3: Dusty Orchid Pink (Front center) */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.7, y: 40 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0, y: 0, x: 0 }}
+            transition={{ duration: 0.9, delay: 0.2, type: "spring", stiffness: 200 }}
+            className="absolute inset-0 rounded-[28px] border border-[#D1699F]/70 shadow-[0_20px_50px_rgba(166,92,136,0.35)] p-5 flex flex-col justify-between"
+            style={{
+              background: "radial-gradient(125% 125% at 50% 50%, #180611 0%, #4D0E34 65%, #A65C88 100%)",
+            }}
+          >
+            <div className="flex justify-between items-center text-[11px] text-white/80 font-bold uppercase tracking-wider">
+              <span>Wallet Ledger</span>
+              <span>•••• 9012</span>
+            </div>
+            <div>
+              <span className="text-[10px] text-white/60 block font-semibold uppercase">Active Card</span>
+              <div className="text-2xl font-extrabold text-white font-mono mt-0.5">₹48,250.00</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-white/30" />
+              <div className="w-5 h-5 rounded-full bg-white/15 -ml-3" />
+            </div>
+          </motion.div>
         </div>
+
+        {/* Text & Shimmer loader */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="text-center space-y-3 z-10"
+        >
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 backdrop-blur-md text-xs font-semibold text-white/90">
+            <Sparkles className="h-3.5 w-3.5 text-cyan-400 animate-spin" />
+            <span>Syncing Digital Cards & Ledger...</span>
+          </div>
+          <p className="text-xs text-neutral-400 max-w-xs mx-auto">
+            Preparing your swipeable cards and chronological transaction ledger.
+          </p>
+        </motion.div>
       </div>
     );
   }
 
-  const totalPages = txnData ? Math.ceil(txnData.total / pageSize) : 1;
-
   return (
-    <PageWrapper title="Transactions" onAddTransactionClick={() => setShowAddModal(true)}>
-      <AddTransactionModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
-      <EditTransactionModal isOpen={!!editingTxn} onClose={() => setEditingTxn(null)} transaction={editingTxn} />
-      <BulkImportModal isOpen={showBulkImportModal} onClose={() => setShowBulkImportModal(false)} />
+    <PageWrapper
+      title="Transactions"
+      onAddTransactionClick={() => setShowAddModal(true)}
+      actionLabel="Add Transaction"
+    >
+      <AddTransactionModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        defaultType="expense"
+      />
+      <EditTransactionModal
+        isOpen={!!editingTxn}
+        onClose={() => setEditingTxn(null)}
+        transaction={editingTxn}
+      />
+      <BulkImportModal
+        isOpen={showBulkImportModal}
+        onClose={() => setShowBulkImportModal(false)}
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 min-h-[calc(100vh-12rem)]">
-        {/* LEFT PANEL: 1/3 Width Accounts List */}
-        <div className={`lg:col-span-1 space-y-4 ${showMobileDetail ? "hidden lg:block" : "block"}`}>
-          <div className="flex items-center justify-between px-1 flex-wrap gap-2">
-            <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider font-mono">
-              Accounts Ledger
-            </h3>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={handleExportAllExpensesCSV}
-                disabled={isExportingAll}
-                className="flex items-center gap-1.5 px-2.5 py-1 bg-surface-raised border border-border hover:border-accent text-text-primary hover:text-white rounded-md text-xs font-semibold font-mono transition-all shadow-sm"
-                title="Download CSV of all expense transactions across all accounts"
-              >
-                <Download className="h-3 w-3 text-accent" />
-                <span>{isExportingAll ? "Exporting..." : "Dump All Expenses"}</span>
-              </button>
-              <button
-                onClick={() => setShowBulkImportModal(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1 bg-accent/15 border border-accent/30 text-accent hover:bg-accent/25 rounded-md text-xs font-semibold font-mono transition-all"
-              >
-                <Upload className="h-3 w-3" />
-                Import
-              </button>
-            </div>
-          </div>
-          <div className="space-y-3">
-            {accountsLoading ? (
-              <div className="space-y-3 animate-pulse">
-                {[1, 2, 3].map((n) => (
-                  <div key={n} className="h-24 bg-surface border border-border rounded-xl" />
-                ))}
-              </div>
-            ) : accounts.length === 0 ? (
-              <div className="bg-surface p-6 rounded-xl border border-border text-center text-sm text-text-secondary">
-                No accounts found. Create one in Accounts tab.
-              </div>
-            ) : (
-              accounts.map((acc) => {
-                const isSelected = selectedAccountId === acc.id;
-                return (
-                  <button
-                    key={acc.id}
-                    onClick={() => {
-                      setSelectedAccountId(acc.id);
-                      setShowMobileDetail(true);
-                    }}
-                    className={`w-full text-left p-4 rounded-xl border transition-all duration-200 shadow-md ${
-                      isSelected
-                        ? "bg-accent/10 border-accent text-text-primary"
-                        : "bg-surface border-border text-text-secondary hover:text-text-primary hover:border-text-muted"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${isSelected ? "bg-accent/20 text-accent" : "bg-surface-raised text-text-secondary"}`}>
-                        {getAccountIcon(acc.type as AccountType)}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="font-semibold text-sm truncate">{acc.name}</div>
-                        <div className="text-[10px] text-text-muted font-mono uppercase tracking-wider mt-0.5">
-                          {acc.type === "credit_card" ? "Credit Card" : acc.type}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-4 flex justify-end items-baseline">
-                      <span className="font-mono text-base font-bold">
-                        {formatCurrency(acc.balance_cents, "INR")}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        {/* RIGHT PANEL: 2/3 Width Selected Account Transactions (Passbook Style) */}
-        <div className={`lg:col-span-2 bg-surface border border-border/80 rounded-xl flex flex-col overflow-hidden shadow-2xl ${showMobileDetail ? "block" : "hidden lg:flex"}`}>
-          {/* Header Area in Mobile-Statement style */}
-          {selectedAccount && (
-            <div className="p-6 bg-gradient-to-br from-surface-raised via-surface to-background border-b border-border/60 relative">
-              <div className="flex items-center justify-between mb-5 h-7">
-                {showSearchInHeader ? (
-                  <div className="flex items-center gap-2 w-full animate-in fade-in slide-in-from-top-1 duration-155">
-                    <Search className="h-4 w-4 text-text-secondary" />
-                    <input
-                      type="text"
-                      placeholder="Search transactions..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="bg-transparent border-none text-white text-sm focus:outline-none w-full placeholder-text-muted"
-                      autoFocus
-                    />
-                    <button
-                      onClick={() => {
-                        setSearchQuery("");
-                        setShowSearchInHeader(false);
-                      }}
-                      className="text-[#8888AA] hover:text-white p-1"
-                      title="Close Search"
-                    >
-                      <X className="h-4.5 w-4.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => {
-                          if (window.innerWidth < 1024) {
-                            setShowMobileDetail(false);
-                          } else {
-                            window.location.href = "/";
-                          }
-                        }}
-                        className="p-1.5 hover:bg-surface-raised rounded-lg text-text-secondary hover:text-white transition-colors"
-                        title="Back"
-                      >
-                        <ArrowLeft className="h-4 w-4" />
-                      </button>
-                      <h2 className="text-base font-semibold text-white tracking-wide">Statement</h2>
-                    </div>
-                    <div className="flex items-center gap-1 text-text-secondary">
-                      <button
-                        onClick={() => setShowSearchInHeader(true)}
-                        className="p-1 rounded-lg hover:bg-surface-raised/40 text-text-secondary hover:text-white transition-all"
-                        title="Search transactions"
-                      >
-                        <Search className="h-4.5 w-4.5" />
-                      </button>
-                      <div className="relative">
-                        <button
-                          onClick={() => setShowThreeDotsMenu(!showThreeDotsMenu)}
-                          className="p-1 rounded-lg hover:bg-surface-raised/40 text-text-secondary hover:text-white transition-all"
-                          title="Actions Menu"
-                        >
-                          <MoreVertical className="h-4.5 w-4.5" />
-                        </button>
-                        {showThreeDotsMenu && (
-                          <>
-                            {/* Overlay to close menu on click outside */}
-                            <div className="fixed inset-0 z-40" onClick={() => setShowThreeDotsMenu(false)} />
-                            <div className="absolute right-0 mt-2 bg-[#121A2A] border border-[#1E293B] rounded-lg shadow-xl py-1.5 w-40 z-50 text-xs text-text-primary animate-in fade-in slide-in-from-top-1 duration-150">
-                              <button
-                                onClick={() => {
-                                  setShowBulkImportModal(true);
-                                  setShowThreeDotsMenu(false);
-                                }}
-                                className="w-full text-left px-4 py-2 hover:bg-surface-raised transition-colors flex items-center gap-2 text-accent font-medium"
-                              >
-                                <Upload className="h-3.5 w-3.5 text-accent" />
-                                <span>Import Statement</span>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  handleExportAllExpensesCSV();
-                                  setShowThreeDotsMenu(false);
-                                }}
-                                disabled={isExportingAll}
-                                className="w-full text-left px-4 py-2 hover:bg-surface-raised transition-colors flex items-center gap-2 text-accent font-medium"
-                              >
-                                <Download className="h-3.5 w-3.5 text-accent" />
-                                <span>Dump All Expenses (CSV)</span>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  handleExportCSV();
-                                  setShowThreeDotsMenu(false);
-                                }}
-                                className="w-full text-left px-4 py-2 hover:bg-surface-raised transition-colors flex items-center gap-2"
-                              >
-                                <FileSpreadsheet className="h-3.5 w-3.5 text-text-secondary" />
-                                <span>Export Statement CSV</span>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  queryClient.invalidateQueries({ queryKey: ["transactions"] });
-                                  setShowThreeDotsMenu(false);
-                                }}
-                                className="w-full text-left px-4 py-2 hover:bg-surface-raised transition-colors flex items-center gap-2"
-                              >
-                                <RefreshCw className="h-3.5 w-3.5 text-text-secondary" />
-                                <span>Refresh Ledger</span>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setShowAddModal(true);
-                                  setShowThreeDotsMenu(false);
-                                }}
-                                className="w-full text-left px-4 py-2 hover:bg-surface-raised transition-colors flex items-center gap-2"
-                              >
-                                <Plus className="h-3.5 w-3.5 text-text-secondary" />
-                                <span>Add Transaction</span>
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className="flex justify-between items-end">
-                <div>
-                  <div className="text-xs text-[#8888AA] font-medium mb-1">
-                    {selectedAccount.type === "credit_card" ? "Credit Card" : selectedAccount.type === "current" ? "Current Account" : "Savings Account"}
-                  </div>
-                  <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                    {formatCurrency(selectedAccount.balance_cents, "INR")}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setActiveTab("statement")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      activeTab === "statement"
-                        ? "bg-accent/20 text-accent border border-accent/40 shadow-sm shadow-accent/20"
-                        : "bg-surface-raised/40 border border-border text-text-secondary hover:text-white"
-                    }`}
-                  >
-                    Statement
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("get-statement")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      activeTab === "get-statement"
-                        ? "bg-accent/20 text-accent border border-accent/40 shadow-sm shadow-accent/20"
-                        : "bg-surface-raised/40 border border-border text-text-secondary hover:text-white"
-                    }`}
-                  >
-                    Get Statement
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 1: Ledger Statement */}
-          {activeTab === "statement" ? (
-            <>
-              {/* Filter Toolbar */}
-              <div className="p-4 border-b border-border/60 bg-surface/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none">
-                <div className="flex items-center gap-2 flex-wrap flex-1">
-                  {/* Type Select */}
-                  <select
-                    value={selectedType}
-                    onChange={(e) => setSelectedType(e.target.value)}
-                    className="bg-surface-raised border border-border rounded-lg px-3 py-1.5 text-xs font-medium text-text-primary focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
-                  >
-                    <option value="all">All Types</option>
-                    <option value="income">Income (+)</option>
-                    <option value="expense">Expense (-)</option>
-                  </select>
-
-                  {/* Category Select */}
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="bg-surface-raised border border-border rounded-lg px-3 py-1.5 text-xs font-medium text-text-primary focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer flex-1"
-                  >
-                    <option value="all">All Categories</option>
-                    {categories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-
-                  {/* Date Range Select */}
-                  <select
-                    value={selectedDateRange}
-                    onChange={(e) => setSelectedDateRange(e.target.value)}
-                    className="bg-surface-raised border border-border rounded-lg px-3 py-1.5 text-xs font-medium text-text-primary focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer min-w-[110px]"
-                  >
-                    <option value="all">All Time</option>
-                    <option value="last-7-days">Last 7 Days</option>
-                    <option value="last-30-days">Last 30 Days</option>
-                    <option value="this-month">This Month</option>
-                    <option value="last-month">Last Month</option>
-                    <option value="custom">Custom Range...</option>
-                  </select>
-
-                  {/* Inclusion Status Filter */}
-                  <select
-                    value={selectedIncluded}
-                    onChange={(e) => setSelectedIncluded(e.target.value)}
-                    className="bg-surface-raised border border-border rounded-lg px-3 py-1.5 text-xs font-medium text-text-primary focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
-                  >
-                    <option value="all">All Statuses</option>
-                    <option value="included">Included Only</option>
-                    <option value="excluded">Excluded Only</option>
-                  </select>
-
-                  {/* Dump All Expenses CSV Button */}
-                  <button
-                    onClick={handleExportAllExpensesCSV}
-                    disabled={isExportingAll}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-raised border border-border hover:border-accent hover:text-white rounded-lg text-xs font-semibold text-text-secondary transition-all shrink-0"
-                    title="Download complete CSV of all expense transactions across all accounts"
-                  >
-                    <Download className="h-3.5 w-3.5 text-accent" />
-                    <span className="hidden sm:inline">{isExportingAll ? "Exporting..." : "Dump All Expenses (.CSV)"}</span>
-                    <span className="sm:hidden">{isExportingAll ? "..." : "All Expenses"}</span>
-                  </button>
-
-                  {/* Export Statement Button */}
-                  <button
-                    onClick={handleExportCSV}
-                    className="p-1.5 bg-surface-raised border border-border rounded-lg text-text-secondary hover:text-white transition-colors shrink-0"
-                    title="Export Current Statement View as CSV"
-                  >
-                    <FileSpreadsheet className="h-4 w-4" />
-                  </button>
-                </div>
-
-                {/* Search Input */}
-                <div className="relative w-full sm:w-auto sm:min-w-[200px]">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted" />
-                  <input
-                    type="text"
-                    placeholder="Search..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-surface-raised border border-border rounded-lg pl-9 pr-4 py-1.5 text-xs text-text-primary placeholder-text-muted focus:outline-none focus:ring-1 focus:ring-accent"
-                  />
-                </div>
-              </div>
-
-              {/* Custom Date Inputs */}
-              {selectedDateRange === "custom" && (
-                <div className="px-4 py-3 border-b border-border bg-[#0E131F]/60 flex items-center gap-3 animate-in slide-in-from-top-1 duration-150 flex-wrap select-none">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-text-secondary uppercase font-mono">From:</span>
-                    <input
-                      type="date"
-                      value={customDateFrom}
-                      onChange={(e) => setCustomDateFrom(e.target.value)}
-                      className="bg-surface-raised border border-border rounded-lg px-3 py-1 text-xs font-medium text-text-primary focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-text-secondary uppercase font-mono">To:</span>
-                    <input
-                      type="date"
-                      value={customDateTo}
-                      onChange={(e) => setCustomDateTo(e.target.value)}
-                      className="bg-surface-raised border border-border rounded-lg px-3 py-1 text-xs font-medium text-text-primary focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
-                    />
-                  </div>
-                  {(customDateFrom || customDateTo) && (
-                    <button
-                      onClick={() => {
-                        setCustomDateFrom("");
-                        setCustomDateTo("");
-                      }}
-                      className="text-xs text-danger hover:underline font-mono ml-auto"
-                    >
-                      Clear Dates
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Passbook Transactions Ledger */}
-              <div className="flex-1 overflow-y-auto min-h-[300px] bg-surface">
-                {txnsError && (
-                  <div className="p-12 text-center text-danger flex flex-col items-center gap-2">
-                    <AlertCircle className="h-8 w-8" />
-                    <span className="text-sm font-mono">Failed to load transactions ledger.</span>
-                  </div>
-                )}
-
-                {txnsLoading ? (
-                  <div className="divide-y divide-border p-6 space-y-4 animate-pulse">
-                    {[1, 2, 3].map((n) => (
-                      <div key={n} className="flex justify-between items-center py-3">
-                        <div className="w-1/3 space-y-2">
-                          <div className="h-4 bg-surface-raised rounded w-3/4" />
-                          <div className="h-3 bg-surface-raised rounded w-1/2" />
-                        </div>
-                        <div className="h-6 bg-surface-raised rounded w-20" />
-                      </div>
-                    ))}
-                  </div>
-                ) : filteredTxnItems.length === 0 ? (
-                  <div className="p-16 text-center text-text-secondary text-sm flex flex-col items-center justify-center gap-3">
-                    <span className="font-mono">
-                      {selectedDateRange === "this-month" ? "No transactions yet for this month" : "No transactions found"}
-                    </span>
-                    <button
-                      onClick={() => setShowAddModal(true)}
-                      className="px-4 py-2 bg-accent hover:bg-accent/90 text-text-primary rounded-lg text-xs font-semibold transition-all shadow-md shadow-accent/10"
-                    >
-                      Add Transaction
-                    </button>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-border/30">
-                    {filteredTxnItems.map((txn) => {
-                      const runningBal = runningBalances[txn.id];
-
-                      return (
-                        <div
-                          key={txn.id}
-                          className="px-6 py-4 flex flex-col hover:bg-surface-raised/20 transition-colors group relative border-b border-border/20"
-                        >
-                          {/* Top Row: Date & Amount */}
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-[#8888AA] font-medium font-mono">
-                              {formatDate(txn.txn_date)}
-                            </span>
-                            <div
-                              className={`font-semibold text-sm font-mono ${
-                                txn.type === "income" ? "text-success" : "text-white"
-                              }`}
-                            >
-                              {txn.type === "income" ? "+ " : "- "}
-                              {formatCurrency(Math.abs(txn.amount_cents), "INR")}
-                            </div>
-                          </div>
-
-                          {/* Middle Row: Description */}
-                          <div className="mt-1 flex items-start justify-between">
-                            <span className="font-semibold text-sm text-white break-words max-w-[85%]">
-                              {txn.description || "Unlabeled Transaction"}
-                            </span>
-                            
-                            {/* Actions on hover */}
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-155 shrink-0 absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                              <button
-                                onClick={() => setEditingTxn(txn)}
-                                className="p-1.5 rounded text-text-muted hover:text-accent hover:bg-accent/10 transition-colors"
-                                title="Edit transaction"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteClick(txn)}
-                                className="p-1.5 rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-colors"
-                                title="Delete transaction"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Splits breakdown pill */}
-                          {txn.splits && txn.splits.length > 0 && (
-                            <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-                              <span className="text-[10px] text-text-muted font-mono flex items-center gap-1">
-                                <Users className="h-3 w-3 text-accent" />
-                                Splits:
-                              </span>
-                              {txn.splits.map((s) => (
-                                <span
-                                  key={s.id}
-                                  className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
-                                    s.person?.is_me
-                                      ? "bg-accent/10 border-accent/30 text-accent font-medium"
-                                      : "bg-surface-raised border-border text-text-primary"
-                                  }`}
-                                >
-                                  {s.person?.name || "Person"}: {formatCurrency(s.amount_paise, "INR")}
-                                  {s.note ? ` • ${s.note}` : ""}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Bottom Row: Category badge & Ref No on left, Balance on right */}
-                          <div className="flex items-center justify-between mt-2.5">
-                            <div className="flex items-center gap-2 text-xs text-[#8888AA] font-mono flex-wrap">
-                              <span className="bg-accent/10 border border-accent/25 text-accent text-[9px] px-1.5 py-0.5 rounded font-medium uppercase tracking-wider select-none">
-                                {txn.category}
-                              </span>
-
-                              {/* To Be Included Toggle Button */}
-                              <button
-                                onClick={(e) => handleToggleInclude(txn, e)}
-                                disabled={Boolean(togglingIncludedIds[txn.id])}
-                                className={`text-[9px] px-2 py-0.5 rounded font-semibold tracking-wider uppercase transition-all flex items-center gap-1 border select-none ${
-                                  txn.is_included !== false
-                                    ? "bg-accent/15 border-accent/40 text-accent hover:bg-accent/25"
-                                    : "bg-surface-raised border-border text-text-muted hover:text-text-primary hover:border-text-secondary"
-                                } disabled:opacity-50`}
-                                title={txn.is_included !== false ? "Included in Expense Total (click to exclude)" : "Excluded from Expense Total (click to include)"}
-                              >
-                                <span
-                                  className={`inline-block w-1.5 h-1.5 rounded-full ${
-                                    txn.is_included !== false ? "bg-accent animate-pulse" : "bg-text-muted"
-                                  }`}
-                                />
-                                {togglingIncludedIds[txn.id]
-                                  ? "Updating..."
-                                  : txn.is_included !== false
-                                  ? "To Be Included: YES"
-                                  : "To Be Included: NO"}
-                              </button>
-
-                              <span>•</span>
-                              <span>Ref No: {txn.id.replace(/[^0-9]/g, "").slice(0, 12) || txn.id.slice(0, 12)}</span>
-                              <button
-                                onClick={() => {
-                                  navigator.clipboard.writeText(txn.id);
-                                }}
-                                className="hover:text-white transition-colors p-0.5"
-                                title="Copy Transaction ID"
-                              >
-                                <Copy className="h-3 w-3" />
-                              </button>
-                            </div>
-
-                            {runningBal !== undefined && (
-                              <div className="text-xs text-[#8888AA] font-mono">
-                                Balance: {formatCurrency(runningBal, "INR")}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="px-6 py-4 border-t border-border flex items-center justify-between bg-surface-raised/5 font-mono text-xs text-text-secondary select-none">
-                  <div>
-                    Page <span className="text-text-primary">{page}</span> of{" "}
-                    <span className="text-text-primary">{totalPages}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                      disabled={page === 1}
-                      className="p-1.5 rounded border border-border hover:border-text-secondary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-                      disabled={page === totalPages}
-                      className="p-1.5 rounded border border-border hover:border-text-secondary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="flex-1 p-8 space-y-6 bg-[#0B0F17] overflow-y-auto">
-              <div className="space-y-2">
-                <h3 className="text-base font-semibold text-white">Export & Statements</h3>
-                <p className="text-xs text-[#8888AA]">
-                  Export filtered statements for this account or download a full dump of all expenses across all accounts.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-4xl">
-                {/* Option 1: Selected Account Statement */}
-                <div className="bg-[#0E1320] border border-border/60 rounded-xl p-6 space-y-5 flex flex-col justify-between">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <FileSpreadsheet className="h-4 w-4 text-accent" />
-                      <h4 className="text-sm font-semibold text-white">
-                        {selectedAccount?.name || "Account"} Statement
-                      </h4>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <label className="block text-[10px] font-semibold text-[#8888AA] uppercase tracking-wider font-mono">
-                          Date From
-                        </label>
-                        <input
-                          type="date"
-                          value={statementDateFrom}
-                          onChange={(e) => setStatementDateFrom(e.target.value)}
-                          className="w-full bg-[#07090E] border border-border rounded-lg px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-accent font-mono"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="block text-[10px] font-semibold text-[#8888AA] uppercase tracking-wider font-mono">
-                          Date To
-                        </label>
-                        <input
-                          type="date"
-                          value={statementDateTo}
-                          onChange={(e) => setStatementDateTo(e.target.value)}
-                          className="w-full bg-[#07090E] border border-border rounded-lg px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-accent font-mono"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-semibold text-[#8888AA] uppercase tracking-wider font-mono">
-                        File Format
-                      </label>
-                      <select
-                        value={exportFormat}
-                        onChange={(e) => setExportFormat(e.target.value)}
-                        className="w-full bg-[#07090E] border border-border rounded-lg px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
-                      >
-                        <option value="csv">CSV Spreadsheet (.csv)</option>
-                        <option value="json">JSON Data Feed (.json)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={handleDownloadCustomStatement}
-                    className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2.5 bg-surface-raised border border-border hover:border-accent text-text-primary rounded-lg text-xs font-semibold transition-all shadow-md"
-                  >
-                    <FileSpreadsheet className="h-4 w-4" />
-                    <span>Download Account Statement</span>
-                  </button>
-                </div>
-
-                {/* Option 2: Dump All Expenses (All Accounts) */}
-                <div className="bg-[#0E1320] border border-accent/30 bg-accent/5 rounded-xl p-6 space-y-5 flex flex-col justify-between">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Download className="h-4 w-4 text-accent" />
-                      <h4 className="text-sm font-semibold text-white">
-                        Dump All Expenses (All Accounts)
-                      </h4>
-                    </div>
-                    <p className="text-xs text-[#8888AA] leading-relaxed">
-                      Download a single, complete CSV dump containing every expense from all your bank accounts and credit cards (incomes are excluded).
-                    </p>
-
-                    <div className="p-3 rounded-lg bg-[#07090E]/80 border border-border/70 text-[11px] text-text-muted space-y-1.5 font-mono">
-                      <div className="flex justify-between">
-                        <span>Filter:</span>
-                        <span className="text-danger font-semibold">Expenses Only</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Accounts:</span>
-                        <span className="text-text-primary font-semibold">All Accounts</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Format:</span>
-                        <span className="text-accent font-semibold">Standard CSV (.csv)</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={handleExportAllExpensesCSV}
-                    disabled={isExportingAll}
-                    className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent/90 text-text-primary rounded-lg text-xs font-semibold transition-all shadow-lg shadow-accent/20"
-                  >
-                    <Download className="h-4 w-4" />
-                    <span>{isExportingAll ? "Exporting CSV..." : "Dump All Expenses (.CSV)"}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Confirmation Delete Dialog */}
+      {/* Delete Confirmation Modal */}
       {deletingTxn && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeletingTxn(null)} />
-          <div className="relative bg-surface border border-border rounded-xl p-6 w-full max-w-md mx-4 animate-in fade-in zoom-in-95 duration-150 space-y-4">
-            <h4 className="text-base font-semibold text-text-primary">Delete Transaction</h4>
-            <p className="text-sm text-text-secondary">
-              Are you sure you want to delete this transaction for{" "}
-              <span className="text-text-primary font-semibold font-mono">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#121216] border border-white/10 p-6 rounded-3xl max-w-sm w-full space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 text-rose-400">
+              <AlertCircle className="h-6 w-6" />
+              <h3 className="font-bold text-base text-white">Delete Transaction?</h3>
+            </div>
+            <p className="text-xs text-neutral-300 leading-relaxed">
+              Are you sure you want to delete{" "}
+              <span className="font-bold text-white">
+                "{deletingTxn.description || deletingTxn.category}"
+              </span>{" "}
+              for{" "}
+              <span className="font-mono text-white">
                 {formatCurrency(deletingTxn.amount_cents, "INR")}
               </span>
-              ? This will adjust your account balance.
+              ? This action cannot be undone.
             </p>
             {deleteError && (
-              <div className="bg-danger/10 border border-danger/25 text-danger px-3 py-2 rounded text-xs">
+              <div className="text-xs text-rose-400 bg-rose-500/10 p-2.5 rounded-xl border border-rose-500/20">
                 {deleteError}
               </div>
             )}
-            <div className="flex items-center justify-end gap-3">
+            <div className="flex justify-end gap-2 pt-2">
               <button
-                type="button"
                 onClick={() => setDeletingTxn(null)}
-                className="px-4 py-2 border border-border hover:bg-surface-raised rounded-lg text-sm font-medium text-text-secondary hover:text-text-primary transition-all"
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-semibold transition-all"
               >
                 Cancel
               </button>
               <button
-                type="button"
                 onClick={handleConfirmDelete}
                 disabled={isDeleting}
-                className="px-4 py-2 bg-danger hover:bg-danger/90 disabled:opacity-50 text-white rounded-lg text-sm font-semibold transition-all shadow-lg shadow-danger/25"
+                className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50"
               >
-                {isDeleting ? "Deleting..." : "Confirm Delete"}
+                {isDeleting ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Single-Flow Container inspired by reference video */}
+      <div className="max-w-4xl mx-auto space-y-8 select-none">
+        
+        {/* ========================================================= */}
+        {/* TOP SECTION: SWIPEABLE 3D CARDS CAROUSEL */}
+        {/* ========================================================= */}
+        {accounts.length > 0 ? (
+          <div className="relative pt-2 pb-4">
+            {/* Carousel Header & Quick Mode Toggles */}
+            <div className="flex items-center justify-between mb-4 px-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-widest text-neutral-400">
+                  Select Card to Filter
+                </span>
+                <span className="text-[11px] font-semibold text-white/60">
+                  ({carouselIndex + 1} of {accounts.length})
+                </span>
+              </div>
+
+              {/* Toggle: Active Card vs All Accounts */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsAllAccountsMode(false)}
+                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                    !isAllAccountsMode
+                      ? "bg-white text-black shadow-md"
+                      : "bg-white/5 text-neutral-400 hover:text-white"
+                  }`}
+                >
+                  By Card
+                </button>
+                <button
+                  onClick={() => setIsAllAccountsMode(true)}
+                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    isAllAccountsMode
+                      ? "bg-white text-black shadow-md"
+                      : "bg-white/5 text-neutral-400 hover:text-white"
+                  }`}
+                >
+                  <Layers className="h-3 w-3" />
+                  <span>All Accounts</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Interactive Swipeable Stage */}
+            <div className="relative flex items-center justify-center overflow-hidden py-4 px-2">
+              {/* Desktop Left Chevron Button */}
+              {carouselIndex > 0 && (
+                <button
+                  onClick={handleSwipePrev}
+                  className="absolute left-2 z-30 w-11 h-11 rounded-full bg-black/60 hover:bg-black/90 border border-white/20 text-white flex items-center justify-center transition-all shadow-xl hover:scale-110 active:scale-95 cursor-pointer backdrop-blur-md"
+                  title="Previous Card"
+                >
+                  <ChevronLeft className="h-6 w-6 stroke-[2.5]" />
+                </button>
+              )}
+
+              {/* Desktop Right Chevron Button */}
+              {carouselIndex < accounts.length - 1 && (
+                <button
+                  onClick={handleSwipeNext}
+                  className="absolute right-2 z-30 w-11 h-11 rounded-full bg-black/60 hover:bg-black/90 border border-white/20 text-white flex items-center justify-center transition-all shadow-xl hover:scale-110 active:scale-95 cursor-pointer backdrop-blur-md"
+                  title="Next Card"
+                >
+                  <ChevronRight className="h-6 w-6 stroke-[2.5]" />
+                </button>
+              )}
+
+              {/* Cards Container with Touch/Mouse Swipe Drag */}
+              <motion.div
+                className="w-full max-w-lg cursor-grab active:cursor-grabbing relative"
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.25}
+                onDragEnd={(_, info) => {
+                  const swipe = info.offset.x;
+                  if (swipe < -45 && carouselIndex < accounts.length - 1) {
+                    handleSwipeNext();
+                  } else if (swipe > 45 && carouselIndex > 0) {
+                    handleSwipePrev();
+                  }
+                }}
+              >
+                <AnimatePresence mode="wait">
+                  {activeAccount && (
+                    <motion.div
+                      key={activeAccount.id}
+                      initial={{ opacity: 0, scale: 0.94, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.94, y: -10 }}
+                      transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                      className="w-full"
+                    >
+                      <AccountCard
+                        account={activeAccount}
+                        colorIndex={carouselIndex}
+                        spentThisMonthCents={cardMonthlyStats.spent}
+                        isSelected={!isAllAccountsMode}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            </div>
+
+            {/* Pagination Dots & Navigation Indicators */}
+            <div className="flex items-center justify-center gap-2 mt-2">
+              {accounts.map((acc, idx) => (
+                <button
+                  key={acc.id}
+                  onClick={() => {
+                    setCarouselIndex(idx);
+                    setIsAllAccountsMode(false);
+                  }}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    idx === carouselIndex && !isAllAccountsMode
+                      ? "w-7 bg-white shadow-md shadow-white/30"
+                      : "w-2 bg-white/20 hover:bg-white/40"
+                  }`}
+                  title={acc.name}
+                />
+              ))}
+            </div>
+
+            {/* Quick Action Pills for the Active Card */}
+            <div className="flex items-center justify-center flex-wrap gap-2.5 mt-5">
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="px-4 py-2 bg-white hover:bg-neutral-100 text-black rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-lg active:scale-95 cursor-pointer"
+              >
+                <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+                <span>Add Entry</span>
+              </button>
+
+              <button
+                onClick={() => setShowBulkImportModal(true)}
+                className="px-4 py-2 bg-white/10 hover:bg-white/15 text-white border border-white/15 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer backdrop-blur-md"
+              >
+                <Upload className="h-3.5 w-3.5 text-white/80" />
+                <span>Import CSV</span>
+              </button>
+
+              <button
+                onClick={handleExportCSV}
+                className="px-4 py-2 bg-white/10 hover:bg-white/15 text-white border border-white/15 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer backdrop-blur-md"
+              >
+                <Download className="h-3.5 w-3.5 text-white/80" />
+                <span>Export CSV</span>
+              </button>
+
+              <button
+                onClick={handleExportAllExpensesCSV}
+                disabled={isExportingAll}
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                title="Download CSV of all expense transactions across all accounts"
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5 text-white/60" />
+                <span>{isExportingAll ? "Exporting..." : "Dump All"}</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-[#121216] border border-white/10 p-10 rounded-3xl text-center space-y-3">
+            <CreditCard className="h-10 w-10 text-neutral-500 mx-auto" />
+            <h3 className="font-bold text-white text-base">No Accounts Connected</h3>
+            <p className="text-xs text-neutral-400 max-w-sm mx-auto">
+              Add your bank account or credit card in Accounts to see your interactive cards and statement ledger.
+            </p>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* MAIN SECTION: TRANSACTIONS FEED FOR ACTIVE CARD */}
+        {/* ========================================================= */}
+        <div className="space-y-4">
+          
+          {/* Header Row: Title & Active Context */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1 border-b border-white/10 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">
+                  {isAllAccountsMode
+                    ? "All Account Transactions"
+                    : `${activeAccount?.name || "Card"} Activity`}
+                </h2>
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-white/10 text-white/80">
+                  {txnData ? `${txnData.total} Total` : "..."}
+                </span>
+              </div>
+              <p className="text-xs text-neutral-400 mt-0.5">
+                {isAllAccountsMode
+                  ? "Showing all entries across all accounts"
+                  : `Real-time activity ledger for ${activeAccount?.name || "this card"}`}
+              </p>
+            </div>
+
+            {/* Quick Type Filter Segmented Pill */}
+            <div className="inline-flex p-1 bg-white/5 border border-white/10 rounded-2xl">
+              {(["all", "expense", "income"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setSelectedType(t)}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold capitalize transition-all ${
+                    selectedType === t
+                      ? "bg-white text-black shadow-md"
+                      : "text-neutral-400 hover:text-white"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Filter Bar: Search, Category, Date, Budget Toggle */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
+              <input
+                type="text"
+                placeholder="Search description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-[#121216] border border-white/10 rounded-2xl pl-9 pr-8 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white/30"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Category Dropdown */}
+            <div>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full bg-[#121216] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none focus:border-white/30 cursor-pointer"
+              >
+                <option value="all">All Categories</option>
+                {CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Date Range Selector */}
+            <div>
+              <select
+                value={selectedDateRange}
+                onChange={(e) => setSelectedDateRange(e.target.value)}
+                className="w-full bg-[#121216] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none focus:border-white/30 cursor-pointer"
+              >
+                <option value="this-month">This Month</option>
+                <option value="last-30-days">Last 30 Days</option>
+                <option value="last-7-days">Last 7 Days</option>
+                <option value="last-month">Last Month</option>
+                <option value="all">All Time</option>
+                <option value="custom">Custom Range...</option>
+              </select>
+            </div>
+
+            {/* Budget Included Filter */}
+            <div>
+              <select
+                value={selectedIncluded}
+                onChange={(e) => setSelectedIncluded(e.target.value)}
+                className="w-full bg-[#121216] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none focus:border-white/30 cursor-pointer"
+              >
+                <option value="all">All Inclusion</option>
+                <option value="included">Included in Budget</option>
+                <option value="excluded">Excluded</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Custom Date Pickers if selected */}
+          {selectedDateRange === "custom" && (
+            <div className="flex items-center gap-3 bg-[#121216] border border-white/10 p-3 rounded-2xl">
+              <span className="text-xs text-neutral-400 font-medium">From:</span>
+              <input
+                type="date"
+                value={customDateFrom}
+                onChange={(e) => setCustomDateFrom(e.target.value)}
+                className="bg-black/50 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+              />
+              <span className="text-xs text-neutral-400 font-medium">To:</span>
+              <input
+                type="date"
+                value={customDateTo}
+                onChange={(e) => setCustomDateTo(e.target.value)}
+                className="bg-black/50 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+              />
+            </div>
+          )}
+
+          {/* Transactions List */}
+          {txnsLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((n) => (
+                <div
+                  key={n}
+                  className="bg-[#121216] border border-white/5 p-4 rounded-2xl h-16 animate-pulse flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/10" />
+                    <div className="space-y-1.5">
+                      <div className="h-3 w-32 bg-white/10 rounded-full" />
+                      <div className="h-2 w-20 bg-white/5 rounded-full" />
+                    </div>
+                  </div>
+                  <div className="h-4 w-20 bg-white/10 rounded-full" />
+                </div>
+              ))}
+            </div>
+          ) : filteredTxnItems.length === 0 ? (
+            <div className="bg-[#121216] border border-white/10 p-12 rounded-3xl text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mx-auto text-neutral-400">
+                <FileSpreadsheet className="h-6 w-6" />
+              </div>
+              <h3 className="font-bold text-white text-base">No Transactions Found</h3>
+              <p className="text-xs text-neutral-400 max-w-sm mx-auto">
+                No entries match the current filters for {activeAccount ? activeAccount.name : "this view"}.
+              </p>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="mt-2 px-5 py-2.5 bg-white text-black font-bold text-xs rounded-2xl shadow-lg hover:bg-neutral-100 transition-all active:scale-95"
+              >
+                + Add Transaction
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {groupedTxns.map(([date, txns]) => (
+                <div key={date} className="space-y-2">
+                  {/* Date Divider */}
+                  <div className="flex items-center gap-2 px-1">
+                    <span className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">
+                      {formatDate(date)}
+                    </span>
+                    <div className="h-px flex-1 bg-white/5" />
+                  </div>
+
+                  {/* Transaction Cards List */}
+                  <div className="space-y-2">
+                    {txns.map((txn) => {
+                      const isExpense = txn.type === "expense";
+                      const isToggling = togglingIncludedIds[txn.id];
+                      const runningBal = runningBalances[txn.id];
+
+                      const getCatEmoji = (catName: string) => {
+                        const l = (catName || "").toLowerCase();
+                        if (l.includes("food") || l.includes("dining")) return "🍔";
+                        if (l.includes("transport")) return "🚗";
+                        if (l.includes("grocer")) return "🛒";
+                        if (l.includes("shop")) return "🛍️";
+                        if (l.includes("entertain")) return "🎬";
+                        if (l.includes("health")) return "💊";
+                        if (l.includes("utilit")) return "⚡";
+                        if (l.includes("rent")) return "🏠";
+                        if (l.includes("salary")) return "💵";
+                        if (l.includes("freelance")) return "💻";
+                        if (l.includes("invest")) return "📈";
+                        if (l.includes("transfer")) return "🔄";
+                        return isExpense ? "💸" : "💰";
+                      };
+
+                      return (
+                        <div
+                          key={txn.id}
+                          className="bg-[#101014] hover:bg-[#141418] border border-white/[0.08] hover:border-white/20 p-3.5 sm:p-4 rounded-2xl transition-all duration-200 flex items-center justify-between gap-3 group"
+                        >
+                          {/* Left: Category Icon & Details */}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-lg flex-shrink-0">
+                              {getCatEmoji(txn.category)}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-bold text-xs sm:text-sm text-white truncate group-hover:text-cyan-300 transition-colors">
+                                {txn.description || txn.category}
+                              </div>
+                              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                <span className="text-[10px] text-neutral-400 font-medium">
+                                  {txn.category}
+                                </span>
+                                {isAllAccountsMode && (
+                                  <span className="text-[10px] text-white/50 bg-white/5 px-2 py-0.2 rounded-full border border-white/10">
+                                    {accounts.find((a) => a.id === txn.account_id)?.name || "Card"}
+                                  </span>
+                                )}
+                                {/* Budget Inclusion Toggle Button */}
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleToggleInclude(txn, e)}
+                                  disabled={isToggling}
+                                  title="Toggle whether this transaction counts toward monthly budget"
+                                  className={`text-[9px] font-bold px-2 py-0.5 rounded-full border transition-all cursor-pointer ${
+                                    txn.is_included !== false
+                                      ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
+                                      : "bg-neutral-800 border-neutral-700 text-neutral-400 line-through"
+                                  }`}
+                                >
+                                  {txn.is_included !== false ? "In Budget" : "Excluded"}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Right: Amount & Actions */}
+                          <div className="flex items-center gap-3 flex-shrink-0 text-right">
+                            <div>
+                              <div
+                                className={`font-mono text-sm sm:text-base font-extrabold ${
+                                  isExpense ? "text-rose-400" : "text-emerald-400"
+                                }`}
+                              >
+                                {isExpense ? "-" : "+"}
+                                {formatCurrency(txn.amount_cents, "INR")}
+                              </div>
+                              {runningBal !== undefined && (
+                                <div className="text-[10px] text-neutral-400 font-mono mt-0.5">
+                                  Bal: {formatCurrency(runningBal, "INR")}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Action Buttons (Edit / Delete) */}
+                            <div className="flex items-center gap-1 opacity-80 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => setEditingTxn(txn)}
+                                className="p-1.5 hover:bg-white/10 text-neutral-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+                                title="Edit Transaction"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setDeletingTxn(txn);
+                                  setDeleteError(null);
+                                }}
+                                className="p-1.5 hover:bg-rose-500/20 text-neutral-400 hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
+                                title="Delete Transaction"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              {/* Pagination Row */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t border-white/10 px-1">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-semibold disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    <span>Previous</span>
+                  </button>
+
+                  <span className="text-xs text-neutral-400 font-medium">
+                    Page <span className="text-white font-bold">{page}</span> of{" "}
+                    <span className="text-white font-bold">{totalPages}</span>
+                  </span>
+
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-semibold disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </PageWrapper>
   );
 }
