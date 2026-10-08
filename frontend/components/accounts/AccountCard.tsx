@@ -27,17 +27,18 @@ export default function AccountCard({
   const [isMasked, setIsMasked] = useState(false);
   const [isFrozen, setIsFrozen] = useState(false);
 
-  // Vivid halo vignette gradients matching Frame 2 of the Smart Ring reference (media_1791486379228_182d0c65.png)
+  // Vivid halo vignette gradients matching Frame 2 of the reference (media_1791486379228_182d0c65.png)
   const getCardTheme = () => {
     if (isCreditCard) {
       return {
         // Velvet Wine / Deep Crimson
-        cardBg: "bg-[#290C16]",
-        ambientGlow: "radial-gradient(115% 115% at 50% 50%, #200911 15%, #7D2138 72%, #9B2D49 100%)",
-        borderColor: "border-[#9B2D49]/45 hover:border-[#9B2D49]/75",
-        accentPill: "bg-[#9B2D49]/30 border-[#9B2D49]/45 text-rose-100",
-        btnPill: "bg-black/25 hover:bg-black/40 text-white/90 hover:text-white border-white/10",
-        glowShadow: "shadow-[0_16px_36px_-6px_rgba(125,33,56,0.45)]",
+        cardBg: "bg-[#2A0A16]",
+        ambientGlow: "radial-gradient(135% 135% at 50% 20%, #7D1A35 0%, #480F1E 55%, #1F050C 100%)",
+        spotlightColor: "rgba(225, 45, 90, 0.45)",
+        borderColor: "border-[#B83256]/60 hover:border-[#E12D5A]/90",
+        accentPill: "bg-[#7D1A35]/60 border-[#B83256]/70 text-rose-100 shadow-sm",
+        btnPill: "bg-black/35 hover:bg-black/60 text-white/95 hover:text-white border-white/15",
+        glowShadow: "shadow-[0_18px_40px_-8px_rgba(180,30,70,0.5)]",
         typeBadge: "Credit Card",
         statusText: "Liability / Debt",
       };
@@ -45,46 +46,50 @@ export default function AccountCard({
 
     const themes = [
       {
-        // 1. Heart Rate: Sage / Pine Teal Smoke (Top-Left in reference)
-        cardBg: "bg-[#11231F]",
-        ambientGlow: "radial-gradient(115% 115% at 50% 50%, #0E1D19 15%, #385E56 72%, #48786E 100%)",
-        borderColor: "border-[#48786E]/45 hover:border-[#48786E]/75",
-        accentPill: "bg-[#48786E]/30 border-[#48786E]/45 text-emerald-100",
-        btnPill: "bg-black/25 hover:bg-black/40 text-white/90 hover:text-white border-white/10",
-        glowShadow: "shadow-[0_16px_36px_-6px_rgba(56,94,86,0.45)]",
+        // 1. Sage / Emerald Green Tint (Frame 2 Heart Rate)
+        cardBg: "bg-[#0F2922]",
+        ambientGlow: "radial-gradient(135% 135% at 50% 20%, #2A6856 0%, #164034 55%, #0B221B 100%)",
+        spotlightColor: "rgba(45, 175, 135, 0.5)",
+        borderColor: "border-[#3EA588]/60 hover:border-[#52C9A7]/90",
+        accentPill: "bg-[#2A6856]/60 border-[#3EA588]/70 text-emerald-100 shadow-sm",
+        btnPill: "bg-black/35 hover:bg-black/60 text-white/95 hover:text-white border-white/15",
+        glowShadow: "shadow-[0_18px_40px_-8px_rgba(42,120,95,0.5)]",
         typeBadge: "Digital Card",
         statusText: "Active",
       },
       {
-        // 2. Glucose: Rich Velvet Orchid / Magenta-Plum (Top-Right in reference)
-        cardBg: "bg-[#2B1224]",
-        ambientGlow: "radial-gradient(115% 115% at 50% 50%, #220D1C 15%, #7A325C 72%, #964173 100%)",
-        borderColor: "border-[#964173]/45 hover:border-[#964173]/75",
-        accentPill: "bg-[#964173]/30 border-[#964173]/45 text-pink-100",
-        btnPill: "bg-black/25 hover:bg-black/40 text-white/90 hover:text-white border-white/10",
-        glowShadow: "shadow-[0_16px_36px_-6px_rgba(122,50,92,0.45)]",
+        // 2. Royal Sapphire / Cobalt Blue Tint (Frame 2 Temperature)
+        cardBg: "bg-[#102044]",
+        ambientGlow: "radial-gradient(135% 135% at 50% 20%, #2956A3 0%, #17346A 55%, #0A1938 100%)",
+        spotlightColor: "rgba(56, 130, 246, 0.5)",
+        borderColor: "border-[#437EDD]/60 hover:border-[#60A5FA]/90",
+        accentPill: "bg-[#2956A3]/60 border-[#437EDD]/70 text-sky-100 shadow-sm",
+        btnPill: "bg-black/35 hover:bg-black/60 text-white/95 hover:text-white border-white/15",
+        glowShadow: "shadow-[0_18px_40px_-8px_rgba(41,86,163,0.5)]",
         typeBadge: "Digital Card",
         statusText: "Active",
       },
       {
-        // 3. Temperature: Royal Slate Cobalt / Sapphire (Bottom-Left in reference)
-        cardBg: "bg-[#0E1B38]",
-        ambientGlow: "radial-gradient(115% 115% at 50% 50%, #0A142A 15%, #234986 72%, #325FA6 100%)",
-        borderColor: "border-[#325FA6]/45 hover:border-[#325FA6]/75",
-        accentPill: "bg-[#325FA6]/30 border-[#325FA6]/45 text-sky-100",
-        btnPill: "bg-black/25 hover:bg-black/40 text-white/90 hover:text-white border-white/10",
-        glowShadow: "shadow-[0_16px_36px_-6px_rgba(35,73,134,0.45)]",
+        // 3. Rich Velvet Orchid / Magenta Tint (Frame 2 Glucose)
+        cardBg: "bg-[#33122D]",
+        ambientGlow: "radial-gradient(135% 135% at 50% 20%, #852C65 0%, #4D183B 55%, #23081A 100%)",
+        spotlightColor: "rgba(215, 60, 160, 0.5)",
+        borderColor: "border-[#BD4492]/60 hover:border-[#F472B6]/90",
+        accentPill: "bg-[#852C65]/60 border-[#BD4492]/70 text-pink-100 shadow-sm",
+        btnPill: "bg-black/35 hover:bg-black/60 text-white/95 hover:text-white border-white/15",
+        glowShadow: "shadow-[0_18px_40px_-8px_rgba(145,45,110,0.5)]",
         typeBadge: "Digital Card",
         statusText: "Active",
       },
       {
-        // 4. Steps: Warm Burnt Terracotta / Rust Copper (Bottom-Right in reference)
-        cardBg: "bg-[#29130B]",
-        ambientGlow: "radial-gradient(115% 115% at 50% 50%, #210E07 15%, #843B27 72%, #A24B34 100%)",
-        borderColor: "border-[#A24B34]/45 hover:border-[#A24B34]/75",
-        accentPill: "bg-[#A24B34]/30 border-[#A24B34]/45 text-amber-100",
-        btnPill: "bg-black/25 hover:bg-black/40 text-white/90 hover:text-white border-white/10",
-        glowShadow: "shadow-[0_16px_36px_-6px_rgba(132,59,39,0.45)]",
+        // 4. Burnt Terracotta / Rust Copper Tint (Frame 2 Steps)
+        cardBg: "bg-[#36160E]",
+        ambientGlow: "radial-gradient(135% 135% at 50% 20%, #8A3723 0%, #521E12 55%, #250B06 100%)",
+        spotlightColor: "rgba(235, 95, 60, 0.5)",
+        borderColor: "border-[#C55337]/60 hover:border-[#FB923C]/90",
+        accentPill: "bg-[#8A3723]/60 border-[#C55337]/70 text-amber-100 shadow-sm",
+        btnPill: "bg-black/35 hover:bg-black/60 text-white/95 hover:text-white border-white/15",
+        glowShadow: "shadow-[0_18px_40px_-8px_rgba(150,55,30,0.5)]",
         typeBadge: "Digital Card",
         statusText: "Active",
       },
@@ -110,6 +115,16 @@ export default function AccountCard({
         isSelected ? "ring-2 ring-white shadow-2xl" : ""
       } ${isFrozen ? "ring-2 ring-sky-400/80 shadow-[0_0_30px_rgba(56,189,248,0.25)]" : ""}`}
     >
+      {/* Luminous Inner Ambient Halo Lighting */}
+      <div
+        className="absolute -top-10 -right-10 w-44 h-44 rounded-full pointer-events-none blur-3xl opacity-75 transition-opacity"
+        style={{ background: theme.spotlightColor }}
+      />
+      <div
+        className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full pointer-events-none blur-2xl opacity-45 transition-opacity"
+        style={{ background: theme.spotlightColor }}
+      />
+
       {/* Frozen Card Frosted Overlay */}
       <AnimatePresence>
         {isFrozen && (
@@ -140,20 +155,20 @@ export default function AccountCard({
           </span>
         </div>
 
-        <div className="text-xs font-mono font-bold tracking-widest text-neutral-400">
+        <div className="text-xs font-mono font-bold tracking-widest text-white/60">
           •••• {account.account_number ? account.account_number.slice(-4) : "7642"}
         </div>
       </div>
 
       {/* Middle: Large Balance */}
       <div className="my-3 sm:my-4 relative z-10">
-        <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-neutral-400 block mb-1">
+        <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-white/70 block mb-1">
           {isCreditCard ? "Amount Owed (Debt)" : "Available Balance"}
         </span>
         <div className="text-3xl sm:text-4xl font-extrabold tracking-tight font-sans text-white">
           {isMasked ? "••••••••" : formatCurrency(account.balance_cents, account.currency)}
         </div>
-        <span className="text-[11px] text-neutral-400 font-medium block mt-1">
+        <span className="text-[11px] text-white/75 font-medium block mt-1">
           Spent this month: {formatCurrency(spentThisMonthCents, account.currency)}
         </span>
       </div>
