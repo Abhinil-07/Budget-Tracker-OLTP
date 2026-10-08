@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import QueryProvider from "../components/providers/QueryProvider";
 import "./globals.css";
@@ -15,8 +15,26 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Personal Finance Command Center",
+  title: "Finance Command Center",
   description: "Manage accounts, track balances, and analyze spending in real-time.",
+  applicationName: "Finance",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Finance",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -26,7 +44,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="bg-background text-text-primary antialiased min-h-screen font-sans">
+      <body className="bg-background text-text-primary antialiased min-h-screen font-sans select-none">
         <QueryProvider>
           {children}
         </QueryProvider>
