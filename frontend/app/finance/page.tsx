@@ -351,7 +351,7 @@ export default function Dashboard() {
       </div>
 
       {/* Timeframe Selector Panel */}
-      <div className="mb-6 p-4 rounded-2xl bg-[#121216] border border-white/[0.08] flex items-center justify-between flex-wrap gap-3 select-none">
+      <div className="mb-6 p-4 rounded-2xl bg-[#0B0B0E] border border-white/[0.07] flex items-center justify-between flex-wrap gap-3 select-none">
         <div className="flex items-center gap-2.5">
           <Calendar className="h-4 w-4 text-neutral-400" />
           <span className="text-xs text-neutral-400 uppercase font-mono tracking-wider font-semibold">
@@ -360,7 +360,7 @@ export default function Dashboard() {
           <select
             value={selectedTimeframe}
             onChange={(e) => setSelectedTimeframe(e.target.value)}
-            className="bg-[#18181D] border border-white/10 rounded-xl px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:ring-1 focus:ring-white cursor-pointer min-w-[150px]"
+            className="bg-[#141416] border border-white/10 rounded-xl px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:ring-1 focus:ring-white cursor-pointer min-w-[150px]"
           >
             {timeframes.map((tf: { label: string; value: string }) => (
               <option key={tf.value} value={tf.value}>
@@ -440,7 +440,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-8">
         {budgetLoading ? (
           [1, 2, 3, 4].map((n) => (
-            <div key={n} className="bg-[#121216] p-5 rounded-2xl border border-white/[0.06] animate-pulse space-y-3 h-[135px] flex flex-col justify-between">
+            <div key={n} className="bg-[#0B0B0E] p-5 rounded-2xl border border-white/[0.06] animate-pulse space-y-3 h-[135px] flex flex-col justify-between">
               <div className="h-4 bg-white/10 w-1/3 rounded" />
               <div className="h-7 bg-white/10 w-2/3 rounded" />
             </div>
@@ -448,7 +448,7 @@ export default function Dashboard() {
         ) : (
           <>
             {/* Card 1: Spent MTD */}
-            <div className="bg-[#121216] border border-white/[0.08] hover:border-white/20 p-5 rounded-2xl shadow-lg flex flex-col justify-between min-h-[135px] transition-all duration-200 select-none">
+            <div className="bg-[#0B0B0E] border border-white/[0.07] hover:border-white/15 p-5 rounded-2xl shadow-lg flex flex-col justify-between min-h-[135px] transition-all duration-200 select-none">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-neutral-400">Spent MTD</span>
                 <div className="w-8 h-8 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
@@ -466,7 +466,7 @@ export default function Dashboard() {
             </div>
 
             {/* Card 2: Remaining Budget */}
-            <div className="bg-[#121216] border border-white/[0.08] hover:border-white/20 p-5 rounded-2xl shadow-lg flex flex-col justify-between min-h-[135px] transition-all duration-200 select-none">
+            <div className="bg-[#0B0B0E] border border-white/[0.07] hover:border-white/15 p-5 rounded-2xl shadow-lg flex flex-col justify-between min-h-[135px] transition-all duration-200 select-none">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-neutral-400">Remaining Budget</span>
                 <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
@@ -484,7 +484,7 @@ export default function Dashboard() {
             </div>
 
             {/* Card 3: Income MTD */}
-            <div className="bg-[#121216] border border-white/[0.08] hover:border-white/20 p-5 rounded-2xl shadow-lg flex flex-col justify-between min-h-[135px] transition-all duration-200 select-none">
+            <div className="bg-[#0B0B0E] border border-white/[0.07] hover:border-white/15 p-5 rounded-2xl shadow-lg flex flex-col justify-between min-h-[135px] transition-all duration-200 select-none">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-neutral-400">Income MTD</span>
                 <div className="w-8 h-8 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
@@ -502,7 +502,7 @@ export default function Dashboard() {
             </div>
 
             {/* Card 4: Owed to Me */}
-            <div className="bg-[#121216] border border-white/[0.08] hover:border-white/20 p-5 rounded-2xl shadow-lg flex flex-col justify-between min-h-[135px] transition-all duration-200 select-none">
+            <div className="bg-[#0B0B0E] border border-white/[0.07] hover:border-white/15 p-5 rounded-2xl shadow-lg flex flex-col justify-between min-h-[135px] transition-all duration-200 select-none">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-neutral-400">Owed to Me</span>
                 <div className="w-8 h-8 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">

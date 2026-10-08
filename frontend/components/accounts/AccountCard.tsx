@@ -27,16 +27,17 @@ export default function AccountCard({
   const [isMasked, setIsMasked] = useState(false);
   const [isFrozen, setIsFrozen] = useState(false);
 
-  // Deep ambient glow themes inspired by the smart ring UI (media_1791485962579_e0939bc1.png)
+  // Vivid halo vignette gradients matching Frame 2 of the Smart Ring reference (media_1791486379228_182d0c65.png)
   const getCardTheme = () => {
     if (isCreditCard) {
       return {
-        // Deep Rose / Velvet Crimson
-        cardBg: "bg-[#140F13] border-rose-500/25 hover:border-rose-500/40",
-        ambientGlow: "radial-gradient(circle at 85% 15%, rgba(244, 63, 94, 0.18) 0%, rgba(136, 19, 55, 0.08) 50%, transparent 80%)",
-        accentPill: "bg-rose-500/15 border-rose-500/25 text-rose-300",
-        btnPill: "bg-white/[0.06] hover:bg-white/[0.14] text-neutral-300 hover:text-white border-white/[0.08]",
-        glowShadow: "shadow-[0_12px_32px_-8px_rgba(244,63,94,0.18)]",
+        // Velvet Wine / Deep Crimson
+        cardBg: "bg-[#290C16]",
+        ambientGlow: "radial-gradient(115% 115% at 50% 50%, #200911 15%, #7D2138 72%, #9B2D49 100%)",
+        borderColor: "border-[#9B2D49]/45 hover:border-[#9B2D49]/75",
+        accentPill: "bg-[#9B2D49]/30 border-[#9B2D49]/45 text-rose-100",
+        btnPill: "bg-black/25 hover:bg-black/40 text-white/90 hover:text-white border-white/10",
+        glowShadow: "shadow-[0_16px_36px_-6px_rgba(125,33,56,0.45)]",
         typeBadge: "Credit Card",
         statusText: "Liability / Debt",
       };
@@ -44,42 +45,46 @@ export default function AccountCard({
 
     const themes = [
       {
-        // 1. Deep Sage / Emerald Smoke (Card 1 in reference)
-        cardBg: "bg-[#0F1412] border-emerald-500/25 hover:border-emerald-500/40",
-        ambientGlow: "radial-gradient(circle at 85% 15%, rgba(16, 185, 129, 0.18) 0%, rgba(6, 78, 59, 0.08) 50%, transparent 80%)",
-        accentPill: "bg-emerald-500/15 border-emerald-500/25 text-emerald-300",
-        btnPill: "bg-white/[0.06] hover:bg-white/[0.14] text-neutral-300 hover:text-white border-white/[0.08]",
-        glowShadow: "shadow-[0_12px_32px_-8px_rgba(16,185,129,0.18)]",
+        // 1. Heart Rate: Sage / Pine Teal Smoke (Top-Left in reference)
+        cardBg: "bg-[#11231F]",
+        ambientGlow: "radial-gradient(115% 115% at 50% 50%, #0E1D19 15%, #385E56 72%, #48786E 100%)",
+        borderColor: "border-[#48786E]/45 hover:border-[#48786E]/75",
+        accentPill: "bg-[#48786E]/30 border-[#48786E]/45 text-emerald-100",
+        btnPill: "bg-black/25 hover:bg-black/40 text-white/90 hover:text-white border-white/10",
+        glowShadow: "shadow-[0_16px_36px_-6px_rgba(56,94,86,0.45)]",
         typeBadge: "Digital Card",
         statusText: "Active",
       },
       {
-        // 2. Velvet Plum / Dark Mauve (Card 2 in reference)
-        cardBg: "bg-[#141018] border-purple-500/25 hover:border-purple-500/40",
-        ambientGlow: "radial-gradient(circle at 85% 15%, rgba(168, 85, 247, 0.18) 0%, rgba(88, 28, 135, 0.08) 50%, transparent 80%)",
-        accentPill: "bg-purple-500/15 border-purple-500/25 text-purple-300",
-        btnPill: "bg-white/[0.06] hover:bg-white/[0.14] text-neutral-300 hover:text-white border-white/[0.08]",
-        glowShadow: "shadow-[0_12px_32px_-8px_rgba(168,85,247,0.18)]",
+        // 2. Glucose: Rich Velvet Orchid / Magenta-Plum (Top-Right in reference)
+        cardBg: "bg-[#2B1224]",
+        ambientGlow: "radial-gradient(115% 115% at 50% 50%, #220D1C 15%, #7A325C 72%, #964173 100%)",
+        borderColor: "border-[#964173]/45 hover:border-[#964173]/75",
+        accentPill: "bg-[#964173]/30 border-[#964173]/45 text-pink-100",
+        btnPill: "bg-black/25 hover:bg-black/40 text-white/90 hover:text-white border-white/10",
+        glowShadow: "shadow-[0_16px_36px_-6px_rgba(122,50,92,0.45)]",
         typeBadge: "Digital Card",
         statusText: "Active",
       },
       {
-        // 3. Midnight Sapphire / Deep Ocean (Card 3 in reference)
-        cardBg: "bg-[#0E131C] border-sky-500/25 hover:border-sky-500/40",
-        ambientGlow: "radial-gradient(circle at 85% 15%, rgba(14, 165, 233, 0.18) 0%, rgba(3, 105, 161, 0.08) 50%, transparent 80%)",
-        accentPill: "bg-sky-500/15 border-sky-500/25 text-sky-300",
-        btnPill: "bg-white/[0.06] hover:bg-white/[0.14] text-neutral-300 hover:text-white border-white/[0.08]",
-        glowShadow: "shadow-[0_12px_32px_-8px_rgba(14,165,233,0.18)]",
+        // 3. Temperature: Royal Slate Cobalt / Sapphire (Bottom-Left in reference)
+        cardBg: "bg-[#0E1B38]",
+        ambientGlow: "radial-gradient(115% 115% at 50% 50%, #0A142A 15%, #234986 72%, #325FA6 100%)",
+        borderColor: "border-[#325FA6]/45 hover:border-[#325FA6]/75",
+        accentPill: "bg-[#325FA6]/30 border-[#325FA6]/45 text-sky-100",
+        btnPill: "bg-black/25 hover:bg-black/40 text-white/90 hover:text-white border-white/10",
+        glowShadow: "shadow-[0_16px_36px_-6px_rgba(35,73,134,0.45)]",
         typeBadge: "Digital Card",
         statusText: "Active",
       },
       {
-        // 4. Amber Bronze / Terracotta (Card 4 in reference)
-        cardBg: "bg-[#17130F] border-amber-500/25 hover:border-amber-500/40",
-        ambientGlow: "radial-gradient(circle at 85% 15%, rgba(245, 158, 11, 0.18) 0%, rgba(120, 53, 15, 0.08) 50%, transparent 80%)",
-        accentPill: "bg-amber-500/15 border-amber-500/25 text-amber-300",
-        btnPill: "bg-white/[0.06] hover:bg-white/[0.14] text-neutral-300 hover:text-white border-white/[0.08]",
-        glowShadow: "shadow-[0_12px_32px_-8px_rgba(245,158,11,0.18)]",
+        // 4. Steps: Warm Burnt Terracotta / Rust Copper (Bottom-Right in reference)
+        cardBg: "bg-[#29130B]",
+        ambientGlow: "radial-gradient(115% 115% at 50% 50%, #210E07 15%, #843B27 72%, #A24B34 100%)",
+        borderColor: "border-[#A24B34]/45 hover:border-[#A24B34]/75",
+        accentPill: "bg-[#A24B34]/30 border-[#A24B34]/45 text-amber-100",
+        btnPill: "bg-black/25 hover:bg-black/40 text-white/90 hover:text-white border-white/10",
+        glowShadow: "shadow-[0_16px_36px_-6px_rgba(132,59,39,0.45)]",
         typeBadge: "Digital Card",
         statusText: "Active",
       },
@@ -101,7 +106,7 @@ export default function AccountCard({
       }}
       className={`relative rounded-[28px] sm:rounded-[32px] p-5 sm:p-6 min-h-[200px] sm:min-h-[220px] cursor-pointer flex flex-col justify-between overflow-hidden select-none border transition-all duration-300 ${
         theme.cardBg
-      } ${theme.glowShadow} ${
+      } ${theme.borderColor} ${theme.glowShadow} ${
         isSelected ? "ring-2 ring-white shadow-2xl" : ""
       } ${isFrozen ? "ring-2 ring-sky-400/80 shadow-[0_0_30px_rgba(56,189,248,0.25)]" : ""}`}
     >

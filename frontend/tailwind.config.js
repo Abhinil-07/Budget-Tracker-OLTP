@@ -9,14 +9,14 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: "#090A0E",
+        background: "#000000",
         surface: {
-          DEFAULT: "#121216",
-          raised: "#18181D",
-          card: "#141418",
+          DEFAULT: "#0B0B0E",
+          raised: "#121216",
+          card: "#0E0E12",
         },
         border: {
-          DEFAULT: "#222228",
+          DEFAULT: "#1C1D22",
         },
         accent: {
           DEFAULT: "#FFFFFF",
