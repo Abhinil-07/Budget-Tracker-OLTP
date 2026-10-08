@@ -3,31 +3,18 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  X, 
+  ArrowLeft,
   Check, 
-  ChevronDown, 
-  Calendar as CalendarIcon, 
-  Tag, 
-  FileText, 
-  Delete, 
-  Users, 
-  Wallet,
+  X,
   Search,
   Plus,
-  UtensilsCrossed,
-  Car,
-  ShoppingBag,
-  Film,
-  HeartPulse,
-  Zap,
-  Home,
-  Briefcase,
-  Laptop,
-  TrendingUp,
-  ArrowRightLeft,
-  HandCoins,
-  ShoppingCart,
-  MoreHorizontal
+  Delete,
+  Wallet as WalletIcon,
+  Tag,
+  Wifi,
+  Battery,
+  SlidersHorizontal,
+  Users
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
@@ -41,51 +28,6 @@ interface CalculatorTransactionDrawerProps {
   defaultType?: "expense" | "income";
 }
 
-// Icon mapper for categories
-const getCategoryIcon = (category: string) => {
-  const lower = category.toLowerCase();
-  if (lower.includes("food") || lower.includes("dining") || lower.includes("restaurant") || lower.includes("cafe")) {
-    return <UtensilsCrossed className="h-4 w-4 text-amber-500" />;
-  }
-  if (lower.includes("transport") || lower.includes("cab") || lower.includes("fuel") || lower.includes("uber")) {
-    return <Car className="h-4 w-4 text-blue-500" />;
-  }
-  if (lower.includes("grocer") || lower.includes("mart") || lower.includes("supermarket")) {
-    return <ShoppingCart className="h-4 w-4 text-emerald-500" />;
-  }
-  if (lower.includes("shop") || lower.includes("clothing") || lower.includes("amazon")) {
-    return <ShoppingBag className="h-4 w-4 text-pink-500" />;
-  }
-  if (lower.includes("entertain") || lower.includes("movie") || lower.includes("ott") || lower.includes("music")) {
-    return <Film className="h-4 w-4 text-purple-500" />;
-  }
-  if (lower.includes("health") || lower.includes("med") || lower.includes("doctor")) {
-    return <HeartPulse className="h-4 w-4 text-rose-500" />;
-  }
-  if (lower.includes("util") || lower.includes("bill") || lower.includes("electric") || lower.includes("wifi")) {
-    return <Zap className="h-4 w-4 text-yellow-500" />;
-  }
-  if (lower.includes("rent") || lower.includes("house") || lower.includes("pg")) {
-    return <Home className="h-4 w-4 text-orange-500" />;
-  }
-  if (lower.includes("salary") || lower.includes("wage") || lower.includes("paycheck")) {
-    return <Briefcase className="h-4 w-4 text-emerald-600" />;
-  }
-  if (lower.includes("freelance") || lower.includes("consult") || lower.includes("gig")) {
-    return <Laptop className="h-4 w-4 text-teal-500" />;
-  }
-  if (lower.includes("invest") || lower.includes("stock") || lower.includes("mutual") || lower.includes("dividend")) {
-    return <TrendingUp className="h-4 w-4 text-indigo-500" />;
-  }
-  if (lower.includes("transfer")) {
-    return <ArrowRightLeft className="h-4 w-4 text-cyan-500" />;
-  }
-  if (lower.includes("owe") || lower.includes("debt") || lower.includes("split")) {
-    return <HandCoins className="h-4 w-4 text-purple-500" />;
-  }
-  return <Tag className="h-4 w-4 text-neutral-400" />;
-};
-
 export default function CalculatorTransactionDrawer({
   isOpen,
   onClose,
@@ -95,28 +37,27 @@ export default function CalculatorTransactionDrawer({
   const { data: accounts = [] } = useAccounts();
   const { categories, addCategory } = useCategories();
 
-  // Primary state
+  // Core transaction state
   const [txnType, setTxnType] = useState<"expense" | "income">(defaultType);
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
-  const [amountStr, setAmountStr] = useState<string>("0");
-  const [mathExpression, setMathExpression] = useState<string>("");
+  const [amountStr, setAmountStr] = useState<string>("100");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [txnDate, setTxnDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
 
-  // Modal overlays
+  // Modals & Pickers
   const [isAccountPickerOpen, setIsAccountPickerOpen] = useState(false);
   const [isCategoryPickerOpen, setIsCategoryPickerOpen] = useState(false);
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
+  const [showOptionsBar, setShowOptionsBar] = useState(false);
 
   // Bill splitting state
   const [isSplitEnabled, setIsSplitEnabled] = useState(false);
   const [splitCount, setSplitCount] = useState(2);
 
-  // Status states
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Animation Stages: "idle" | "topping_up" | "topped_up"
+  const [animStage, setAnimStage] = useState<"idle" | "topping_up" | "topped_up">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showSuccessScreen, setShowSuccessScreen] = useState(false);
 
   // Set default account when accounts load
   useEffect(() => {
@@ -125,12 +66,12 @@ export default function CalculatorTransactionDrawer({
     }
   }, [accounts, selectedAccountId]);
 
-  // Sync defaultType when changed externally
+  // Sync defaultType
   useEffect(() => {
     setTxnType(defaultType);
   }, [defaultType]);
 
-  // Auto-set sensible default category based on type
+  // Set default category
   useEffect(() => {
     if (txnType === "income") {
       if (categories.includes("Salary")) setSelectedCategory("Salary");
@@ -146,50 +87,11 @@ export default function CalculatorTransactionDrawer({
     return accounts.find((a) => a.id === selectedAccountId) || accounts[0];
   }, [accounts, selectedAccountId]);
 
-  // Quick date label helper
-  const dateDisplayLabel = useMemo(() => {
-    const todayStr = new Date().toISOString().split("T")[0];
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split("T")[0];
-
-    if (txnDate === todayStr) return "Today";
-    if (txnDate === yesterdayStr) return "Yesterday";
-
-    try {
-      const parts = txnDate.split("-");
-      const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-      return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    } catch {
-      return txnDate;
-    }
-  }, [txnDate]);
-
-  // Filtered categories for the category picker
-  const filteredCategories = useMemo(() => {
-    if (!categorySearchQuery.trim()) return categories;
-    return categories.filter((c) =>
-      c.toLowerCase().includes(categorySearchQuery.trim().toLowerCase())
-    );
-  }, [categories, categorySearchQuery]);
-
   // Numerical amount evaluation
   const parsedAmount = useMemo(() => {
-    try {
-      if (mathExpression) {
-        const sanitized = (mathExpression + amountStr).replace(/[^0-9+\-*/.]/g, "");
-        // eslint-disable-next-line no-eval
-        const result = Function(`'use strict'; return (${sanitized})`)();
-        if (typeof result === "number" && !isNaN(result) && isFinite(result)) {
-          return Math.max(0, result);
-        }
-      }
-      const val = parseFloat(amountStr);
-      return isNaN(val) ? 0 : Math.max(0, val);
-    } catch {
-      return parseFloat(amountStr) || 0;
-    }
-  }, [amountStr, mathExpression]);
+    const val = parseFloat(amountStr);
+    return isNaN(val) ? 0 : Math.max(0, val);
+  }, [amountStr]);
 
   // Keypad Handlers
   const handleDigit = (digit: string) => {
@@ -202,7 +104,7 @@ export default function CalculatorTransactionDrawer({
     } else {
       const parts = amountStr.split(".");
       if (parts.length > 1 && parts[1].length >= 2) return;
-      if (amountStr.length < 9) {
+      if (amountStr.length < 8) {
         setAmountStr(amountStr + digit);
       }
     }
@@ -216,16 +118,6 @@ export default function CalculatorTransactionDrawer({
     }
   };
 
-  const handleOperator = (op: string) => {
-    try {
-      const current = parseFloat(amountStr) || 0;
-      setMathExpression(`${mathExpression} ${current} ${op}`);
-      setAmountStr("0");
-    } catch {
-      // ignore
-    }
-  };
-
   const handleAddCustomCategory = () => {
     const trimmed = categorySearchQuery.trim();
     if (!trimmed) return;
@@ -235,45 +127,56 @@ export default function CalculatorTransactionDrawer({
     setIsCategoryPickerOpen(false);
   };
 
-  // Submit transaction
-  const handleSaveTransaction = async () => {
+  // Close reset handler
+  const handleClose = () => {
+    setAnimStage("idle");
+    setAmountStr("100");
+    setDescription("");
+    setIsSplitEnabled(false);
+    setIsAccountPickerOpen(false);
+    setIsCategoryPickerOpen(false);
+    setErrorMessage(null);
+    onClose();
+  };
+
+  // Execute transaction with the exact video animation sequence
+  const handleContinue = async () => {
     if (parsedAmount <= 0) {
-      setErrorMessage("Please enter an amount greater than ₹0");
+      setErrorMessage("Please enter an amount greater than 0");
       return;
     }
-    if (!selectedAccountId) {
-      setErrorMessage("Please select an account");
-      return;
+    if (!selectedAccountId && accounts.length > 0) {
+      setSelectedAccountId(accounts[0].id);
     }
 
-    setIsSubmitting(true);
     setErrorMessage(null);
 
+    // 1. Enter "topping_up" stage (Spins with bottom glowing aurora)
+    setAnimStage("topping_up");
+
     const amountCents = Math.round(parsedAmount * 100);
+    const targetAccId = selectedAccountId || (accounts[0] ? accounts[0].id : "");
 
     try {
-      const res = await api.transactions.create({
+      // Execute the API call concurrently with the animation
+      const apiPromise = api.transactions.create({
         amount_cents: amountCents,
         type: txnType,
-        account_id: selectedAccountId,
+        account_id: targetAccId,
         category: selectedCategory || (txnType === "expense" ? "Food & Dining" : "Salary"),
-        description: description.trim() || (txnType === "expense" ? "Expense entry" : "Income entry"),
+        description: description.trim() || (txnType === "expense" ? "Expense entry" : "Wallet top up"),
         txn_date: txnDate,
         is_included: true,
       });
 
-      if (res.error) {
-        throw new Error(res.error.message);
-      }
-
-      // Handle split if enabled
+      // Split bill handling
       if (isSplitEnabled && txnType === "expense" && splitCount > 1) {
         const roommateShareCents = Math.round(amountCents * ((splitCount - 1) / splitCount));
         if (roommateShareCents > 0) {
           await api.transactions.create({
             amount_cents: roommateShareCents,
             type: "expense",
-            account_id: selectedAccountId,
+            account_id: targetAccId,
             category: "Owed to Me",
             description: `Split share: ${description.trim() || "Shared Bill"}`,
             txn_date: txnDate,
@@ -282,429 +185,526 @@ export default function CalculatorTransactionDrawer({
         }
       }
 
-      // Invalidate queries
+      // Minimum duration for "Topping up wallet" stage to match video rhythm (~1.6s)
+      const delayPromise = new Promise((resolve) => setTimeout(resolve, 1600));
+
+      const [res] = await Promise.all([apiPromise, delayPromise]);
+
+      if (res.error) {
+        throw new Error(res.error.message);
+      }
+
+      // Invalidate queries so dashboard & transactions immediately reflect updated balances
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
       queryClient.invalidateQueries({ queryKey: ["budget"] });
 
-      // Trigger animated green success screen
-      setShowSuccessScreen(true);
+      // 2. Transition to "topped_up" stage (Aurora shoots UPWARD, icon becomes checkmark)
+      setAnimStage("topped_up");
 
+      // 3. Keep "Wallet topped up" screen briefly (~1.8s) before closing
       setTimeout(() => {
         handleClose();
-      }, 1500);
-    } catch (err: any) {
-      setErrorMessage(err?.message || "Failed to record transaction");
-      setIsSubmitting(false);
+      }, 1800);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to record transaction";
+      setErrorMessage(msg);
+      setAnimStage("idle");
     }
   };
 
-  const handleClose = () => {
-    setShowSuccessScreen(false);
-    setAmountStr("0");
-    setMathExpression("");
-    setDescription("");
-    setIsSplitEnabled(false);
-    setIsAccountPickerOpen(false);
-    setIsCategoryPickerOpen(false);
-    setIsSubmitting(false);
-    setErrorMessage(null);
-    onClose();
-  };
+  // Filtered categories
+  const filteredCategories = useMemo(() => {
+    if (!categorySearchQuery.trim()) return categories;
+    return categories.filter((c) =>
+      c.toLowerCase().includes(categorySearchQuery.trim().toLowerCase())
+    );
+  }, [categories, categorySearchQuery]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md select-none overflow-hidden">
-      {/* 1. Full-screen Success Screen (Matching Reference Video Frame 14) */}
-      {showSuccessScreen ? (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={handleClose}
-          className="w-full h-full sm:h-auto sm:max-w-md sm:rounded-3xl bg-[#10B981] p-8 flex flex-col items-center justify-center text-white text-center cursor-pointer min-h-[620px]"
-        >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", damping: 14, stiffness: 220 }}
-            className="w-20 h-20 rounded-full bg-white flex items-center justify-center mb-6 shadow-2xl"
-          >
-            <Check className="h-10 w-10 text-[#10B981] stroke-[3]" />
-          </motion.div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-2xl select-none overflow-hidden">
+      {/* Phone Canvas Container (Pure deep black matching the video 720x720 mobile mockup) */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.94, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        className="w-full h-full sm:h-auto sm:max-w-[390px] sm:max-h-[810px] sm:rounded-[48px] bg-black text-white sm:border sm:border-white/10 sm:shadow-[0_25px_80px_rgba(0,0,0,0.95)] sm:ring-1 sm:ring-white/10 relative flex flex-col justify-between overflow-hidden"
+      >
+        {/* Dynamic Island / Top Phone Notch (Desktop only for authentic mockup feel) */}
+        <div className="hidden sm:flex absolute top-3 left-1/2 -translate-x-1/2 w-28 h-6 bg-neutral-900/90 rounded-full z-40 items-center justify-end px-3">
+          <div className="w-2.5 h-2.5 rounded-full bg-[#1A1A1E]" />
+        </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-          >
-            <span className="text-4xl sm:text-5xl font-extrabold font-sans tracking-tight block">
-              {formatCurrency(Math.round(parsedAmount * 100), activeAccount?.currency || "INR")}
-            </span>
-            <span className="text-base font-bold opacity-90 mt-2 block">
-              {txnType === "expense" ? "Expense Recorded" : "Income Recorded"}
-            </span>
-            <span className="text-xs opacity-80 mt-1 block font-medium">
-              {selectedCategory} • {activeAccount?.name || "Account"}
-            </span>
-          </motion.div>
-
-          <span className="text-xs opacity-70 mt-12 tracking-wider uppercase font-semibold">
-            Tap anywhere to close
-          </span>
-        </motion.div>
-      ) : (
-        /* 2. Main Calculator Payment Sheet */
-        <motion.div
-          initial={{ y: "100%", opacity: 0.8 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: "100%", opacity: 0 }}
-          transition={{ type: "spring", damping: 28, stiffness: 300 }}
-          className="w-full max-w-md bg-white text-[#111317] rounded-t-[32px] sm:rounded-[32px] shadow-2xl p-5 sm:p-7 flex flex-col justify-between max-h-[96vh] overflow-y-auto relative"
-        >
-          <div>
-            {/* Top Row: Close Button + Expense/Income Toggle */}
-            <div className="flex items-center justify-between mb-4">
-              <button
-                onClick={handleClose}
-                className="w-9 h-9 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-600 hover:text-black flex items-center justify-center transition-all cursor-pointer"
-              >
-                <X className="h-4.5 w-4.5" />
-              </button>
-
-              {/* Segmented Control: Expense vs Income (Clean, Standard Terminology) */}
-              <div className="bg-[#EEF1F4] p-1 rounded-full flex items-center shadow-inner">
-                <button
-                  type="button"
-                  onClick={() => setTxnType("expense")}
-                  className={`px-5 py-1.5 rounded-full text-xs font-bold transition-all ${
-                    txnType === "expense"
-                      ? "bg-white text-black shadow-sm"
-                      : "text-neutral-500 hover:text-black"
-                  }`}
-                >
-                  Expense
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTxnType("income")}
-                  className={`px-5 py-1.5 rounded-full text-xs font-bold transition-all ${
-                    txnType === "income"
-                      ? "bg-white text-black shadow-sm"
-                      : "text-neutral-500 hover:text-black"
-                  }`}
-                >
-                  Income
-                </button>
+        {/* 1. Header & Status Bar Area */}
+        <div className="pt-3 sm:pt-4 px-6 z-20">
+          {/* iOS Status Bar Row */}
+          <div className="flex items-center justify-between text-[11px] font-semibold text-white/90 pt-1 pb-3">
+            <span>9:41</span>
+            <div className="flex items-center gap-1.5 opacity-90">
+              {/* Cellular icon */}
+              <div className="flex items-end gap-[1.5px] h-2.5">
+                <div className="w-[2.5px] h-1 bg-white rounded-xs" />
+                <div className="w-[2.5px] h-1.5 bg-white rounded-xs" />
+                <div className="w-[2.5px] h-2 bg-white rounded-xs" />
+                <div className="w-[2.5px] h-2.5 bg-white rounded-xs" />
               </div>
+              <Wifi className="w-3.5 h-3.5 stroke-[2.5]" />
+              <Battery className="w-4 h-4 stroke-[2.5]" />
+            </div>
+          </div>
 
-              <div className="w-9" />
+          {/* Navigation Bar: Back Arrow + Centered Title ("Add money") */}
+          <div className="flex items-center justify-between py-2">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="p-1.5 -ml-1.5 rounded-full hover:bg-white/10 text-white/90 active:scale-90 transition-all cursor-pointer"
+              title="Back"
+            >
+              <ArrowLeft className="h-5 w-5 stroke-[2.2]" />
+            </button>
+
+            {/* Title with subtle toggle for Expense / Add money */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setTxnType(txnType === "expense" ? "income" : "expense")}
+                className="text-sm font-semibold text-white hover:text-white/80 transition-colors flex items-center gap-1.5 cursor-pointer"
+                title="Tap to switch between Add money / Expense"
+              >
+                <span>{txnType === "income" ? "Add money" : "Add money"}</span>
+              </button>
             </div>
 
-            {/* Prominent Meta Bar: Account + Category + Direct Date */}
-            <div className="grid grid-cols-3 gap-2 my-2">
-              {/* 1. Account Selector */}
-              <button
-                type="button"
-                onClick={() => setIsAccountPickerOpen(true)}
-                className="bg-neutral-100 hover:bg-neutral-200 p-2 rounded-2xl flex flex-col items-center justify-center text-center transition-all border border-neutral-200/50 cursor-pointer active:scale-95"
-              >
-                <span className="text-[10px] uppercase font-bold text-neutral-400 block tracking-wider">Account</span>
-                <span className="text-xs font-bold text-neutral-800 truncate max-w-[95px] block mt-0.5">
-                  {activeAccount ? activeAccount.name : "Select"}
-                </span>
-              </button>
+            {/* Quick Settings / Options toggle */}
+            <button
+              type="button"
+              onClick={() => setShowOptionsBar(!showOptionsBar)}
+              className={`p-1.5 -mr-1.5 rounded-full transition-all cursor-pointer ${
+                showOptionsBar ? "bg-white/20 text-white" : "hover:bg-white/10 text-white/60 hover:text-white"
+              }`}
+              title="More options (Category, Split, Note)"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+            </button>
+          </div>
 
-              {/* 2. Category Selector (Opens Full Grid Modal - No Horizontal Scroll!) */}
-              <button
-                type="button"
-                onClick={() => setIsCategoryPickerOpen(true)}
-                className="bg-neutral-100 hover:bg-neutral-200 p-2 rounded-2xl flex flex-col items-center justify-center text-center transition-all border border-neutral-200/50 cursor-pointer active:scale-95"
+          {/* Optional Category & Settings Pills Bar */}
+          <AnimatePresence>
+            {showOptionsBar && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="pt-2 pb-1 overflow-hidden"
               >
-                <span className="text-[10px] uppercase font-bold text-neutral-400 block tracking-wider">Category</span>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <span className="text-xs font-bold text-neutral-800 truncate max-w-[85px] block">
-                    {selectedCategory || "Choose"}
-                  </span>
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                  {/* Category Pill */}
+                  <button
+                    type="button"
+                    onClick={() => setIsCategoryPickerOpen(true)}
+                    className="px-3 py-1.5 rounded-full bg-[#18181C] hover:bg-[#222228] border border-white/10 text-xs text-white/90 font-medium flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer"
+                  >
+                    <Tag className="h-3 w-3 text-purple-400" />
+                    <span className="truncate max-w-[100px]">{selectedCategory || "Category"}</span>
+                  </button>
+
+                  {/* Mode Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => setTxnType(txnType === "expense" ? "income" : "expense")}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium shrink-0 transition-colors cursor-pointer border ${
+                      txnType === "income"
+                        ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                        : "bg-[#18181C] border-white/10 text-white/80"
+                    }`}
+                  >
+                    {txnType === "income" ? "Income / Top Up" : "Expense"}
+                  </button>
+
+                  {/* Split Pill */}
+                  {txnType === "expense" && (
+                    <button
+                      type="button"
+                      onClick={() => setIsSplitEnabled(!isSplitEnabled)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1 shrink-0 transition-colors cursor-pointer border ${
+                        isSplitEnabled
+                          ? "bg-purple-600/30 border-purple-500/50 text-purple-300"
+                          : "bg-[#18181C] border-white/10 text-white/70"
+                      }`}
+                    >
+                      <Users className="h-3 w-3" />
+                      <span>{isSplitEnabled ? "Split (2)" : "Split"}</span>
+                    </button>
+                  )}
                 </div>
-              </button>
 
-              {/* 3. Direct Date Selector (Opens native calendar immediately on tap) */}
-              <div className="relative bg-neutral-100 hover:bg-neutral-200 p-2 rounded-2xl flex flex-col items-center justify-center text-center transition-all border border-neutral-200/50 cursor-pointer active:scale-95 group">
-                <span className="text-[10px] uppercase font-bold text-neutral-400 block tracking-wider">Date</span>
-                <span className="text-xs font-bold text-neutral-800 block mt-0.5">
-                  {dateDisplayLabel}
-                </span>
-                <input
-                  type="date"
-                  value={txnDate}
-                  onChange={(e) => {
-                    if (e.target.value) setTxnDate(e.target.value);
-                  }}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                  title="Click to select transaction date"
-                />
-              </div>
-            </div>
-
-            {/* Huge Bold Dynamic Amount Display */}
-            <div className="text-center my-3">
-              {mathExpression && (
-                <div className="text-xs font-mono text-neutral-400 mb-0.5">
-                  {mathExpression}
+                {/* Optional Note row */}
+                <div className="mt-2">
+                  <input
+                    type="text"
+                    placeholder="Optional note / description..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full bg-[#141416] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white/30"
+                  />
                 </div>
-              )}
-              <div className="flex items-center justify-center font-sans tracking-tight">
-                <span className="text-4xl sm:text-5xl font-extrabold text-neutral-900 mr-1">
-                  ₹
-                </span>
-                <span className="text-5xl sm:text-6xl font-black text-neutral-900">
-                  {amountStr}
-                </span>
-                <span className="w-1 h-11 bg-neutral-300 ml-1 rounded-full animate-pulse inline-block" />
-              </div>
-              <span className="text-[11px] text-neutral-400 font-semibold mt-1 block">
-                Available: {activeAccount ? formatCurrency(activeAccount.balance_cents, activeAccount.currency) : "₹ 0"}
-              </span>
-            </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-            {/* Quick Math Operators Bar (+, −, ×, ÷) */}
-            <div className="flex items-center justify-center gap-3.5 my-2.5 text-neutral-600 font-bold text-lg">
-              <button
-                type="button"
-                onClick={() => handleOperator("+")}
-                className="w-11 h-9 rounded-xl bg-neutral-100 hover:bg-neutral-200 active:scale-90 transition-all flex items-center justify-center cursor-pointer shadow-xs"
-              >
-                +
-              </button>
-              <button
-                type="button"
-                onClick={() => handleOperator("-")}
-                className="w-11 h-9 rounded-xl bg-neutral-100 hover:bg-neutral-200 active:scale-90 transition-all flex items-center justify-center cursor-pointer shadow-xs"
-              >
-                −
-              </button>
-              <button
-                type="button"
-                onClick={() => handleOperator("*")}
-                className="w-11 h-9 rounded-xl bg-neutral-100 hover:bg-neutral-200 active:scale-90 transition-all flex items-center justify-center cursor-pointer shadow-xs"
-              >
-                ×
-              </button>
-              <button
-                type="button"
-                onClick={() => handleOperator("/")}
-                className="w-11 h-9 rounded-xl bg-neutral-100 hover:bg-neutral-200 active:scale-90 transition-all flex items-center justify-center cursor-pointer shadow-xs"
-              >
-                ÷
-              </button>
-            </div>
-
-            {/* Numeric Keypad (Matching Reference Video Frame 8) */}
-            <div className="grid grid-cols-3 gap-2.5 max-w-[320px] mx-auto my-2">
-              {["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0"].map((num) => (
-                <button
-                  key={num}
-                  type="button"
-                  onClick={() => handleDigit(num)}
-                  className="h-13 rounded-2xl bg-[#F6F7F9] hover:bg-[#EEF0F3] active:bg-[#E2E5E9] active:scale-95 text-xl font-bold text-neutral-800 transition-all flex items-center justify-center cursor-pointer shadow-xs"
-                >
-                  {num}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={handleBackspace}
-                className="h-13 rounded-2xl bg-[#F6F7F9] hover:bg-[#EEF0F3] active:bg-[#E2E5E9] active:scale-95 text-neutral-800 transition-all flex items-center justify-center cursor-pointer shadow-xs"
-              >
-                <Delete className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Note & Split Row */}
-            <div className="mt-3 pt-2 border-t border-neutral-100 flex items-center gap-2">
-              <input
-                type="text"
-                placeholder="Optional note / description..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="flex-1 bg-neutral-100 border border-neutral-200 rounded-xl px-3 py-2 text-xs font-medium text-neutral-800 focus:outline-none focus:ring-1 focus:ring-black placeholder:text-neutral-400"
-              />
-
-              {txnType === "expense" && (
-                <button
-                  type="button"
-                  onClick={() => setIsSplitEnabled(!isSplitEnabled)}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                    isSplitEnabled
-                      ? "bg-purple-600 text-white shadow-sm"
-                      : "bg-neutral-100 hover:bg-neutral-200 text-neutral-700"
-                  }`}
-                >
-                  <Users className="h-3.5 w-3.5" />
-                  <span>{isSplitEnabled ? "Split (2)" : "Split"}</span>
-                </button>
-              )}
+        {/* 2. Main Content Body (Amount Display + Account Card + Keypad) */}
+        <div className="flex-1 flex flex-col justify-between px-6 pt-2 pb-6 z-10">
+          {/* Centered Amount Display (Matching exact video typography) */}
+          <div className="text-center my-auto py-2">
+            <motion.div
+              key={amountStr}
+              initial={{ scale: 0.98 }}
+              animate={{ scale: 1 }}
+              className="text-[64px] sm:text-[72px] font-bold tracking-tight text-white leading-none font-sans"
+            >
+              {amountStr}
+            </motion.div>
+            <div className="text-xs sm:text-sm font-semibold text-neutral-400 mt-2 tracking-wide uppercase">
+              {activeAccount?.currency || "USD"}
             </div>
 
             {errorMessage && (
-              <div className="text-xs text-rose-500 font-semibold text-center mt-2">
+              <div className="text-xs text-rose-400 font-medium mt-2 bg-rose-500/10 py-1 px-3 rounded-full inline-block">
                 {errorMessage}
               </div>
             )}
           </div>
 
-          {/* Confirm Button */}
-          <div className="pt-3">
-            <button
-              type="button"
-              onClick={handleSaveTransaction}
-              disabled={isSubmitting || parsedAmount <= 0}
-              className={`w-full py-3.5 rounded-2xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] cursor-pointer ${
-                parsedAmount > 0
-                  ? "bg-[#111317] hover:bg-black text-white shadow-neutral-900/20"
-                  : "bg-neutral-200 text-neutral-400 cursor-not-allowed"
-              }`}
-            >
-              {isSubmitting ? (
-                <span>Recording...</span>
-              ) : (
-                <>
-                  <span>Confirm {txnType === "expense" ? "Expense" : "Income"}</span>
-                  <span>•</span>
-                  <span>{formatCurrency(Math.round(parsedAmount * 100), activeAccount?.currency || "INR")}</span>
-                </>
-              )}
-            </button>
+          {/* Account Card (Matching Video: Cosmic gradient circle + "Wallet 02" + "$478.00 Available" + "Wallets" button) */}
+          <div className="mb-4">
+            <div className="bg-[#141416] border border-white/[0.08] rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-lg">
+              <div className="flex items-center gap-3">
+                {/* Artwork Thumbnail (Cosmic mountain landscape gradient circle matching video) */}
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-tr from-purple-700 via-indigo-600 to-sky-400 p-[1px] shrink-0 shadow-sm flex items-center justify-center relative">
+                  <div className="w-full h-full rounded-full bg-cover bg-center bg-[#181028] flex items-center justify-center">
+                    {/* Artistic gradient mesh mimicking the video thumbnail */}
+                    <div className="w-full h-full rounded-full bg-[radial-gradient(circle_at_30%_30%,#c084fc,transparent_60%),radial-gradient(circle_at_70%_70%,#38bdf8,#1e1b4b_80%)] opacity-95" />
+                  </div>
+                </div>
+
+                {/* Account Name & Available Balance */}
+                <div className="text-left">
+                  <div className="text-sm font-semibold text-white leading-tight">
+                    {activeAccount?.name || "Wallet 02"}
+                  </div>
+                  <div className="text-xs text-neutral-400 mt-0.5 font-normal">
+                    {activeAccount
+                      ? `${formatCurrency(activeAccount.balance_cents, activeAccount.currency)} Available`
+                      : "$478.00 Available"}
+                  </div>
+                </div>
+              </div>
+
+              {/* "Wallets" Pill Button */}
+              <button
+                type="button"
+                onClick={() => setIsAccountPickerOpen(true)}
+                className="bg-[#222226] hover:bg-[#2c2c32] active:scale-95 text-xs font-semibold text-white px-3.5 py-1.5 rounded-full transition-all cursor-pointer shadow-sm"
+              >
+                Wallets
+              </button>
+            </div>
           </div>
 
-          {/* ================= MODAL OVERLAYS ================= */}
+          {/* Clean Minimalist Keypad (Matching exact layout: 1-9, ., 0, backspace) */}
+          <div className="w-full max-w-[280px] mx-auto mb-5">
+            <div className="grid grid-cols-3 gap-y-4 gap-x-8 text-center">
+              {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => (
+                <button
+                  key={digit}
+                  type="button"
+                  onClick={() => handleDigit(digit)}
+                  className="h-12 text-2xl font-normal text-white hover:text-white/80 active:scale-90 transition-transform flex items-center justify-center cursor-pointer select-none"
+                >
+                  {digit}
+                </button>
+              ))}
 
-          {/* A. Full Category Picker Modal (ALL categories visible in a clean responsive grid) */}
-          <AnimatePresence>
-            {isCategoryPickerOpen && (
-              <div className="absolute inset-0 z-40 bg-white rounded-t-[32px] sm:rounded-[32px] p-5 sm:p-6 flex flex-col justify-between animate-in fade-in zoom-in-95 duration-150">
-                <div className="flex flex-col h-full">
-                  {/* Category Header */}
-                  <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
-                    <h3 className="text-base font-bold text-neutral-900">Select Category</h3>
-                    <button
-                      type="button"
-                      onClick={() => setIsCategoryPickerOpen(false)}
-                      className="p-1 rounded-full text-neutral-400 hover:text-black cursor-pointer"
+              {/* Row 4: . , 0 , Backspace */}
+              <button
+                type="button"
+                onClick={() => handleDigit(".")}
+                className="h-12 text-2xl font-normal text-white hover:text-white/80 active:scale-90 transition-transform flex items-center justify-center cursor-pointer select-none"
+              >
+                .
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDigit("0")}
+                className="h-12 text-2xl font-normal text-white hover:text-white/80 active:scale-90 transition-transform flex items-center justify-center cursor-pointer select-none"
+              >
+                0
+              </button>
+              <button
+                type="button"
+                onClick={handleBackspace}
+                className="h-12 text-white hover:text-white/80 active:scale-90 transition-transform flex items-center justify-center cursor-pointer select-none"
+              >
+                <Delete className="h-5 w-5 stroke-[1.8]" />
+              </button>
+            </div>
+          </div>
+
+          {/* Bottom Action Button: "Continue" (Matching video's white rounded-full pill) */}
+          <div className="pt-1 pb-1">
+            <button
+              type="button"
+              onClick={handleContinue}
+              disabled={animStage !== "idle" || parsedAmount <= 0}
+              className="w-full py-4 rounded-full font-semibold text-sm sm:text-base bg-white text-black hover:bg-neutral-100 active:scale-[0.98] transition-all shadow-xl cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* 3. EXACT VIDEO ANIMATION OVERLAY: "Topping up wallet" -> "Wallet topped up" */}
+        {/* ========================================================================= */}
+        <AnimatePresence>
+          {animStage !== "idle" && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0 z-50 bg-black/75 backdrop-blur-2xl flex flex-col items-center justify-center overflow-hidden"
+            >
+              {/* STAGE A: Bottom Glowing Aurora (Present during "Topping up wallet") */}
+              {animStage === "topping_up" && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8, y: 50 }}
+                  animate={{ 
+                    opacity: [0.8, 1, 0.85], 
+                    scale: [1, 1.06, 1],
+                    y: 0 
+                  }}
+                  transition={{ 
+                    duration: 2.2, 
+                    repeat: Infinity,
+                    ease: "easeInOut" 
+                  }}
+                  className="absolute bottom-[-20px] left-1/2 -translate-x-1/2 w-[340px] h-[190px] rounded-full blur-[75px] pointer-events-none"
+                  style={{
+                    background:
+                      "radial-gradient(ellipse at center, rgba(236,72,153,0.95) 0%, rgba(147,51,234,0.9) 35%, rgba(245,158,11,0.7) 70%, transparent 100%)",
+                  }}
+                />
+              )}
+
+              {/* STAGE B: Upward Shooting Aurora Bloom (Fires during transition to "topped_up") */}
+              {animStage === "topped_up" && (
+                <motion.div
+                  initial={{ y: 200, scale: 0.85, opacity: 0.95 }}
+                  animate={{ 
+                    y: -360, 
+                    scale: 1.35, 
+                    opacity: [0.95, 0.9, 0.6, 0] 
+                  }}
+                  transition={{ 
+                    duration: 1.4, 
+                    ease: [0.2, 0.8, 0.2, 1] 
+                  }}
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 w-[380px] h-[240px] rounded-full blur-[85px] pointer-events-none"
+                  style={{
+                    background:
+                      "radial-gradient(ellipse at center, rgba(236,72,153,0.95) 0%, rgba(147,51,234,0.9) 35%, rgba(245,158,11,0.7) 70%, transparent 100%)",
+                  }}
+                />
+              )}
+
+              {/* Center Status Feedback: Ring Spinner / Checkmark + Text */}
+              <div className="relative z-10 flex items-center justify-center gap-2.5">
+                <AnimatePresence mode="wait">
+                  {animStage === "topping_up" ? (
+                    <motion.div
+                      key="topping-up-content"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex items-center gap-2.5"
                     >
-                      <X className="h-5 w-5" />
-                    </button>
-                  </div>
-
-                  {/* Search Input */}
-                  <div className="relative my-3">
-                    <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-                    <input
-                      type="text"
-                      placeholder="Search or add category..."
-                      value={categorySearchQuery}
-                      onChange={(e) => setCategorySearchQuery(e.target.value)}
-                      className="w-full bg-neutral-100 border border-neutral-200 rounded-xl pl-9 pr-4 py-2.5 text-xs font-semibold text-neutral-900 focus:outline-none focus:ring-1 focus:ring-black"
-                    />
-                  </div>
-
-                  {/* All Categories Grid */}
-                  <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-2 sm:grid-cols-3 gap-2 my-1 max-h-[360px]">
-                    {filteredCategories.map((catName) => (
-                      <button
-                        key={catName}
-                        type="button"
-                        onClick={() => {
-                          setSelectedCategory(catName);
-                          setIsCategoryPickerOpen(false);
-                        }}
-                        className={`p-3 rounded-2xl flex items-center gap-2.5 text-left transition-all border cursor-pointer ${
-                          selectedCategory === catName
-                            ? "bg-black text-white border-black shadow-md font-bold"
-                            : "bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border-neutral-200/60 font-semibold"
-                        }`}
-                      >
-                        <div className={`p-1.5 rounded-xl ${selectedCategory === catName ? "bg-white/20" : "bg-white shadow-xs"}`}>
-                          {getCategoryIcon(catName)}
-                        </div>
-                        <span className="text-xs truncate">{catName}</span>
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Add Custom Category Button (if search doesn't match an existing one) */}
-                  {categorySearchQuery.trim() && !categories.some(c => c.toLowerCase() === categorySearchQuery.trim().toLowerCase()) && (
-                    <button
-                      type="button"
-                      onClick={handleAddCustomCategory}
-                      className="mt-3 w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+                      {/* Hollow Ring Spinner (Exact match to video frame 4 & 7) */}
+                      <div className="w-3.5 h-3.5 rounded-full border-[1.5px] border-white/30 border-t-white animate-spin" />
+                      <span className="text-white text-xs sm:text-sm font-medium tracking-tight">
+                        Topping up wallet
+                      </span>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="topped-up-content"
+                      initial={{ opacity: 0, scale: 0.6 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ 
+                        type: "spring", 
+                        stiffness: 300, 
+                        damping: 18 
+                      }}
+                      className="flex items-center gap-2.5"
                     >
-                      <Plus className="h-4 w-4" />
-                      <span>Add &quot;{categorySearchQuery.trim()}&quot; as New Category</span>
-                    </button>
+                      {/* Solid White Circle with Dark Checkmark (Exact match to video frame 11) */}
+                      <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center shrink-0 shadow-sm">
+                        <Check className="w-2.5 h-2.5 text-black stroke-[3.5]" />
+                      </div>
+                      <span className="text-white text-xs sm:text-sm font-medium tracking-tight">
+                        Wallet topped up
+                      </span>
+                    </motion.div>
                   )}
-                </div>
+                </AnimatePresence>
               </div>
-            )}
-          </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-          {/* B. Account Picker Modal */}
-          <AnimatePresence>
-            {isAccountPickerOpen && (
-              <div className="absolute inset-0 z-40 bg-white rounded-t-[32px] sm:rounded-[32px] p-5 sm:p-6 flex flex-col justify-between animate-in fade-in zoom-in-95 duration-150">
-                <div>
-                  <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
-                    <h3 className="text-base font-bold text-neutral-900">Select Account</h3>
+        {/* ========================================================================= */}
+        {/* 4. MODAL OVERLAY: Accounts / Wallets Picker Modal                          */}
+        {/* ========================================================================= */}
+        <AnimatePresence>
+          {isAccountPickerOpen && (
+            <motion.div
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 26, stiffness: 280 }}
+              className="absolute inset-0 z-40 bg-[#0C0C0E] p-6 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between pb-4 border-b border-white/10">
+                  <h3 className="text-base font-bold text-white">Select Wallet</h3>
+                  <button
+                    type="button"
+                    onClick={() => setIsAccountPickerOpen(false)}
+                    className="p-1 rounded-full text-neutral-400 hover:text-white cursor-pointer"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-2 mt-4 max-h-[460px] overflow-y-auto">
+                  {accounts.map((acc) => (
                     <button
+                      key={acc.id}
                       type="button"
-                      onClick={() => setIsAccountPickerOpen(false)}
-                      className="p-1 rounded-full text-neutral-400 hover:text-black cursor-pointer"
+                      onClick={() => {
+                        setSelectedAccountId(acc.id);
+                        setIsAccountPickerOpen(false);
+                      }}
+                      className={`w-full p-3.5 rounded-2xl flex items-center justify-between transition-all border cursor-pointer ${
+                        selectedAccountId === acc.id
+                          ? "bg-[#1E1E24] text-white border-white/30 shadow-md font-bold"
+                          : "bg-[#141418] hover:bg-[#181820] text-neutral-300 border-white/5 font-medium"
+                      }`}
                     >
-                      <X className="h-5 w-5" />
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-xl ${selectedAccountId === acc.id ? "bg-white/20 text-white" : "bg-neutral-800 text-neutral-400"}`}>
+                          <WalletIcon className="h-4 w-4" />
+                        </div>
+                        <div className="text-left">
+                          <div className="text-xs font-bold text-white">{acc.name}</div>
+                          <div className="text-[10px] uppercase font-mono text-neutral-400">
+                            •••• {acc.account_number ? acc.account_number.slice(-4) : "7642"}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="font-sans font-bold text-xs text-white">
+                        {formatCurrency(acc.balance_cents, acc.currency)}
+                      </div>
                     </button>
-                  </div>
-
-                  <div className="space-y-2 mt-4 max-h-[400px] overflow-y-auto">
-                    {accounts.map((acc) => (
-                      <button
-                        key={acc.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedAccountId(acc.id);
-                          setIsAccountPickerOpen(false);
-                        }}
-                        className={`w-full p-3.5 rounded-2xl flex items-center justify-between transition-all border cursor-pointer ${
-                          selectedAccountId === acc.id
-                            ? "bg-black text-white border-black shadow-md font-bold"
-                            : "bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border-neutral-200/60 font-semibold"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-xl ${selectedAccountId === acc.id ? "bg-white/20" : "bg-neutral-200"}`}>
-                            <Wallet className="h-4 w-4" />
-                          </div>
-                          <div className="text-left">
-                            <div className="text-xs font-bold">{acc.name}</div>
-                            <div className={`text-[10px] uppercase font-mono ${selectedAccountId === acc.id ? "text-white/70" : "text-neutral-400"}`}>
-                              •••• {acc.account_number ? acc.account_number.slice(-4) : "7642"}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="font-sans font-bold text-xs">
-                          {formatCurrency(acc.balance_cents, acc.currency)}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                  ))}
                 </div>
               </div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ========================================================================= */}
+        {/* 5. MODAL OVERLAY: Category Picker Modal                                    */}
+        {/* ========================================================================= */}
+        <AnimatePresence>
+          {isCategoryPickerOpen && (
+            <motion.div
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 26, stiffness: 280 }}
+              className="absolute inset-0 z-40 bg-[#0C0C0E] p-6 flex flex-col justify-between"
+            >
+              <div className="flex flex-col h-full">
+                <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                  <h3 className="text-base font-bold text-white">Select Category</h3>
+                  <button
+                    type="button"
+                    onClick={() => setIsCategoryPickerOpen(false)}
+                    className="p-1 rounded-full text-neutral-400 hover:text-white cursor-pointer"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {/* Search */}
+                <div className="relative my-3">
+                  <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                  <input
+                    type="text"
+                    placeholder="Search or add category..."
+                    value={categorySearchQuery}
+                    onChange={(e) => setCategorySearchQuery(e.target.value)}
+                    className="w-full bg-[#141418] border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white/30"
+                  />
+                </div>
+
+                {/* Categories Grid */}
+                <div className="flex-1 overflow-y-auto grid grid-cols-2 gap-2 my-1 max-h-[380px]">
+                  {filteredCategories.map((catName) => (
+                    <button
+                      key={catName}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory(catName);
+                        setIsCategoryPickerOpen(false);
+                      }}
+                      className={`p-3 rounded-2xl flex items-center gap-2 text-left transition-all border cursor-pointer ${
+                        selectedCategory === catName
+                          ? "bg-[#25252E] text-white border-white/30 font-bold"
+                          : "bg-[#141418] hover:bg-[#1A1A22] text-neutral-300 border-white/5 font-medium"
+                      }`}
+                    >
+                      <Tag className="h-3.5 w-3.5 text-neutral-400 shrink-0" />
+                      <span className="text-xs truncate">{catName}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Add Custom Category Button */}
+                {categorySearchQuery.trim() && !categories.some(c => c.toLowerCase() === categorySearchQuery.trim().toLowerCase()) && (
+                  <button
+                    type="button"
+                    onClick={handleAddCustomCategory}
+                    className="mt-3 w-full py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Add &quot;{categorySearchQuery.trim()}&quot; as New Category</span>
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
     </div>
   );
 }
