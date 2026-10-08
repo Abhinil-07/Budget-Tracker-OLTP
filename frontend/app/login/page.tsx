@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
 
 export default function LoginPage() {
   const { token, hydrated, hydrate, setAuth } = useAuthStore();
@@ -14,6 +14,9 @@ export default function LoginPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(true); // Default to "Create account" matching reference
+
+  // Top Aurora Gradient Theme (Purple / Blue from top)
+  const [gradientTheme, setGradientTheme] = useState<"purple" | "blue">("purple");
 
   const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -88,10 +91,22 @@ export default function LoginPage() {
     setError(`Direct ${provider === "google" ? "Google" : "Microsoft"} sign-in requires Supabase OAuth setup. Please enter your email and password above.`);
   };
 
+  // Distinct rich aurora gradient coming down from top
+  const backgroundStyle =
+    gradientTheme === "purple"
+      ? {
+          background:
+            "radial-gradient(135% 85% at 50% 0%, #7622C9 0%, #4A127F 26%, #22073E 52%, #0A0214 74%, #000000 100%)",
+        }
+      : {
+          background:
+            "radial-gradient(135% 85% at 50% 0%, #1D4ED8 0%, #1E3A8A 28%, #0C1E47 52%, #030816 74%, #000000 100%)",
+        };
+
   // Show spinner until hydration completes
   if (!hydrated) {
     return (
-      <div className="min-h-screen bg-[#0A0A0E] flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-[#BDB4FE] border-r-2" />
       </div>
     );
@@ -100,30 +115,81 @@ export default function LoginPage() {
   // If already logged in, show nothing (redirect is happening)
   if (token) {
     return (
-      <div className="min-h-screen bg-[#0A0A0E] flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-[#BDB4FE] border-r-2" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#09090D] text-white flex flex-col items-center justify-center p-4 sm:p-6 select-none relative overflow-hidden">
-      {/* Subtle, non-vibrant ambient dark aura at top (matching screenshot) */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[250px] bg-purple-950/15 rounded-full blur-[140px] pointer-events-none" />
+    <div
+      style={backgroundStyle}
+      className="min-h-screen text-white flex flex-col justify-between p-4 sm:p-6 select-none relative overflow-hidden transition-all duration-700"
+    >
+      {/* Luminous Top Diffuse Aurora Glow */}
+      <div
+        className={`absolute top-0 left-1/2 -translate-x-1/2 w-[600px] sm:w-[850px] h-[380px] rounded-full blur-[115px] pointer-events-none transition-colors duration-700 ${
+          gradientTheme === "purple" ? "bg-[#9333ea]/25" : "bg-[#2563eb]/25"
+        }`}
+      />
 
-      {/* Main Centered Box Container (Matching reference screenshot exactly) */}
+      {/* Top Header Bar with Brand + Aurora Theme Selector */}
+      <header className="relative z-10 flex items-center justify-between max-w-4xl w-full mx-auto pt-2 pb-2">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-xl border border-white/15 shadow-sm">
+          <Sparkles
+            className={`h-4 w-4 ${
+              gradientTheme === "purple" ? "text-fuchsia-300" : "text-sky-300"
+            }`}
+          />
+          <span className="text-xs font-semibold tracking-tight text-white/90">
+            Personal Finance OS
+          </span>
+        </div>
+
+        {/* Aurora Theme Variant Selector */}
+        <div className="flex items-center gap-1 p-1 rounded-full bg-black/40 backdrop-blur-xl border border-white/10">
+          <button
+            type="button"
+            onClick={() => setGradientTheme("purple")}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+              gradientTheme === "purple"
+                ? "bg-purple-600/80 text-white shadow-sm"
+                : "text-neutral-400 hover:text-white"
+            }`}
+            title="Purple Aurora"
+          >
+            <span className="w-2 h-2 rounded-full bg-purple-300" />
+            <span>Purple</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setGradientTheme("blue")}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+              gradientTheme === "blue"
+                ? "bg-blue-600/80 text-white shadow-sm"
+                : "text-neutral-400 hover:text-white"
+            }`}
+            title="Blue Aurora"
+          >
+            <span className="w-2 h-2 rounded-full bg-blue-300" />
+            <span>Blue</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Main Centered Box Container (Kept clean, sleek, not-overly-vibrant box from reference image) */}
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: "easeOut" }}
-        className="w-full max-w-[420px] mx-auto z-10 flex flex-col"
+        className="w-full max-w-[420px] mx-auto z-10 flex flex-col my-auto py-6"
       >
         {/* Header Title & Subtitle */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl sm:text-[28px] font-bold text-white tracking-tight font-sans">
+          <h1 className="text-2xl sm:text-[28px] font-bold text-white tracking-tight font-sans drop-shadow-sm">
             {isSignUp ? "Create Finance account" : "Sign in to Finance"}
           </h1>
-          <p className="mt-2.5 text-xs sm:text-sm text-neutral-400 font-normal leading-relaxed max-w-xs mx-auto">
+          <p className="mt-2.5 text-xs sm:text-sm text-neutral-300/80 font-normal leading-relaxed max-w-xs mx-auto">
             Start your experience with Finance by signing in or signing up.
           </p>
         </div>
@@ -135,7 +201,7 @@ export default function LoginPage() {
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="mb-4 bg-rose-500/10 border border-rose-500/20 text-rose-300 px-4 py-2.5 rounded-2xl text-xs font-medium flex items-center gap-2"
+              className="mb-4 bg-rose-500/15 border border-rose-500/25 text-rose-200 px-4 py-2.5 rounded-2xl text-xs font-medium flex items-center gap-2 backdrop-blur-md"
             >
               <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
               <span>{error}</span>
@@ -147,7 +213,7 @@ export default function LoginPage() {
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="mb-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 px-4 py-2.5 rounded-2xl text-xs font-medium flex items-center gap-2"
+              className="mb-4 bg-emerald-500/15 border border-emerald-500/25 text-emerald-200 px-4 py-2.5 rounded-2xl text-xs font-medium flex items-center gap-2 backdrop-blur-md"
             >
               <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
               <span>{successMessage}</span>
@@ -155,7 +221,7 @@ export default function LoginPage() {
           )}
         </AnimatePresence>
 
-        {/* Input Form */}
+        {/* Input Form (Clean muted dark inputs) */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Email Address */}
           <div>
@@ -174,7 +240,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email address"
-              className="w-full bg-[#111116] border border-white/10 hover:border-white/20 rounded-2xl px-4 py-3.5 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-white/30 focus:bg-[#14141a] transition-all"
+              className="w-full bg-[#111116]/90 backdrop-blur-md border border-white/12 hover:border-white/20 rounded-2xl px-4 py-3.5 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-white/35 focus:bg-[#14141a] transition-all"
             />
           </div>
 
@@ -196,12 +262,12 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                className="w-full bg-[#111116] border border-white/10 hover:border-white/20 rounded-2xl px-4 pr-11 py-3.5 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-white/30 focus:bg-[#14141a] transition-all font-mono"
+                className="w-full bg-[#111116]/90 backdrop-blur-md border border-white/12 hover:border-white/20 rounded-2xl px-4 pr-11 py-3.5 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-white/35 focus:bg-[#14141a] transition-all font-mono"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition-colors cursor-pointer"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors cursor-pointer"
                 title={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -235,7 +301,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => handleOAuthLogin("google")}
-            className="w-full bg-[#111116] hover:bg-[#16161d] active:scale-[0.99] border border-white/10 hover:border-white/20 rounded-2xl py-3.5 px-4 text-xs sm:text-sm font-medium text-white flex items-center justify-center gap-3 transition-all cursor-pointer"
+            className="w-full bg-[#111116]/90 backdrop-blur-md hover:bg-[#16161d] active:scale-[0.99] border border-white/12 hover:border-white/25 rounded-2xl py-3.5 px-4 text-xs sm:text-sm font-medium text-white flex items-center justify-center gap-3 transition-all cursor-pointer"
           >
             {/* Google Icon */}
             <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
@@ -263,7 +329,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => handleOAuthLogin("azure")}
-            className="w-full bg-[#111116] hover:bg-[#16161d] active:scale-[0.99] border border-white/10 hover:border-white/20 rounded-2xl py-3.5 px-4 text-xs sm:text-sm font-medium text-white flex items-center justify-center gap-3 transition-all cursor-pointer"
+            className="w-full bg-[#111116]/90 backdrop-blur-md hover:bg-[#16161d] active:scale-[0.99] border border-white/12 hover:border-white/25 rounded-2xl py-3.5 px-4 text-xs sm:text-sm font-medium text-white flex items-center justify-center gap-3 transition-all cursor-pointer"
           >
             {/* Microsoft Icon */}
             <svg className="w-4 h-4 shrink-0" viewBox="0 0 23 23">
@@ -299,16 +365,21 @@ export default function LoginPage() {
           </button>
         </div>
 
-        {/* Privacy Policy Footer (Exact match to screenshot) */}
+        {/* Privacy Policy Footer */}
         <div className="mt-6 text-center">
-          <p className="text-[11px] text-neutral-500">
+          <p className="text-[11px] text-neutral-400/80">
             By creating an account, you agree to our{" "}
-            <a href="#" className="underline text-neutral-400 hover:text-white transition-colors">
+            <a href="#" className="underline text-neutral-300 hover:text-white transition-colors">
               Privacy Policy
             </a>
           </p>
         </div>
       </motion.div>
+
+      {/* Footer Bottom Bar */}
+      <footer className="relative z-10 text-center text-[11px] text-neutral-400/60 max-w-4xl w-full mx-auto pb-2">
+        <span>Personal Finance Tracker · Production Grade · 2026</span>
+      </footer>
     </div>
   );
 }
