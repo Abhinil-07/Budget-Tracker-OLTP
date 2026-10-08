@@ -319,28 +319,28 @@ export default function Dashboard() {
 
             {/* Bottom Quick Actions Row (Send / Request / Accounts) */}
             <div className="flex items-center flex-wrap gap-3 pt-5 mt-4 border-t border-white/10 relative z-10">
-              {/* Send / Expense */}
+              {/* Log Expense */}
               <button
                 onClick={() => {
                   setAddModalType("expense");
                   setShowAddModal(true);
                 }}
-                className="bg-white hover:bg-neutral-100 text-black font-extrabold px-4 py-2.5 rounded-2xl transition-all shadow-lg flex items-center gap-2 text-xs active:scale-95 cursor-pointer"
+                className="bg-white hover:bg-neutral-100 text-black font-extrabold px-4.5 py-2.5 rounded-2xl transition-all shadow-lg flex items-center gap-2 text-xs active:scale-95 cursor-pointer"
               >
-                <ArrowUpRight className="h-4 w-4 stroke-[2.5]" />
-                <span>Send / Pay</span>
+                <Plus className="h-4 w-4 stroke-[2.5]" />
+                <span>+ Expense</span>
               </button>
 
-              {/* Request / Income */}
+              {/* Log Income */}
               <button
                 onClick={() => {
                   setAddModalType("income");
                   setShowAddModal(true);
                 }}
-                className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-bold px-4 py-2.5 rounded-2xl border border-white/20 transition-all shadow-lg flex items-center gap-2 text-xs active:scale-95 cursor-pointer"
+                className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-bold px-4.5 py-2.5 rounded-2xl border border-white/20 transition-all shadow-lg flex items-center gap-2 text-xs active:scale-95 cursor-pointer"
               >
-                <ArrowDownLeft className="h-4 w-4 stroke-[2.5]" />
-                <span>Request / Inflow</span>
+                <TrendingUp className="h-4 w-4 stroke-[2.5] text-emerald-300" />
+                <span>+ Income</span>
               </button>
 
               <Link
