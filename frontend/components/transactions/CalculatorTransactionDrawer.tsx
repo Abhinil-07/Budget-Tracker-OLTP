@@ -107,7 +107,6 @@ export default function CalculatorTransactionDrawer({
   // Modal overlays
   const [isAccountPickerOpen, setIsAccountPickerOpen] = useState(false);
   const [isCategoryPickerOpen, setIsCategoryPickerOpen] = useState(false);
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
 
   // Bill splitting state
@@ -308,7 +307,6 @@ export default function CalculatorTransactionDrawer({
     setIsSplitEnabled(false);
     setIsAccountPickerOpen(false);
     setIsCategoryPickerOpen(false);
-    setIsDatePickerOpen(false);
     setIsSubmitting(false);
     setErrorMessage(null);
     onClose();
@@ -404,7 +402,7 @@ export default function CalculatorTransactionDrawer({
               <div className="w-9" />
             </div>
 
-            {/* Prominent Meta Bar: Account + Category + Date */}
+            {/* Prominent Meta Bar: Account + Category + Direct Date */}
             <div className="grid grid-cols-3 gap-2 my-2">
               {/* 1. Account Selector */}
               <button
@@ -432,17 +430,22 @@ export default function CalculatorTransactionDrawer({
                 </div>
               </button>
 
-              {/* 3. Direct Date Selector */}
-              <button
-                type="button"
-                onClick={() => setIsDatePickerOpen(true)}
-                className="bg-neutral-100 hover:bg-neutral-200 p-2 rounded-2xl flex flex-col items-center justify-center text-center transition-all border border-neutral-200/50 cursor-pointer active:scale-95"
-              >
+              {/* 3. Direct Date Selector (Opens native calendar immediately on tap) */}
+              <div className="relative bg-neutral-100 hover:bg-neutral-200 p-2 rounded-2xl flex flex-col items-center justify-center text-center transition-all border border-neutral-200/50 cursor-pointer active:scale-95 group">
                 <span className="text-[10px] uppercase font-bold text-neutral-400 block tracking-wider">Date</span>
                 <span className="text-xs font-bold text-neutral-800 block mt-0.5">
                   {dateDisplayLabel}
                 </span>
-              </button>
+                <input
+                  type="date"
+                  value={txnDate}
+                  onChange={(e) => {
+                    if (e.target.value) setTxnDate(e.target.value);
+                  }}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  title="Click to select transaction date"
+                />
+              </div>
             </div>
 
             {/* Huge Bold Dynamic Amount Display */}
@@ -697,80 +700,6 @@ export default function CalculatorTransactionDrawer({
                     ))}
                   </div>
                 </div>
-              </div>
-            )}
-          </AnimatePresence>
-
-          {/* C. Date Picker Modal */}
-          <AnimatePresence>
-            {isDatePickerOpen && (
-              <div className="absolute inset-0 z-40 bg-white rounded-t-[32px] sm:rounded-[32px] p-5 sm:p-6 flex flex-col justify-between animate-in fade-in zoom-in-95 duration-150">
-                <div>
-                  <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
-                    <h3 className="text-base font-bold text-neutral-900">Select Date</h3>
-                    <button
-                      type="button"
-                      onClick={() => setIsDatePickerOpen(false)}
-                      className="p-1 rounded-full text-neutral-400 hover:text-black cursor-pointer"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
-                  </div>
-
-                  {/* Preset date buttons */}
-                  <div className="grid grid-cols-2 gap-3 my-5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const todayStr = new Date().toISOString().split("T")[0];
-                        setTxnDate(todayStr);
-                        setIsDatePickerOpen(false);
-                      }}
-                      className="p-3.5 rounded-2xl bg-neutral-100 hover:bg-neutral-200 text-neutral-900 font-bold text-xs flex flex-col items-center justify-center gap-1 transition-all cursor-pointer active:scale-95"
-                    >
-                      <span className="text-sm">Today</span>
-                      <span className="text-[10px] text-neutral-400 font-normal">Current Date</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const y = new Date();
-                        y.setDate(y.getDate() - 1);
-                        setTxnDate(y.toISOString().split("T")[0]);
-                        setIsDatePickerOpen(false);
-                      }}
-                      className="p-3.5 rounded-2xl bg-neutral-100 hover:bg-neutral-200 text-neutral-900 font-bold text-xs flex flex-col items-center justify-center gap-1 transition-all cursor-pointer active:scale-95"
-                    >
-                      <span className="text-sm">Yesterday</span>
-                      <span className="text-[10px] text-neutral-400 font-normal">1 Day Ago</span>
-                    </button>
-                  </div>
-
-                  {/* Custom Calendar Picker */}
-                  <div className="bg-neutral-50 border border-neutral-200 p-4 rounded-2xl">
-                    <label className="text-xs font-bold text-neutral-700 block mb-2">
-                      Custom Calendar Date
-                    </label>
-                    <input
-                      type="date"
-                      value={txnDate}
-                      onChange={(e) => {
-                        setTxnDate(e.target.value);
-                        setIsDatePickerOpen(false);
-                      }}
-                      className="w-full bg-white border border-neutral-200 rounded-xl px-4 py-3 text-sm font-semibold text-neutral-900 focus:outline-none focus:ring-1 focus:ring-black cursor-pointer"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setIsDatePickerOpen(false)}
-                  className="w-full py-3 bg-black text-white rounded-xl text-xs font-bold cursor-pointer"
-                >
-                  Done
-                </button>
               </div>
             )}
           </AnimatePresence>

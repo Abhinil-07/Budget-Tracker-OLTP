@@ -26,6 +26,7 @@ import {
   Sparkles,
   Plus,
   Eye,
+  EyeOff,
   ArrowUpRight,
   ArrowDownLeft,
   CreditCard
@@ -37,6 +38,7 @@ export default function Dashboard() {
   const { selectedAccountId, setSelectedAccountId } = useFinanceStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [addModalType, setAddModalType] = useState<"expense" | "income">("expense");
+  const [isNetWorthMasked, setIsNetWorthMasked] = useState(false);
 
   // Hydrate auth state from localStorage on mount
   useEffect(() => {
@@ -271,64 +273,42 @@ export default function Dashboard() {
               </div>
 
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/15 flex items-center justify-center text-white/80">
-                  <Eye className="h-4 w-4" />
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsNetWorthMasked(!isNetWorthMasked)}
+                  title={isNetWorthMasked ? "Reveal balance" : "Hide balance"}
+                  className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 flex items-center justify-center text-white/90 transition-all cursor-pointer active:scale-90"
+                >
+                  {isNetWorthMasked ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
-            {/* Middle: Amount & Peeking Cards Deck (Frame 0 in reference video) */}
-            <div className="flex items-center justify-between relative z-10 my-2">
-              <div>
-                <span className="text-xs font-medium text-white/70 uppercase tracking-wider block mb-1">
-                  Total Balance
-                </span>
-                <div className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white drop-shadow-sm font-sans">
-                  {formatCurrency(netWorthCents, "INR")}
-                </div>
-                <p className="text-xs sm:text-sm text-white/80 mt-2 font-medium">
-                  Welcome back, <span className="text-white font-bold">{user.email?.split("@")[0] || "User"}</span> 👋
-                </p>
+            {/* Middle: Amount & Greeting */}
+            <div className="my-2 relative z-10">
+              <span className="text-xs font-semibold text-white/70 uppercase tracking-wider block mb-1">
+                Total Balance
+              </span>
+              <div className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white drop-shadow-sm font-sans">
+                {isNetWorthMasked ? "••••••••" : formatCurrency(netWorthCents, "INR")}
               </div>
-
-              {/* Peeking Cards Deck preview on right edge */}
-              <Link
-                href="/finance/accounts"
-                className="hidden md:flex flex-col items-end group cursor-pointer transition-transform duration-300 hover:scale-105 select-none"
-                title="View All Cards"
-              >
-                <div className="relative w-28 h-32">
-                  {/* Cyan Card (Back layer) */}
-                  <div className="absolute right-0 top-0 w-22 h-28 rounded-2xl bg-gradient-to-br from-[#38BDF8] to-[#0284C7] shadow-lg transform rotate-8 group-hover:rotate-12 transition-transform duration-300 opacity-60 border border-white/20" />
-                  {/* Mint Card (Middle layer) */}
-                  <div className="absolute right-2 top-2 w-22 h-28 rounded-2xl bg-gradient-to-br from-[#29EAAF] to-[#04BA88] shadow-lg transform rotate-4 group-hover:rotate-6 transition-transform duration-300 opacity-80 border border-white/20" />
-                  {/* Lime Card (Front layer) */}
-                  <div className="absolute right-4 top-4 w-22 h-28 rounded-2xl bg-gradient-to-br from-[#F4FE52] to-[#BEE60A] shadow-xl transform group-hover:-translate-x-1 transition-transform duration-300 border border-white/30 p-2.5 flex flex-col justify-between">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[8px] font-black text-black/85 tracking-tighter">DIGITAL</span>
-                      <div className="w-2 h-2 rounded-full bg-black/25" />
-                    </div>
-                    <div>
-                      <div className="text-[7px] font-mono text-black/60">•••• 7642</div>
-                      <div className="text-[9px] font-black text-black">Cards ({accounts.length})</div>
-                    </div>
-                  </div>
-                </div>
-              </Link>
+              <p className="text-xs sm:text-sm text-white/80 mt-2 font-medium">
+                Welcome back, <span className="text-white font-bold">{user.email?.split("@")[0] || "User"}</span> 👋
+              </p>
             </div>
 
-            {/* Bottom Quick Actions Row (Send / Request / Accounts) */}
-            <div className="flex items-center flex-wrap gap-3 pt-5 mt-4 border-t border-white/10 relative z-10">
+            {/* Bottom Quick Actions Row (Expense / Income / Accounts) */}
+            <div className="flex items-center flex-wrap gap-2.5 sm:gap-3 pt-5 mt-4 border-t border-white/10 relative z-10">
               {/* Log Expense */}
               <button
                 onClick={() => {
                   setAddModalType("expense");
                   setShowAddModal(true);
                 }}
-                className="bg-white hover:bg-neutral-100 text-black font-extrabold px-4.5 py-2.5 rounded-2xl transition-all shadow-lg flex items-center gap-2 text-xs active:scale-95 cursor-pointer"
+                className="bg-white hover:bg-neutral-100 text-black font-extrabold px-4 py-2.5 rounded-2xl transition-all shadow-lg flex items-center gap-1.5 text-xs active:scale-95 cursor-pointer"
               >
                 <Plus className="h-4 w-4 stroke-[2.5]" />
-                <span>+ Expense</span>
+                <span>Expense</span>
               </button>
 
               {/* Log Income */}
@@ -337,15 +317,15 @@ export default function Dashboard() {
                   setAddModalType("income");
                   setShowAddModal(true);
                 }}
-                className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-bold px-4.5 py-2.5 rounded-2xl border border-white/20 transition-all shadow-lg flex items-center gap-2 text-xs active:scale-95 cursor-pointer"
+                className="bg-white/15 hover:bg-white/25 backdrop-blur-md text-white font-bold px-4 py-2.5 rounded-2xl border border-white/15 transition-all shadow-lg flex items-center gap-1.5 text-xs active:scale-95 cursor-pointer"
               >
                 <TrendingUp className="h-4 w-4 stroke-[2.5] text-emerald-300" />
-                <span>+ Income</span>
+                <span>Income</span>
               </button>
 
               <Link
                 href="/finance/accounts"
-                className="bg-white/15 hover:bg-white/20 backdrop-blur-md text-white font-medium px-4 py-2.5 rounded-2xl border border-white/15 transition-all flex items-center gap-2 text-xs"
+                className="bg-white/15 hover:bg-white/20 backdrop-blur-md text-white font-medium px-4 py-2.5 rounded-2xl border border-white/15 transition-all flex items-center gap-1.5 text-xs"
               >
                 <CreditCard className="h-3.5 w-3.5" />
                 <span>{accounts.length} Cards</span>
@@ -436,11 +416,12 @@ export default function Dashboard() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {accounts.map((acc) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {accounts.map((acc, index) => (
               <AccountCard
                 key={acc.id}
                 account={acc}
+                colorIndex={index}
                 spentThisMonthCents={spentByAccount[acc.id] || 0}
                 isSelected={selectedAccountId === acc.id}
                 onClick={() => handleAccountClick(acc.id)}

@@ -158,7 +158,7 @@ export default function AccountsPage() {
           </div>
         ) : (
           /* Cards Grid / Stack */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {accounts.map((acc, index) => (
               <AccountCard
                 key={acc.id}
