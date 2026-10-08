@@ -35,14 +35,14 @@ export default function AccountCard({
 
     const themes = [
       {
-        // 1. Muted Sage Green / Lichen Slate (Top-Left: Heart Rate)
-        cardBg: "bg-[#080E0D]",
-        ambientGlow: "radial-gradient(125% 125% at 50% 50%, #050808 0%, #0A1413 25%, #253330 65%, #51615F 100%)",
-        spotlightColor: "rgba(81, 97, 95, 0.35)",
-        borderColor: "border-[#51615F]/55 hover:border-[#6B7F7D]/85",
-        accentPill: "bg-[#253330]/75 border-[#51615F]/60 text-[#D1DBD9] shadow-sm",
+        // 1. Light Frosty Sage Green (Top-Left: Heart Rate in reference)
+        cardBg: "bg-[#091411]",
+        ambientGlow: "radial-gradient(125% 125% at 50% 50%, #050908 0%, #0B1814 20%, #39554C 58%, #76988C 88%, #8AA99E 100%)",
+        spotlightColor: "rgba(138, 169, 158, 0.45)",
+        borderColor: "border-[#8AA99E]/65 hover:border-[#A6C4B9]/90",
+        accentPill: "bg-[#39554C]/80 border-[#8AA99E]/70 text-[#EAF3EF] shadow-sm",
         btnPill: "bg-black/40 hover:bg-black/60 text-white/95 hover:text-white border-white/15",
-        glowShadow: "shadow-[0_16px_36px_-8px_rgba(81,97,95,0.35)]",
+        glowShadow: "shadow-[0_16px_36px_-8px_rgba(118,152,140,0.45)]",
         typeBadge,
         statusText,
       },
