@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import { usePathname } from "next/navigation";
-import ModuleRail, { MobileModuleBar } from "./ModuleRail";
+import ModuleRail from "./ModuleRail";
+import CentralMobileNav from "./CentralMobileNav";
 import ModuleSidebar from "./ModuleSidebar";
 import Header from "./Header";
 import { getActiveModule } from "./navConfig";
@@ -33,7 +34,7 @@ export default function PageWrapper({
         {/* Level 1: Desktop Rail */}
         <ModuleRail />
 
-        {/* Level 2: Module-specific Sidebar */}
+        {/* Level 2: Desktop Module-specific Sidebar */}
         {hasSubNav && (
           <ModuleSidebar
             moduleLabel={activeModule.label}
@@ -53,7 +54,7 @@ export default function PageWrapper({
             hasSubNav={hasSubNav}
           />
 
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-20 lg:pb-8 bg-background">
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-28 lg:pb-8 bg-background">
             <div className="max-w-7xl mx-auto space-y-6">
               {children}
             </div>
@@ -61,8 +62,8 @@ export default function PageWrapper({
         </div>
       </div>
 
-      {/* Level 1: Mobile Bottom Bar */}
-      <MobileModuleBar />
+      {/* Floating Central Glassmorphic Dock for Mobile Screens */}
+      <CentralMobileNav />
     </div>
   );
 }

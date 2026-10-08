@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Inbox, Menu } from "lucide-react";
+import { Plus, Inbox } from "lucide-react";
 import SyncStatusBadge from "../sync/SyncStatusBadge";
 import StagedInboxModal from "../transactions/StagedInboxModal";
 import { useStagedTransactions } from "@/hooks/useStagedTransactions";
@@ -28,17 +28,8 @@ export default function Header({
     <header className="h-14 border-b border-border bg-surface/80 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20">
       <StagedInboxModal isOpen={showStagedInbox} onClose={() => setShowStagedInbox(false)} />
 
-      {/* Title & Mobile Menu Hamburger */}
+      {/* Title */}
       <div className="flex items-center gap-2.5">
-        {hasSubNav && onMenuClick && (
-          <button
-            onClick={onMenuClick}
-            className="lg:hidden p-1.5 rounded-lg text-text-secondary hover:text-white hover:bg-surface-raised transition-colors"
-            title="Open Sub-menu"
-          >
-            <Menu className="h-4 w-4" />
-          </button>
-        )}
         <h1 className="text-sm sm:text-base font-semibold text-text-primary tracking-tight">
           {title}
         </h1>
