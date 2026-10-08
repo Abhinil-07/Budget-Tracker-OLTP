@@ -119,8 +119,8 @@ export default function TransactionsPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isExportingAll, setIsExportingAll] = useState(false);
 
-  // Splash Loading Screen (matches the video intro)
-  const [showIntroLoading, setShowIntroLoading] = useState(true);
+  // Splash Loading Screen (available on-demand via replay button, disabled by default so page loads instantly)
+  const [showIntroLoading, setShowIntroLoading] = useState(false);
 
   // Carousel Active Card Index (0 to accounts.length - 1) & Slide Direction (-1 or 1)
   const [carouselIndex, setCarouselIndex] = useState(0);
@@ -511,106 +511,15 @@ export default function TransactionsPage() {
 
   const totalPages = txnData ? Math.ceil(txnData.total / pageSize) : 1;
 
-  // 1. Cool Animated Loading Screen (matching video intro) - Fully Responsive
-  if (showIntroLoading || (!hydrated || !token)) {
+  // If auth is not yet hydrated, render clean centered spinner inside PageWrapper
+  if (!hydrated) {
     return (
-      <div className="fixed inset-0 z-50 h-[100dvh] w-full bg-black flex flex-col items-center justify-center p-4 sm:p-6 overflow-hidden select-none">
-        {/* Ambient background glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 sm:w-96 h-80 sm:h-96 bg-cyan-500/10 rounded-full blur-[100px] sm:blur-[120px] pointer-events-none" />
-        <div className="absolute top-1/3 left-1/3 w-64 sm:w-80 h-64 sm:h-80 bg-violet-500/10 rounded-full blur-[90px] pointer-events-none" />
-
-        {/* Stacked Fanning Animated Cards - Responsive dimensions */}
-        <div className="relative w-[270px] h-[168px] sm:w-[320px] sm:h-[196px] mb-8 sm:mb-10 flex items-center justify-center">
-          {/* Card 1: Sage Green (Bottom tilt left) */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8, rotate: -18, y: 25 }}
-            animate={{ opacity: 0.65, scale: 0.9, rotate: -7, y: 10, x: -16 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="absolute inset-0 rounded-[24px] sm:rounded-[28px] border border-[#8AA99E]/40 shadow-2xl p-4 sm:p-5 flex flex-col justify-between"
-            style={{
-              background: "radial-gradient(125% 125% at 50% 50%, #050908 0%, #152722 65%, #76988C 100%)",
-            }}
-          >
-            <div className="flex justify-between items-center text-[10px] text-white/50 font-bold uppercase tracking-wider">
-              <span>Digital Card</span>
-              <span>•••• 8421</span>
-            </div>
-            <div className="h-3 sm:h-4 w-24 sm:w-28 bg-white/20 rounded-full" />
-          </motion.div>
-
-          {/* Card 2: Royal Blue (Mid tilt right) */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8, rotate: 18, y: 18 }}
-            animate={{ opacity: 0.75, scale: 0.95, rotate: 6, y: -6, x: 16 }}
-            transition={{ duration: 0.9, delay: 0.1, ease: "easeOut" }}
-            className="absolute inset-0 rounded-[24px] sm:rounded-[28px] border border-[#4A7CE0]/50 shadow-2xl p-4 sm:p-5 flex flex-col justify-between"
-            style={{
-              background: "radial-gradient(125% 125% at 50% 50%, #02030B 0%, #0F2554 65%, #273A71 100%)",
-            }}
-          >
-            <div className="flex justify-between items-center text-[10px] text-white/60 font-bold uppercase tracking-wider">
-              <span>Sapphire Reserve</span>
-              <span>•••• 4120</span>
-            </div>
-            <div className="h-3 sm:h-4 w-28 sm:w-32 bg-white/25 rounded-full" />
-          </motion.div>
-
-          {/* Card 3: Dusty Orchid Pink (Front center) */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.7, y: 35 }}
-            animate={{ opacity: 1, scale: 1, rotate: 0, y: 0, x: 0 }}
-            transition={{ duration: 0.9, delay: 0.2, type: "spring", stiffness: 200 }}
-            className="absolute inset-0 rounded-[24px] sm:rounded-[28px] border border-[#D1699F]/70 shadow-[0_20px_50px_rgba(166,92,136,0.35)] p-4 sm:p-5 flex flex-col justify-between"
-            style={{
-              background: "radial-gradient(125% 125% at 50% 50%, #180611 0%, #4D0E34 65%, #A65C88 100%)",
-            }}
-          >
-            <div className="flex justify-between items-center text-[10px] sm:text-[11px] text-white/80 font-bold uppercase tracking-wider">
-              <span>Wallet Ledger</span>
-              <span>•••• {accounts[0]?.account_number ? accounts[0].account_number.slice(-4) : "9012"}</span>
-            </div>
-            <div>
-              <span className="text-[10px] text-white/60 block font-semibold uppercase mb-0.5">
-                {accounts[0]?.name || "Active Card"}
-              </span>
-              <AnimatedRollingBalance
-                targetCents={accounts[0]?.balance_cents || 56200}
-                currency={accounts[0]?.currency || "INR"}
-                duration={1200}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/30" />
-              <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/15 -ml-2.5 sm:-ml-3" />
-            </div>
-          </motion.div>
+      <PageWrapper title="Transactions">
+        <div className="py-24 flex flex-col items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-white border-r-2 mb-3" />
+          <span className="text-xs text-neutral-400">Loading transactions...</span>
         </div>
-
-        {/* Text & Shimmer loader */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="text-center space-y-3 z-10 px-4"
-        >
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 backdrop-blur-md text-xs font-semibold text-white/90 shadow-md">
-            <Sparkles className="h-3.5 w-3.5 text-cyan-400 animate-spin" />
-            <span>Syncing Digital Cards & Ledger...</span>
-          </div>
-          <p className="text-[11px] sm:text-xs text-neutral-400 max-w-xs mx-auto">
-            Preparing your swipeable cards and chronological transaction ledger.
-          </p>
-        </motion.div>
-
-        {/* Skip to Ledger button */}
-        <button
-          onClick={() => setShowIntroLoading(false)}
-          className="absolute bottom-5 right-5 sm:bottom-6 sm:right-6 text-xs text-neutral-400 hover:text-white font-medium flex items-center gap-1 transition-colors cursor-pointer px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 backdrop-blur-md shadow-lg"
-        >
-          <span>Skip to Ledger</span>
-          <ChevronRight className="h-3.5 w-3.5" />
-        </button>
-      </div>
+      </PageWrapper>
     );
   }
 
@@ -620,6 +529,113 @@ export default function TransactionsPage() {
       onAddTransactionClick={() => setShowAddModal(true)}
       actionLabel="Add Transaction"
     >
+      {/* On-Demand Animated Intro Cards Overlay (when triggered via Sparkles) */}
+      <AnimatePresence>
+        {showIntroLoading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 h-[100dvh] w-full bg-black flex flex-col items-center justify-center p-4 sm:p-6 overflow-hidden select-none"
+          >
+            {/* Ambient background glow */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 sm:w-96 h-80 sm:h-96 bg-cyan-500/10 rounded-full blur-[100px] sm:blur-[120px] pointer-events-none" />
+            <div className="absolute top-1/3 left-1/3 w-64 sm:w-80 h-64 sm:h-80 bg-violet-500/10 rounded-full blur-[90px] pointer-events-none" />
+
+            {/* Stacked Fanning Animated Cards */}
+            <div className="relative w-[270px] h-[168px] sm:w-[320px] sm:h-[196px] mb-8 sm:mb-10 flex items-center justify-center">
+              {/* Card 1: Sage Green (Bottom tilt left) */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8, rotate: -18, y: 25 }}
+                animate={{ opacity: 0.65, scale: 0.9, rotate: -7, y: 10, x: -16 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="absolute inset-0 rounded-[24px] sm:rounded-[28px] border border-[#8AA99E]/40 shadow-2xl p-4 sm:p-5 flex flex-col justify-between"
+                style={{
+                  background: "radial-gradient(125% 125% at 50% 50%, #050908 0%, #152722 65%, #76988C 100%)",
+                }}
+              >
+                <div className="flex justify-between items-center text-[10px] text-white/50 font-bold uppercase tracking-wider">
+                  <span>Digital Card</span>
+                  <span>•••• 8421</span>
+                </div>
+                <div className="h-3 sm:h-4 w-24 sm:w-28 bg-white/20 rounded-full" />
+              </motion.div>
+
+              {/* Card 2: Royal Blue (Mid tilt right) */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8, rotate: 18, y: 18 }}
+                animate={{ opacity: 0.75, scale: 0.95, rotate: 6, y: -6, x: 16 }}
+                transition={{ duration: 0.9, delay: 0.1, ease: "easeOut" }}
+                className="absolute inset-0 rounded-[24px] sm:rounded-[28px] border border-[#4A7CE0]/50 shadow-2xl p-4 sm:p-5 flex flex-col justify-between"
+                style={{
+                  background: "radial-gradient(125% 125% at 50% 50%, #02030B 0%, #0F2554 65%, #273A71 100%)",
+                }}
+              >
+                <div className="flex justify-between items-center text-[10px] text-white/60 font-bold uppercase tracking-wider">
+                  <span>Sapphire Reserve</span>
+                  <span>•••• 4120</span>
+                </div>
+                <div className="h-3 sm:h-4 w-28 sm:w-32 bg-white/25 rounded-full" />
+              </motion.div>
+
+              {/* Card 3: Dusty Orchid Pink (Front center) */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.7, y: 35 }}
+                animate={{ opacity: 1, scale: 1, rotate: 0, y: 0, x: 0 }}
+                transition={{ duration: 0.9, delay: 0.2, type: "spring", stiffness: 200 }}
+                className="absolute inset-0 rounded-[24px] sm:rounded-[28px] border border-[#D1699F]/70 shadow-[0_20px_50px_rgba(166,92,136,0.35)] p-4 sm:p-5 flex flex-col justify-between"
+                style={{
+                  background: "radial-gradient(125% 125% at 50% 50%, #180611 0%, #4D0E34 65%, #A65C88 100%)",
+                }}
+              >
+                <div className="flex justify-between items-center text-[10px] sm:text-[11px] text-white/80 font-bold uppercase tracking-wider">
+                  <span>Wallet Ledger</span>
+                  <span>•••• {accounts[0]?.account_number ? accounts[0].account_number.slice(-4) : "9012"}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-white/60 block font-semibold uppercase mb-0.5">
+                    {accounts[0]?.name || "Active Card"}
+                  </span>
+                  <AnimatedRollingBalance
+                    targetCents={accounts[0]?.balance_cents || 56200}
+                    currency={accounts[0]?.currency || "INR"}
+                    duration={1200}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/30" />
+                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/15 -ml-2.5 sm:-ml-3" />
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Text & Shimmer loader */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="text-center space-y-3 z-10 px-4"
+            >
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 backdrop-blur-md text-xs font-semibold text-white/90 shadow-md">
+                <Sparkles className="h-3.5 w-3.5 text-cyan-400 animate-spin" />
+                <span>Syncing Digital Cards & Ledger...</span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-neutral-400 max-w-xs mx-auto">
+                Preparing your swipeable cards and chronological transaction ledger.
+              </p>
+            </motion.div>
+
+            {/* Skip to Ledger button */}
+            <button
+              onClick={() => setShowIntroLoading(false)}
+              className="absolute bottom-5 right-5 sm:bottom-6 sm:right-6 text-xs text-neutral-400 hover:text-white font-medium flex items-center gap-1 transition-colors cursor-pointer px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 backdrop-blur-md shadow-lg"
+            >
+              <span>Close Intro</span>
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <AddTransactionModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}

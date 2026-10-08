@@ -287,7 +287,7 @@ export default function CalculatorTransactionDrawer({
         type: txnType,
         account_id: targetAccId,
         category: selectedCategory || (txnType === "expense" ? "Food & Dining" : "Salary"),
-        description: description.trim() || (txnType === "expense" ? "Expense entry" : "Wallet top up"),
+        description: description.trim() || (txnType === "expense" ? "Expense entry" : "Payment recorded"),
         txn_date: txnDate,
         is_included: true,
       });
@@ -752,7 +752,7 @@ export default function CalculatorTransactionDrawer({
                       {/* Hollow Ring Spinner */}
                       <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                       <span className="text-white text-base sm:text-lg font-semibold tracking-tight">
-                        Topping up wallet
+                        Recording payment
                       </span>
                     </motion.div>
                   ) : (
@@ -768,12 +768,12 @@ export default function CalculatorTransactionDrawer({
                       }}
                       className="flex items-center gap-3"
                     >
-                      {/* Solid White Circle with Dark Checkmark */}
-                      <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center shrink-0 shadow-sm">
-                        <Check className="w-3 h-3 text-black stroke-[3.5]" />
+                      {/* Minimal simple small green tick */}
+                      <div className="flex items-center justify-center shrink-0">
+                        <Check className="w-5 h-5 text-emerald-400 stroke-[3.5]" />
                       </div>
                       <span className="text-white text-base sm:text-lg font-semibold tracking-tight">
-                        Wallet topped up
+                        Payment recorded
                       </span>
                     </motion.div>
                   )}
