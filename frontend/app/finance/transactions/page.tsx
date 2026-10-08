@@ -45,6 +45,66 @@ import {
 } from "lucide-react";
 import { Transaction } from "@/types/transaction";
 
+// Animated Rolling Counter Component for the Loading Screen Balance Adjustment Effect
+function AnimatedRollingBalance({
+  targetCents,
+  currency = "INR",
+  duration = 1200,
+}: {
+  targetCents: number;
+  currency?: string;
+  duration?: number;
+}) {
+  const [currentCents, setCurrentCents] = useState(0);
+  const [isAdjusted, setIsAdjusted] = useState(false);
+
+  useEffect(() => {
+    let startTimestamp: number | null = null;
+    let animId: number;
+
+    const step = (now: number) => {
+      if (!startTimestamp) startTimestamp = now;
+      const elapsed = now - startTimestamp;
+      const progress = Math.min(elapsed / duration, 1);
+      // easeOutCubic
+      const ease = 1 - Math.pow(1 - progress, 3);
+      const val = Math.floor(ease * targetCents);
+      setCurrentCents(val);
+
+      if (progress < 1) {
+        animId = requestAnimationFrame(step);
+      } else {
+        setCurrentCents(targetCents);
+        setIsAdjusted(true);
+      }
+    };
+
+    animId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animId);
+  }, [targetCents, duration]);
+
+  return (
+    <div className="flex items-baseline gap-2">
+      <motion.div
+        animate={isAdjusted ? { scale: [1, 1.05, 1] } : {}}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        className="text-2xl sm:text-3xl font-extrabold text-white font-mono tracking-tight"
+      >
+        {formatCurrency(currentCents, currency)}
+      </motion.div>
+      {isAdjusted && (
+        <motion.span
+          initial={{ opacity: 0, scale: 0.6 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-[10px] font-sans font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-400/30 px-2 py-0.5 rounded-full"
+        >
+          ✓ Adjusted
+        </motion.span>
+      )}
+    </div>
+  );
+}
+
 export default function TransactionsPage() {
   const queryClient = useQueryClient();
   const { token, hydrated, hydrate } = useAuthStore();
@@ -62,8 +122,9 @@ export default function TransactionsPage() {
   // Splash Loading Screen (matches the video intro)
   const [showIntroLoading, setShowIntroLoading] = useState(true);
 
-  // Carousel Active Card Index (0 to accounts.length - 1)
+  // Carousel Active Card Index (0 to accounts.length - 1) & Slide Direction (-1 or 1)
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [slideDirection, setSlideDirection] = useState<number>(0);
   const [isAllAccountsMode, setIsAllAccountsMode] = useState(false);
 
   // Search & Filters
@@ -92,11 +153,11 @@ export default function TransactionsPage() {
   const { data: accounts = [], isLoading: accountsLoading } = useAccounts();
   const { categories } = useCategories();
 
-  // Stop intro loading once accounts are fetched or after brief splash
+  // Show intro loading for 1.8s so user can witness the rolling balance adjustment
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowIntroLoading(false);
-    }, 1100);
+    }, 1800);
     return () => clearTimeout(timer);
   }, []);
 
@@ -412,9 +473,10 @@ export default function TransactionsPage() {
     }
   };
 
-  // Handle Swipe navigation
+  // Handle Swipe navigation with directional tracking
   const handleSwipePrev = () => {
     if (carouselIndex > 0) {
+      setSlideDirection(-1);
       setCarouselIndex((prev) => prev - 1);
       setIsAllAccountsMode(false);
     }
@@ -422,6 +484,7 @@ export default function TransactionsPage() {
 
   const handleSwipeNext = () => {
     if (carouselIndex < accounts.length - 1) {
+      setSlideDirection(1);
       setCarouselIndex((prev) => prev + 1);
       setIsAllAccountsMode(false);
     }
@@ -488,8 +551,14 @@ export default function TransactionsPage() {
               <span>•••• 9012</span>
             </div>
             <div>
-              <span className="text-[10px] text-white/60 block font-semibold uppercase">Active Card</span>
-              <div className="text-2xl font-extrabold text-white font-mono mt-0.5">₹48,250.00</div>
+              <span className="text-[10px] text-white/60 block font-semibold uppercase">
+                {accounts[0]?.name || "Active Card"}
+              </span>
+              <AnimatedRollingBalance
+                targetCents={accounts[0]?.balance_cents || 56200}
+                currency={accounts[0]?.currency || "INR"}
+                duration={1200}
+              />
             </div>
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 rounded-full bg-white/30" />
@@ -505,7 +574,7 @@ export default function TransactionsPage() {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="text-center space-y-3 z-10"
         >
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 backdrop-blur-md text-xs font-semibold text-white/90">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 backdrop-blur-md text-xs font-semibold text-white/90 shadow-md">
             <Sparkles className="h-3.5 w-3.5 text-cyan-400 animate-spin" />
             <span>Syncing Digital Cards & Ledger...</span>
           </div>
@@ -513,6 +582,15 @@ export default function TransactionsPage() {
             Preparing your swipeable cards and chronological transaction ledger.
           </p>
         </motion.div>
+
+        {/* Skip to Ledger button */}
+        <button
+          onClick={() => setShowIntroLoading(false)}
+          className="absolute bottom-6 right-6 text-xs text-neutral-400 hover:text-white font-medium flex items-center gap-1 transition-colors cursor-pointer px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 backdrop-blur-md"
+        >
+          <span>Skip to Ledger</span>
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
       </div>
     );
   }
@@ -650,30 +728,72 @@ export default function TransactionsPage() {
                 </button>
               )}
 
-              {/* Cards Container with Touch/Mouse Swipe Drag */}
-              <motion.div
-                className="w-full max-w-lg cursor-grab active:cursor-grabbing relative"
-                drag="x"
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.25}
-                onDragEnd={(_, info) => {
-                  const swipe = info.offset.x;
-                  if (swipe < -45 && carouselIndex < accounts.length - 1) {
-                    handleSwipeNext();
-                  } else if (swipe > 45 && carouselIndex > 0) {
-                    handleSwipePrev();
-                  }
-                }}
-              >
-                <AnimatePresence mode="wait">
+              {/* Left Peek Card (Previous Card in 3D perspective) */}
+              {carouselIndex > 0 && accounts[carouselIndex - 1] && (
+                <div
+                  onClick={handleSwipePrev}
+                  className="hidden md:block absolute -left-20 lg:-left-6 z-10 w-72 lg:w-80 cursor-pointer opacity-30 hover:opacity-50 transition-all duration-300 transform -rotate-6 scale-90 pointer-events-auto"
+                  title={`Swipe to ${accounts[carouselIndex - 1].name}`}
+                >
+                  <AccountCard
+                    account={accounts[carouselIndex - 1]}
+                    colorIndex={carouselIndex - 1}
+                  />
+                </div>
+              )}
+
+              {/* Active Center Card with Touch/Mouse Swipe Drag & Directional Slide */}
+              <div className="w-full max-w-lg z-20 relative">
+                <AnimatePresence initial={false} custom={slideDirection} mode="popLayout">
                   {activeAccount && (
                     <motion.div
                       key={activeAccount.id}
-                      initial={{ opacity: 0, scale: 0.94, y: 10 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.94, y: -10 }}
-                      transition={{ type: "spring", stiffness: 350, damping: 28 }}
-                      className="w-full"
+                      custom={slideDirection}
+                      variants={{
+                        enter: (dir: number) => ({
+                          x: dir > 0 ? 340 : dir < 0 ? -340 : 0,
+                          opacity: 0,
+                          scale: 0.88,
+                          rotateY: dir > 0 ? 14 : dir < 0 ? -14 : 0,
+                        }),
+                        center: {
+                          x: 0,
+                          opacity: 1,
+                          scale: 1,
+                          rotateY: 0,
+                          transition: {
+                            x: { type: "spring", stiffness: 320, damping: 28 },
+                            opacity: { duration: 0.25 },
+                            scale: { duration: 0.25 },
+                          },
+                        },
+                        exit: (dir: number) => ({
+                          x: dir < 0 ? 340 : -340,
+                          opacity: 0,
+                          scale: 0.88,
+                          rotateY: dir < 0 ? 14 : -14,
+                          transition: {
+                            x: { type: "spring", stiffness: 320, damping: 28 },
+                            opacity: { duration: 0.2 },
+                          },
+                        }),
+                      }}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      drag="x"
+                      dragConstraints={{ left: 0, right: 0 }}
+                      dragElastic={0.25}
+                      onDragEnd={(_, info) => {
+                        const swipe = info.offset.x;
+                        const velocity = info.velocity.x;
+                        if ((swipe < -40 || velocity < -300) && carouselIndex < accounts.length - 1) {
+                          handleSwipeNext();
+                        } else if ((swipe > 40 || velocity > 300) && carouselIndex > 0) {
+                          handleSwipePrev();
+                        }
+                      }}
+                      className="cursor-grab active:cursor-grabbing w-full"
                     >
                       <AccountCard
                         account={activeAccount}
@@ -684,7 +804,21 @@ export default function TransactionsPage() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </motion.div>
+              </div>
+
+              {/* Right Peek Card (Next Card in 3D perspective) */}
+              {carouselIndex < accounts.length - 1 && accounts[carouselIndex + 1] && (
+                <div
+                  onClick={handleSwipeNext}
+                  className="hidden md:block absolute -right-20 lg:-right-6 z-10 w-72 lg:w-80 cursor-pointer opacity-30 hover:opacity-50 transition-all duration-300 transform rotate-6 scale-90 pointer-events-auto"
+                  title={`Swipe to ${accounts[carouselIndex + 1].name}`}
+                >
+                  <AccountCard
+                    account={accounts[carouselIndex + 1]}
+                    colorIndex={carouselIndex + 1}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Pagination Dots & Navigation Indicators */}
