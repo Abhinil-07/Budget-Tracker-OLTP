@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Account } from "../../types/account";
 import { formatCurrency } from "../../lib/formatCurrency";
 import { Snowflake, Settings, Eye, EyeOff, ShieldCheck } from "lucide-react";
@@ -13,6 +13,7 @@ interface AccountCardProps {
   onEdit?: () => void;
   isSelected?: boolean;
   colorIndex?: number;
+  animateBalance?: boolean;
 }
 
 export default function AccountCard({
@@ -22,10 +23,61 @@ export default function AccountCard({
   onEdit,
   isSelected,
   colorIndex = 0,
+  animateBalance = true,
 }: AccountCardProps) {
   const isCreditCard = account.type === "credit_card";
   const [isMasked, setIsMasked] = useState(false);
   const [isFrozen, setIsFrozen] = useState(false);
+
+  // Animated rolling counter for balance adjustment
+  const [displayBalanceCents, setDisplayBalanceCents] = useState(animateBalance ? 0 : account.balance_cents);
+  const [displaySpentCents, setDisplaySpentCents] = useState(animateBalance ? 0 : spentThisMonthCents);
+  const [isRolling, setIsRolling] = useState(animateBalance);
+  const prevAccountIdRef = useRef(account.id);
+  const prevBalanceRef = useRef(0);
+
+  useEffect(() => {
+    if (!animateBalance) {
+      setDisplayBalanceCents(account.balance_cents);
+      setDisplaySpentCents(spentThisMonthCents);
+      setIsRolling(false);
+      return;
+    }
+
+    const isNewCard = prevAccountIdRef.current !== account.id;
+    prevAccountIdRef.current = account.id;
+
+    const startVal = isNewCard ? 0 : prevBalanceRef.current;
+    const targetVal = account.balance_cents;
+    prevBalanceRef.current = targetVal;
+
+    let startTimestamp: number | null = null;
+    let animId: number;
+    const duration = 750; // Smooth 750ms roll matching the video
+    setIsRolling(true);
+
+    const step = (now: number) => {
+      if (!startTimestamp) startTimestamp = now;
+      const elapsed = now - startTimestamp;
+      const progress = Math.min(elapsed / duration, 1);
+      // easeOutCubic
+      const ease = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(startVal + (targetVal - startVal) * ease);
+      setDisplayBalanceCents(current);
+      setDisplaySpentCents(Math.round(spentThisMonthCents * ease));
+
+      if (progress < 1) {
+        animId = requestAnimationFrame(step);
+      } else {
+        setDisplayBalanceCents(targetVal);
+        setDisplaySpentCents(spentThisMonthCents);
+        setIsRolling(false);
+      }
+    };
+
+    animId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animId);
+  }, [account.id, account.balance_cents, spentThisMonthCents, animateBalance]);
 
   // Exact 4 card themes matching the user screenshot (media_1791488183377_bb159f55.png)
   // Heart Rate (Sage Green), Temperature (Cobalt Blue), Glucose (Orchid Pink), Steps (Terracotta)
@@ -150,16 +202,44 @@ export default function AccountCard({
       </div>
 
       {/* Middle: Large Balance */}
-      <div className="my-3 sm:my-4 relative z-10">
+      <div className="my-3 sm:my-4 relative z-10 overflow-hidden">
         <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-white/70 block mb-1">
           {isCreditCard ? "Amount Owed (Debt)" : "Available Balance"}
         </span>
-        <div className="text-3xl sm:text-4xl font-extrabold tracking-tight font-sans text-white">
-          {isMasked ? "••••••••" : formatCurrency(account.balance_cents, account.currency)}
-        </div>
-        <span className="text-[11px] text-white/75 font-medium block mt-1">
-          Spent this month: {formatCurrency(spentThisMonthCents, account.currency)}
-        </span>
+        <motion.div
+          key={`${account.id}-${isMasked}`}
+          initial={{ y: 18, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 340, damping: 24 }}
+          className="text-3xl sm:text-4xl font-extrabold tracking-tight font-sans text-white flex items-baseline gap-2.5 flex-wrap"
+        >
+          <span>
+            {isMasked ? "••••••••" : formatCurrency(displayBalanceCents, account.currency)}
+          </span>
+          {!isMasked && (
+            <motion.span
+              initial={{ scale: 0.6, opacity: 0 }}
+              animate={isRolling ? { scale: 0.85, opacity: 0.7 } : { scale: 1, opacity: 1 }}
+              transition={{ duration: 0.25 }}
+              className={`text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full border tracking-wide uppercase ${
+                isRolling
+                  ? "text-sky-300 bg-sky-500/20 border-sky-400/40 animate-pulse"
+                  : "text-emerald-300 bg-emerald-500/20 border-emerald-400/30"
+              }`}
+            >
+              {isRolling ? "Adjusting" : "Live"}
+            </motion.span>
+          )}
+        </motion.div>
+        <motion.span
+          key={`spent-${account.id}`}
+          initial={{ y: 10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.1, duration: 0.3 }}
+          className="text-[11px] text-white/75 font-medium block mt-1"
+        >
+          Spent this month: {formatCurrency(displaySpentCents, account.currency)}
+        </motion.span>
       </div>
 
       {/* Bottom Row: 3 Functional Frosted Buttons + Subtle Card Watermark */}

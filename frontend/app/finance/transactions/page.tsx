@@ -705,12 +705,12 @@ export default function TransactionsPage() {
             </div>
 
             {/* Interactive Swipeable Stage */}
-            <div className="relative flex items-center justify-center overflow-hidden py-4 px-2">
+            <div className="relative flex items-center justify-center overflow-hidden py-4 px-2 sm:px-14">
               {/* Desktop Left Chevron Button */}
               {carouselIndex > 0 && (
                 <button
                   onClick={handleSwipePrev}
-                  className="absolute left-2 z-30 w-11 h-11 rounded-full bg-black/60 hover:bg-black/90 border border-white/20 text-white flex items-center justify-center transition-all shadow-xl hover:scale-110 active:scale-95 cursor-pointer backdrop-blur-md"
+                  className="absolute left-2 sm:left-4 z-30 w-11 h-11 rounded-full bg-black/70 hover:bg-black/95 border border-white/20 text-white flex items-center justify-center transition-all shadow-xl hover:scale-110 active:scale-95 cursor-pointer backdrop-blur-md"
                   title="Previous Card"
                 >
                   <ChevronLeft className="h-6 w-6 stroke-[2.5]" />
@@ -721,25 +721,11 @@ export default function TransactionsPage() {
               {carouselIndex < accounts.length - 1 && (
                 <button
                   onClick={handleSwipeNext}
-                  className="absolute right-2 z-30 w-11 h-11 rounded-full bg-black/60 hover:bg-black/90 border border-white/20 text-white flex items-center justify-center transition-all shadow-xl hover:scale-110 active:scale-95 cursor-pointer backdrop-blur-md"
+                  className="absolute right-2 sm:right-4 z-30 w-11 h-11 rounded-full bg-black/70 hover:bg-black/95 border border-white/20 text-white flex items-center justify-center transition-all shadow-xl hover:scale-110 active:scale-95 cursor-pointer backdrop-blur-md"
                   title="Next Card"
                 >
                   <ChevronRight className="h-6 w-6 stroke-[2.5]" />
                 </button>
-              )}
-
-              {/* Left Peek Card (Previous Card in 3D perspective) */}
-              {carouselIndex > 0 && accounts[carouselIndex - 1] && (
-                <div
-                  onClick={handleSwipePrev}
-                  className="hidden md:block absolute -left-20 lg:-left-6 z-10 w-72 lg:w-80 cursor-pointer opacity-30 hover:opacity-50 transition-all duration-300 transform -rotate-6 scale-90 pointer-events-auto"
-                  title={`Swipe to ${accounts[carouselIndex - 1].name}`}
-                >
-                  <AccountCard
-                    account={accounts[carouselIndex - 1]}
-                    colorIndex={carouselIndex - 1}
-                  />
-                </div>
               )}
 
               {/* Active Center Card with Touch/Mouse Swipe Drag & Directional Slide */}
@@ -751,10 +737,10 @@ export default function TransactionsPage() {
                       custom={slideDirection}
                       variants={{
                         enter: (dir: number) => ({
-                          x: dir > 0 ? 340 : dir < 0 ? -340 : 0,
+                          x: dir > 0 ? 320 : dir < 0 ? -320 : 0,
                           opacity: 0,
-                          scale: 0.88,
-                          rotateY: dir > 0 ? 14 : dir < 0 ? -14 : 0,
+                          scale: 0.92,
+                          rotateY: dir > 0 ? 12 : dir < 0 ? -12 : 0,
                         }),
                         center: {
                           x: 0,
@@ -768,10 +754,10 @@ export default function TransactionsPage() {
                           },
                         },
                         exit: (dir: number) => ({
-                          x: dir < 0 ? 340 : -340,
+                          x: dir < 0 ? 320 : -320,
                           opacity: 0,
-                          scale: 0.88,
-                          rotateY: dir < 0 ? 14 : -14,
+                          scale: 0.92,
+                          rotateY: dir < 0 ? 12 : -12,
                           transition: {
                             x: { type: "spring", stiffness: 320, damping: 28 },
                             opacity: { duration: 0.2 },
@@ -800,25 +786,12 @@ export default function TransactionsPage() {
                         colorIndex={carouselIndex}
                         spentThisMonthCents={cardMonthlyStats.spent}
                         isSelected={!isAllAccountsMode}
+                        animateBalance={true}
                       />
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
-
-              {/* Right Peek Card (Next Card in 3D perspective) */}
-              {carouselIndex < accounts.length - 1 && accounts[carouselIndex + 1] && (
-                <div
-                  onClick={handleSwipeNext}
-                  className="hidden md:block absolute -right-20 lg:-right-6 z-10 w-72 lg:w-80 cursor-pointer opacity-30 hover:opacity-50 transition-all duration-300 transform rotate-6 scale-90 pointer-events-auto"
-                  title={`Swipe to ${accounts[carouselIndex + 1].name}`}
-                >
-                  <AccountCard
-                    account={accounts[carouselIndex + 1]}
-                    colorIndex={carouselIndex + 1}
-                  />
-                </div>
-              )}
             </div>
 
             {/* Pagination Dots & Navigation Indicators */}
