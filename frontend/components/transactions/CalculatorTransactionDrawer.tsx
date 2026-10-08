@@ -13,8 +13,23 @@ import {
   Tag,
   Wifi,
   Battery,
-  SlidersHorizontal,
-  Users
+  Users,
+  Calendar as CalendarIcon,
+  MessageSquare,
+  Calculator as CalcIcon,
+  UtensilsCrossed,
+  Car,
+  ShoppingCart,
+  ShoppingBag,
+  Film,
+  HeartPulse,
+  Zap,
+  Home,
+  Briefcase,
+  Laptop,
+  TrendingUp,
+  ArrowRightLeft,
+  HandCoins
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
@@ -28,6 +43,51 @@ interface CalculatorTransactionDrawerProps {
   defaultType?: "expense" | "income";
 }
 
+// Category icon helper
+const getCategoryIcon = (category: string) => {
+  const lower = category.toLowerCase();
+  if (lower.includes("food") || lower.includes("dining") || lower.includes("restaurant") || lower.includes("cafe")) {
+    return <UtensilsCrossed className="h-4 w-4 text-amber-400" />;
+  }
+  if (lower.includes("transport") || lower.includes("cab") || lower.includes("fuel") || lower.includes("uber")) {
+    return <Car className="h-4 w-4 text-blue-400" />;
+  }
+  if (lower.includes("grocer") || lower.includes("mart") || lower.includes("supermarket")) {
+    return <ShoppingCart className="h-4 w-4 text-emerald-400" />;
+  }
+  if (lower.includes("shop") || lower.includes("clothing") || lower.includes("amazon")) {
+    return <ShoppingBag className="h-4 w-4 text-pink-400" />;
+  }
+  if (lower.includes("entertain") || lower.includes("movie") || lower.includes("ott") || lower.includes("music")) {
+    return <Film className="h-4 w-4 text-purple-400" />;
+  }
+  if (lower.includes("health") || lower.includes("med") || lower.includes("doctor")) {
+    return <HeartPulse className="h-4 w-4 text-rose-400" />;
+  }
+  if (lower.includes("util") || lower.includes("bill") || lower.includes("electric") || lower.includes("wifi")) {
+    return <Zap className="h-4 w-4 text-yellow-400" />;
+  }
+  if (lower.includes("rent") || lower.includes("house") || lower.includes("pg")) {
+    return <Home className="h-4 w-4 text-orange-400" />;
+  }
+  if (lower.includes("salary") || lower.includes("wage") || lower.includes("paycheck")) {
+    return <Briefcase className="h-4 w-4 text-emerald-400" />;
+  }
+  if (lower.includes("freelance") || lower.includes("consult") || lower.includes("gig")) {
+    return <Laptop className="h-4 w-4 text-teal-400" />;
+  }
+  if (lower.includes("invest") || lower.includes("stock") || lower.includes("mutual") || lower.includes("dividend")) {
+    return <TrendingUp className="h-4 w-4 text-indigo-400" />;
+  }
+  if (lower.includes("transfer")) {
+    return <ArrowRightLeft className="h-4 w-4 text-cyan-400" />;
+  }
+  if (lower.includes("owe") || lower.includes("debt") || lower.includes("split")) {
+    return <HandCoins className="h-4 w-4 text-purple-400" />;
+  }
+  return <Tag className="h-4 w-4 text-neutral-400" />;
+};
+
 export default function CalculatorTransactionDrawer({
   isOpen,
   onClose,
@@ -37,19 +97,21 @@ export default function CalculatorTransactionDrawer({
   const { data: accounts = [] } = useAccounts();
   const { categories, addCategory } = useCategories();
 
-  // Core transaction state
+  // Core transaction state (Default amount 0, NOT 100)
   const [txnType, setTxnType] = useState<"expense" | "income">(defaultType);
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
-  const [amountStr, setAmountStr] = useState<string>("100");
+  const [amountStr, setAmountStr] = useState<string>("0");
+  const [mathExpression, setMathExpression] = useState<string>("");
+  const [showCalculatorOperators, setShowCalculatorOperators] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [description, setDescription] = useState<string>("");
+  const [showNoteInput, setShowNoteInput] = useState(false);
   const [txnDate, setTxnDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
 
   // Modals & Pickers
   const [isAccountPickerOpen, setIsAccountPickerOpen] = useState(false);
   const [isCategoryPickerOpen, setIsCategoryPickerOpen] = useState(false);
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
-  const [showOptionsBar, setShowOptionsBar] = useState(false);
 
   // Bill splitting state
   const [isSplitEnabled, setIsSplitEnabled] = useState(false);
@@ -71,7 +133,7 @@ export default function CalculatorTransactionDrawer({
     setTxnType(defaultType);
   }, [defaultType]);
 
-  // Set default category
+  // Set default category based on type
   useEffect(() => {
     if (txnType === "income") {
       if (categories.includes("Salary")) setSelectedCategory("Salary");
@@ -87,11 +149,56 @@ export default function CalculatorTransactionDrawer({
     return accounts.find((a) => a.id === selectedAccountId) || accounts[0];
   }, [accounts, selectedAccountId]);
 
-  // Numerical amount evaluation
+  // Currency symbol helper
+  const currencySymbol = useMemo(() => {
+    const c = activeAccount?.currency || "INR";
+    if (c === "INR") return "₹";
+    if (c === "USD") return "$";
+    if (c === "EUR") return "€";
+    if (c === "GBP") return "£";
+    return c;
+  }, [activeAccount?.currency]);
+
+  // Date display label
+  const dateDisplayLabel = useMemo(() => {
+    const todayStr = new Date().toISOString().split("T")[0];
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+    if (txnDate === todayStr) return "Today";
+    if (txnDate === yesterdayStr) return "Yesterday";
+
+    try {
+      const parts = txnDate.split("-");
+      const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    } catch {
+      return txnDate;
+    }
+  }, [txnDate]);
+
+  // Evaluated numerical amount (accounting for mathExpression)
   const parsedAmount = useMemo(() => {
-    const val = parseFloat(amountStr);
-    return isNaN(val) ? 0 : Math.max(0, val);
-  }, [amountStr]);
+    try {
+      if (mathExpression) {
+        const fullExpr = (mathExpression + (amountStr === "0" ? "" : amountStr))
+          .replace(/×/g, "*")
+          .replace(/÷/g, "/")
+          .replace(/[^0-9+\-*/.]/g, "");
+        if (!fullExpr) return 0;
+        // eslint-disable-next-line no-eval
+        const result = Function(`'use strict'; return (${fullExpr})`)();
+        if (typeof result === "number" && !isNaN(result) && isFinite(result)) {
+          return Math.max(0, result);
+        }
+      }
+      const val = parseFloat(amountStr);
+      return isNaN(val) ? 0 : Math.max(0, val);
+    } catch {
+      return parseFloat(amountStr) || 0;
+    }
+  }, [amountStr, mathExpression]);
 
   // Keypad Handlers
   const handleDigit = (digit: string) => {
@@ -104,7 +211,7 @@ export default function CalculatorTransactionDrawer({
     } else {
       const parts = amountStr.split(".");
       if (parts.length > 1 && parts[1].length >= 2) return;
-      if (amountStr.length < 8) {
+      if (amountStr.length < 9) {
         setAmountStr(amountStr + digit);
       }
     }
@@ -112,9 +219,22 @@ export default function CalculatorTransactionDrawer({
 
   const handleBackspace = () => {
     if (amountStr.length <= 1) {
+      if (mathExpression) {
+        setMathExpression("");
+      }
       setAmountStr("0");
     } else {
       setAmountStr(amountStr.slice(0, -1));
+    }
+  };
+
+  const handleOperator = (op: "+" | "-" | "×" | "÷") => {
+    try {
+      const current = parseFloat(amountStr) || 0;
+      setMathExpression(`${current} ${op} `);
+      setAmountStr("0");
+    } catch {
+      // ignore
     }
   };
 
@@ -130,8 +250,11 @@ export default function CalculatorTransactionDrawer({
   // Close reset handler
   const handleClose = () => {
     setAnimStage("idle");
-    setAmountStr("100");
+    setAmountStr("0");
+    setMathExpression("");
+    setShowCalculatorOperators(false);
     setDescription("");
+    setShowNoteInput(false);
     setIsSplitEnabled(false);
     setIsAccountPickerOpen(false);
     setIsCategoryPickerOpen(false);
@@ -139,7 +262,7 @@ export default function CalculatorTransactionDrawer({
     onClose();
   };
 
-  // Execute transaction with the exact video animation sequence
+  // Continue action: runs API and triggers the exact video animation
   const handleContinue = async () => {
     if (parsedAmount <= 0) {
       setErrorMessage("Please enter an amount greater than 0");
@@ -224,27 +347,24 @@ export default function CalculatorTransactionDrawer({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-2xl select-none overflow-hidden">
-      {/* Phone Canvas Container (Pure deep black matching the video 720x720 mobile mockup) */}
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-xl select-none overflow-hidden">
+      {/* 
+        Main Canvas Container:
+        - On desktop: Sleek, borderless, floating card with soft deep shadow (NO fake phone borders/notch)
+        - On mobile: Full-screen native experience
+      */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.94, y: 20 }}
+        initial={{ opacity: 0, scale: 0.96, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.35, ease: "easeOut" }}
-        className="w-full h-full sm:h-auto sm:max-w-[390px] sm:max-h-[810px] sm:rounded-[48px] bg-black text-white sm:border sm:border-white/10 sm:shadow-[0_25px_80px_rgba(0,0,0,0.95)] sm:ring-1 sm:ring-white/10 relative flex flex-col justify-between overflow-hidden"
+        exit={{ opacity: 0, scale: 0.96 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="w-full h-full sm:h-auto sm:max-w-[420px] sm:max-h-[850px] sm:rounded-3xl bg-[#09090D] text-white sm:shadow-[0_20px_70px_rgba(0,0,0,0.9)] relative flex flex-col justify-between overflow-hidden"
       >
-        {/* Dynamic Island / Top Phone Notch (Desktop only for authentic mockup feel) */}
-        <div className="hidden sm:flex absolute top-3 left-1/2 -translate-x-1/2 w-28 h-6 bg-neutral-900/90 rounded-full z-40 items-center justify-end px-3">
-          <div className="w-2.5 h-2.5 rounded-full bg-[#1A1A1E]" />
-        </div>
-
-        {/* 1. Header & Status Bar Area */}
-        <div className="pt-3 sm:pt-4 px-6 z-20">
-          {/* iOS Status Bar Row */}
-          <div className="flex items-center justify-between text-[11px] font-semibold text-white/90 pt-1 pb-3">
+        {/* Mobile-only status bar */}
+        <div className="block sm:hidden pt-3 px-6 z-20">
+          <div className="flex items-center justify-between text-xs font-semibold text-white/90 pt-1 pb-2">
             <span>9:41</span>
             <div className="flex items-center gap-1.5 opacity-90">
-              {/* Cellular icon */}
               <div className="flex items-end gap-[1.5px] h-2.5">
                 <div className="w-[2.5px] h-1 bg-white rounded-xs" />
                 <div className="w-[2.5px] h-1.5 bg-white rounded-xs" />
@@ -255,139 +375,228 @@ export default function CalculatorTransactionDrawer({
               <Battery className="w-4 h-4 stroke-[2.5]" />
             </div>
           </div>
+        </div>
 
-          {/* Navigation Bar: Back Arrow + Centered Title ("Add money") */}
-          <div className="flex items-center justify-between py-2">
+        {/* 1. Header Area: Back Arrow + Segmented Mode Switcher */}
+        <div className="pt-3 sm:pt-5 px-6 z-20">
+          <div className="flex items-center justify-between">
             <button
               type="button"
               onClick={handleClose}
-              className="p-1.5 -ml-1.5 rounded-full hover:bg-white/10 text-white/90 active:scale-90 transition-all cursor-pointer"
-              title="Back"
+              className="p-2 -ml-2 rounded-full hover:bg-white/10 text-white/80 hover:text-white active:scale-95 transition-all cursor-pointer"
+              title="Close"
             >
               <ArrowLeft className="h-5 w-5 stroke-[2.2]" />
             </button>
 
-            {/* Title with subtle toggle for Expense / Add money */}
-            <div className="flex items-center gap-1">
+            {/* Segmented Expense / Add Money Toggle */}
+            <div className="bg-[#14141A] p-1 rounded-full flex items-center border border-white/[0.08]">
               <button
                 type="button"
-                onClick={() => setTxnType(txnType === "expense" ? "income" : "expense")}
-                className="text-sm font-semibold text-white hover:text-white/80 transition-colors flex items-center gap-1.5 cursor-pointer"
-                title="Tap to switch between Add money / Expense"
+                onClick={() => setTxnType("expense")}
+                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                  txnType === "expense"
+                    ? "bg-white text-black shadow-sm"
+                    : "text-neutral-400 hover:text-white"
+                }`}
               >
-                <span>{txnType === "income" ? "Add money" : "Add money"}</span>
+                Expense
+              </button>
+              <button
+                type="button"
+                onClick={() => setTxnType("income")}
+                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                  txnType === "income"
+                    ? "bg-white text-black shadow-sm"
+                    : "text-neutral-400 hover:text-white"
+                }`}
+              >
+                Add money
               </button>
             </div>
 
-            {/* Quick Settings / Options toggle */}
-            <button
-              type="button"
-              onClick={() => setShowOptionsBar(!showOptionsBar)}
-              className={`p-1.5 -mr-1.5 rounded-full transition-all cursor-pointer ${
-                showOptionsBar ? "bg-white/20 text-white" : "hover:bg-white/10 text-white/60 hover:text-white"
-              }`}
-              title="More options (Category, Split, Note)"
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-            </button>
+            <div className="w-6" />
           </div>
 
-          {/* Optional Category & Settings Pills Bar */}
-          <AnimatePresence>
-            {showOptionsBar && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="pt-2 pb-1 overflow-hidden"
-              >
-                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-                  {/* Category Pill */}
-                  <button
-                    type="button"
-                    onClick={() => setIsCategoryPickerOpen(true)}
-                    className="px-3 py-1.5 rounded-full bg-[#18181C] hover:bg-[#222228] border border-white/10 text-xs text-white/90 font-medium flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer"
-                  >
-                    <Tag className="h-3 w-3 text-purple-400" />
-                    <span className="truncate max-w-[100px]">{selectedCategory || "Category"}</span>
-                  </button>
+          {/* Prominent Meta Bar: Account + Category + Date (Clean, visible, intuitive) */}
+          <div className="grid grid-cols-3 gap-2 mt-4">
+            {/* A. Account Selector */}
+            <button
+              type="button"
+              onClick={() => setIsAccountPickerOpen(true)}
+              className="bg-[#141418] hover:bg-[#1A1A20] active:scale-98 p-2.5 rounded-2xl flex flex-col items-center justify-center text-center transition-all border border-white/[0.06] cursor-pointer"
+            >
+              <span className="text-[10px] uppercase font-bold text-neutral-400 block tracking-wider">Account</span>
+              <span className="text-xs font-bold text-white truncate max-w-[95px] block mt-0.5">
+                {activeAccount ? activeAccount.name : "Select"}
+              </span>
+            </button>
 
-                  {/* Mode Toggle */}
-                  <button
-                    type="button"
-                    onClick={() => setTxnType(txnType === "expense" ? "income" : "expense")}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium shrink-0 transition-colors cursor-pointer border ${
-                      txnType === "income"
-                        ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
-                        : "bg-[#18181C] border-white/10 text-white/80"
-                    }`}
-                  >
-                    {txnType === "income" ? "Income / Top Up" : "Expense"}
-                  </button>
+            {/* B. Category Selector (Opens Full Grid Modal - with icons!) */}
+            <button
+              type="button"
+              onClick={() => setIsCategoryPickerOpen(true)}
+              className="bg-[#141418] hover:bg-[#1A1A20] active:scale-98 p-2.5 rounded-2xl flex flex-col items-center justify-center text-center transition-all border border-white/[0.06] cursor-pointer"
+            >
+              <span className="text-[10px] uppercase font-bold text-neutral-400 block tracking-wider">Category</span>
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className="text-xs font-bold text-white truncate max-w-[85px] block">
+                  {selectedCategory || "Choose"}
+                </span>
+              </div>
+            </button>
 
-                  {/* Split Pill */}
-                  {txnType === "expense" && (
-                    <button
-                      type="button"
-                      onClick={() => setIsSplitEnabled(!isSplitEnabled)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1 shrink-0 transition-colors cursor-pointer border ${
-                        isSplitEnabled
-                          ? "bg-purple-600/30 border-purple-500/50 text-purple-300"
-                          : "bg-[#18181C] border-white/10 text-white/70"
-                      }`}
-                    >
-                      <Users className="h-3 w-3" />
-                      <span>{isSplitEnabled ? "Split (2)" : "Split"}</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* Optional Note row */}
-                <div className="mt-2">
-                  <input
-                    type="text"
-                    placeholder="Optional note / description..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="w-full bg-[#141416] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white/30"
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+            {/* C. Direct Date Selector */}
+            <div className="relative bg-[#141418] hover:bg-[#1A1A20] active:scale-98 p-2.5 rounded-2xl flex flex-col items-center justify-center text-center transition-all border border-white/[0.06] cursor-pointer">
+              <span className="text-[10px] uppercase font-bold text-neutral-400 block tracking-wider">Date</span>
+              <span className="text-xs font-bold text-white block mt-0.5">
+                {dateDisplayLabel}
+              </span>
+              <input
+                type="date"
+                value={txnDate}
+                onChange={(e) => {
+                  if (e.target.value) setTxnDate(e.target.value);
+                }}
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                title="Select transaction date"
+              />
+            </div>
+          </div>
         </div>
 
-        {/* 2. Main Content Body (Amount Display + Account Card + Keypad) */}
+        {/* 2. Main Body: Amount Display + Calculator Actions + Keypad */}
         <div className="flex-1 flex flex-col justify-between px-6 pt-2 pb-6 z-10">
-          {/* Centered Amount Display (Matching exact video typography) */}
+          {/* Centered Amount Display (Bigger text with currency symbol) */}
           <div className="text-center my-auto py-2">
-            <motion.div
-              key={amountStr}
-              initial={{ scale: 0.98 }}
-              animate={{ scale: 1 }}
-              className="text-[64px] sm:text-[72px] font-bold tracking-tight text-white leading-none font-sans"
-            >
-              {amountStr}
-            </motion.div>
-            <div className="text-xs sm:text-sm font-semibold text-neutral-400 mt-2 tracking-wide uppercase">
-              {activeAccount?.currency || "USD"}
+            {mathExpression && (
+              <div className="text-sm font-mono text-purple-300 font-semibold mb-1">
+                {mathExpression}
+              </div>
+            )}
+
+            <div className="flex items-center justify-center font-sans tracking-tight">
+              <span className="text-4xl sm:text-5xl font-light text-neutral-400 mr-2 select-none">
+                {currencySymbol}
+              </span>
+              <motion.span
+                key={amountStr}
+                initial={{ scale: 0.98 }}
+                animate={{ scale: 1 }}
+                className="text-7xl sm:text-8xl font-bold tracking-tight text-white leading-none font-sans"
+              >
+                {amountStr}
+              </motion.span>
             </div>
 
+            {/* Note & Calculator Pill Row (Inspired directly by user reference image) */}
+            <div className="flex items-center justify-center gap-2 mt-4">
+              {/* "Add a note (+)" Pill */}
+              <button
+                type="button"
+                onClick={() => setShowNoteInput(!showNoteInput)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer border ${
+                  description
+                    ? "bg-[#202028] text-white border-white/20"
+                    : "bg-[#14141A] hover:bg-[#1A1A22] text-neutral-300 border-white/[0.08]"
+                }`}
+              >
+                <MessageSquare className="h-3.5 w-3.5 text-neutral-400" />
+                <span>{description ? description : "Add a note"}</span>
+                <span className="text-neutral-400 font-bold ml-0.5">{description ? "✎" : "+"}</span>
+              </button>
+
+              {/* Inline Calculator Toggle Button (+- / ×÷ pill matching reference image) */}
+              <button
+                type="button"
+                onClick={() => setShowCalculatorOperators(!showCalculatorOperators)}
+                className={`p-1.5 px-2.5 rounded-full text-xs font-bold transition-all cursor-pointer border flex items-center gap-1 ${
+                  showCalculatorOperators
+                    ? "bg-purple-600/30 text-purple-300 border-purple-500/40 shadow-sm"
+                    : "bg-[#14141A] hover:bg-[#1A1A22] text-neutral-300 border-white/[0.08]"
+                }`}
+                title="Calculator operators"
+              >
+                <span className="text-[11px] font-mono leading-none tracking-tight">
+                  + − / ×
+                </span>
+              </button>
+
+              {/* Split Expense Pill (if expense) */}
+              {txnType === "expense" && (
+                <button
+                  type="button"
+                  onClick={() => setIsSplitEnabled(!isSplitEnabled)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer border flex items-center gap-1 ${
+                    isSplitEnabled
+                      ? "bg-indigo-600/30 text-indigo-300 border-indigo-500/40"
+                      : "bg-[#14141A] hover:bg-[#1A1A22] text-neutral-400 border-white/[0.08]"
+                  }`}
+                >
+                  <Users className="h-3 w-3" />
+                  <span>{isSplitEnabled ? `Split (${splitCount})` : "Split"}</span>
+                </button>
+              )}
+            </div>
+
+            {/* Note Input (Smooth dropdown when tapped) */}
+            <AnimatePresence>
+              {showNoteInput && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-3 max-w-[280px] mx-auto overflow-hidden"
+                >
+                  <input
+                    type="text"
+                    placeholder="Enter description / note..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    autoFocus
+                    className="w-full bg-[#141418] border border-white/15 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white/40"
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Math Operator Buttons (+, -, ×, ÷) */}
+            <AnimatePresence>
+              {showCalculatorOperators && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="flex items-center justify-center gap-2 mt-3"
+                >
+                  {(["+", "-", "×", "÷"] as const).map((op) => (
+                    <button
+                      key={op}
+                      type="button"
+                      onClick={() => handleOperator(op)}
+                      className="w-10 h-10 rounded-2xl bg-[#1A1A22] hover:bg-[#242430] active:scale-95 text-white font-bold text-base flex items-center justify-center border border-white/[0.08] transition-all cursor-pointer"
+                    >
+                      {op}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {errorMessage && (
-              <div className="text-xs text-rose-400 font-medium mt-2 bg-rose-500/10 py-1 px-3 rounded-full inline-block">
+              <div className="text-xs text-rose-400 font-medium mt-3 bg-rose-500/10 py-1 px-3 rounded-full inline-block">
                 {errorMessage}
               </div>
             )}
           </div>
 
-          {/* Account Card (Matching Video: Cosmic gradient circle + "Wallet 02" + "$478.00 Available" + "Wallets" button) */}
+          {/* Account Card (Cosmic artwork circle + Account Name + Available Balance + "Wallets" switch button) */}
           <div className="mb-4">
-            <div className="bg-[#141416] border border-white/[0.08] rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-lg">
+            <div className="bg-[#141418] border border-white/[0.08] rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-md">
               <div className="flex items-center gap-3">
-                {/* Artwork Thumbnail (Cosmic mountain landscape gradient circle matching video) */}
+                {/* Cosmic artwork thumbnail */}
                 <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-tr from-purple-700 via-indigo-600 to-sky-400 p-[1px] shrink-0 shadow-sm flex items-center justify-center relative">
-                  <div className="w-full h-full rounded-full bg-cover bg-center bg-[#181028] flex items-center justify-center">
-                    {/* Artistic gradient mesh mimicking the video thumbnail */}
+                  <div className="w-full h-full rounded-full bg-[#181028] flex items-center justify-center">
                     <div className="w-full h-full rounded-full bg-[radial-gradient(circle_at_30%_30%,#c084fc,transparent_60%),radial-gradient(circle_at_70%_70%,#38bdf8,#1e1b4b_80%)] opacity-95" />
                   </div>
                 </div>
@@ -409,22 +618,22 @@ export default function CalculatorTransactionDrawer({
               <button
                 type="button"
                 onClick={() => setIsAccountPickerOpen(true)}
-                className="bg-[#222226] hover:bg-[#2c2c32] active:scale-95 text-xs font-semibold text-white px-3.5 py-1.5 rounded-full transition-all cursor-pointer shadow-sm"
+                className="bg-[#222228] hover:bg-[#2c2c34] active:scale-95 text-xs font-semibold text-white px-3.5 py-1.5 rounded-full transition-all cursor-pointer shadow-sm"
               >
                 Wallets
               </button>
             </div>
           </div>
 
-          {/* Clean Minimalist Keypad (Matching exact layout: 1-9, ., 0, backspace) */}
-          <div className="w-full max-w-[280px] mx-auto mb-5">
-            <div className="grid grid-cols-3 gap-y-4 gap-x-8 text-center">
+          {/* Clean Keypad (Bigger digits text-2xl sm:text-3xl) */}
+          <div className="w-full max-w-[300px] mx-auto mb-4">
+            <div className="grid grid-cols-3 gap-y-4 gap-x-10 text-center">
               {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => (
                 <button
                   key={digit}
                   type="button"
                   onClick={() => handleDigit(digit)}
-                  className="h-12 text-2xl font-normal text-white hover:text-white/80 active:scale-90 transition-transform flex items-center justify-center cursor-pointer select-none"
+                  className="h-12 text-2xl sm:text-3xl font-light text-white hover:text-white/80 active:scale-90 transition-transform flex items-center justify-center cursor-pointer select-none"
                 >
                   {digit}
                 </button>
@@ -434,14 +643,14 @@ export default function CalculatorTransactionDrawer({
               <button
                 type="button"
                 onClick={() => handleDigit(".")}
-                className="h-12 text-2xl font-normal text-white hover:text-white/80 active:scale-90 transition-transform flex items-center justify-center cursor-pointer select-none"
+                className="h-12 text-2xl sm:text-3xl font-light text-white hover:text-white/80 active:scale-90 transition-transform flex items-center justify-center cursor-pointer select-none"
               >
                 .
               </button>
               <button
                 type="button"
                 onClick={() => handleDigit("0")}
-                className="h-12 text-2xl font-normal text-white hover:text-white/80 active:scale-90 transition-transform flex items-center justify-center cursor-pointer select-none"
+                className="h-12 text-2xl sm:text-3xl font-light text-white hover:text-white/80 active:scale-90 transition-transform flex items-center justify-center cursor-pointer select-none"
               >
                 0
               </button>
@@ -450,20 +659,25 @@ export default function CalculatorTransactionDrawer({
                 onClick={handleBackspace}
                 className="h-12 text-white hover:text-white/80 active:scale-90 transition-transform flex items-center justify-center cursor-pointer select-none"
               >
-                <Delete className="h-5 w-5 stroke-[1.8]" />
+                <Delete className="h-6 w-6 stroke-[1.8]" />
               </button>
             </div>
           </div>
 
-          {/* Bottom Action Button: "Continue" (Matching video's white rounded-full pill) */}
+          {/* Bottom Action Button: "Continue" (Crisp white pill) */}
           <div className="pt-1 pb-1">
             <button
               type="button"
               onClick={handleContinue}
               disabled={animStage !== "idle" || parsedAmount <= 0}
-              className="w-full py-4 rounded-full font-semibold text-sm sm:text-base bg-white text-black hover:bg-neutral-100 active:scale-[0.98] transition-all shadow-xl cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center"
+              className="w-full py-4 rounded-full font-bold text-base sm:text-lg bg-white text-black hover:bg-neutral-100 active:scale-[0.98] transition-all shadow-xl cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Continue
+              <span>Continue</span>
+              {parsedAmount > 0 && (
+                <span className="opacity-70 font-medium text-sm sm:text-base">
+                  • {currencySymbol}{parsedAmount}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -478,7 +692,7 @@ export default function CalculatorTransactionDrawer({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="absolute inset-0 z-50 bg-black/75 backdrop-blur-2xl flex flex-col items-center justify-center overflow-hidden"
+              className="absolute inset-0 z-50 bg-black/80 backdrop-blur-2xl flex flex-col items-center justify-center overflow-hidden"
             >
               {/* STAGE A: Bottom Glowing Aurora (Present during "Topping up wallet") */}
               {animStage === "topping_up" && (
@@ -523,8 +737,8 @@ export default function CalculatorTransactionDrawer({
                 />
               )}
 
-              {/* Center Status Feedback: Ring Spinner / Checkmark + Text */}
-              <div className="relative z-10 flex items-center justify-center gap-2.5">
+              {/* Center Status Feedback: Ring Spinner / Checkmark + Text (Bigger text) */}
+              <div className="relative z-10 flex items-center justify-center gap-3">
                 <AnimatePresence mode="wait">
                   {animStage === "topping_up" ? (
                     <motion.div
@@ -533,11 +747,11 @@ export default function CalculatorTransactionDrawer({
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.8 }}
                       transition={{ duration: 0.2 }}
-                      className="flex items-center gap-2.5"
+                      className="flex items-center gap-3"
                     >
-                      {/* Hollow Ring Spinner (Exact match to video frame 4 & 7) */}
-                      <div className="w-3.5 h-3.5 rounded-full border-[1.5px] border-white/30 border-t-white animate-spin" />
-                      <span className="text-white text-xs sm:text-sm font-medium tracking-tight">
+                      {/* Hollow Ring Spinner */}
+                      <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                      <span className="text-white text-base sm:text-lg font-semibold tracking-tight">
                         Topping up wallet
                       </span>
                     </motion.div>
@@ -552,13 +766,13 @@ export default function CalculatorTransactionDrawer({
                         stiffness: 300, 
                         damping: 18 
                       }}
-                      className="flex items-center gap-2.5"
+                      className="flex items-center gap-3"
                     >
-                      {/* Solid White Circle with Dark Checkmark (Exact match to video frame 11) */}
-                      <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center shrink-0 shadow-sm">
-                        <Check className="w-2.5 h-2.5 text-black stroke-[3.5]" />
+                      {/* Solid White Circle with Dark Checkmark */}
+                      <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center shrink-0 shadow-sm">
+                        <Check className="w-3 h-3 text-black stroke-[3.5]" />
                       </div>
-                      <span className="text-white text-xs sm:text-sm font-medium tracking-tight">
+                      <span className="text-white text-base sm:text-lg font-semibold tracking-tight">
                         Wallet topped up
                       </span>
                     </motion.div>
@@ -579,7 +793,7 @@ export default function CalculatorTransactionDrawer({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: "100%", opacity: 0 }}
               transition={{ type: "spring", damping: 26, stiffness: 280 }}
-              className="absolute inset-0 z-40 bg-[#0C0C0E] p-6 flex flex-col justify-between"
+              className="absolute inset-0 z-40 bg-[#0C0C10] p-6 flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-center justify-between pb-4 border-b border-white/10">
@@ -587,13 +801,13 @@ export default function CalculatorTransactionDrawer({
                   <button
                     type="button"
                     onClick={() => setIsAccountPickerOpen(false)}
-                    className="p-1 rounded-full text-neutral-400 hover:text-white cursor-pointer"
+                    className="p-1.5 rounded-full text-neutral-400 hover:text-white cursor-pointer"
                   >
                     <X className="h-5 w-5" />
                   </button>
                 </div>
 
-                <div className="space-y-2 mt-4 max-h-[460px] overflow-y-auto">
+                <div className="space-y-2.5 mt-4 max-h-[460px] overflow-y-auto">
                   {accounts.map((acc) => (
                     <button
                       key={acc.id}
@@ -604,7 +818,7 @@ export default function CalculatorTransactionDrawer({
                       }}
                       className={`w-full p-3.5 rounded-2xl flex items-center justify-between transition-all border cursor-pointer ${
                         selectedAccountId === acc.id
-                          ? "bg-[#1E1E24] text-white border-white/30 shadow-md font-bold"
+                          ? "bg-[#1E1E26] text-white border-white/30 shadow-md font-bold"
                           : "bg-[#141418] hover:bg-[#181820] text-neutral-300 border-white/5 font-medium"
                       }`}
                     >
@@ -632,7 +846,7 @@ export default function CalculatorTransactionDrawer({
         </AnimatePresence>
 
         {/* ========================================================================= */}
-        {/* 5. MODAL OVERLAY: Category Picker Modal                                    */}
+        {/* 5. MODAL OVERLAY: Category Picker Grid Modal (Rich category grid with icons)*/}
         {/* ========================================================================= */}
         <AnimatePresence>
           {isCategoryPickerOpen && (
@@ -641,7 +855,7 @@ export default function CalculatorTransactionDrawer({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: "100%", opacity: 0 }}
               transition={{ type: "spring", damping: 26, stiffness: 280 }}
-              className="absolute inset-0 z-40 bg-[#0C0C0E] p-6 flex flex-col justify-between"
+              className="absolute inset-0 z-40 bg-[#0C0C10] p-6 flex flex-col justify-between"
             >
               <div className="flex flex-col h-full">
                 <div className="flex items-center justify-between pb-3 border-b border-white/10">
@@ -649,7 +863,7 @@ export default function CalculatorTransactionDrawer({
                   <button
                     type="button"
                     onClick={() => setIsCategoryPickerOpen(false)}
-                    className="p-1 rounded-full text-neutral-400 hover:text-white cursor-pointer"
+                    className="p-1.5 rounded-full text-neutral-400 hover:text-white cursor-pointer"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -677,13 +891,15 @@ export default function CalculatorTransactionDrawer({
                         setSelectedCategory(catName);
                         setIsCategoryPickerOpen(false);
                       }}
-                      className={`p-3 rounded-2xl flex items-center gap-2 text-left transition-all border cursor-pointer ${
+                      className={`p-3 rounded-2xl flex items-center gap-2.5 text-left transition-all border cursor-pointer ${
                         selectedCategory === catName
-                          ? "bg-[#25252E] text-white border-white/30 font-bold"
+                          ? "bg-[#252530] text-white border-white/30 font-bold shadow-sm"
                           : "bg-[#141418] hover:bg-[#1A1A22] text-neutral-300 border-white/5 font-medium"
                       }`}
                     >
-                      <Tag className="h-3.5 w-3.5 text-neutral-400 shrink-0" />
+                      <div className={`p-1.5 rounded-xl ${selectedCategory === catName ? "bg-white/15" : "bg-neutral-800/80"}`}>
+                        {getCategoryIcon(catName)}
+                      </div>
                       <span className="text-xs truncate">{catName}</span>
                     </button>
                   ))}
