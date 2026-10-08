@@ -72,7 +72,7 @@ export default function BalancesCard() {
 
   if (isLoading) {
     return (
-      <div className="bg-[#13141B] border border-white/[0.07] rounded-[26px] p-6 shadow-xl animate-pulse">
+      <div className="bg-[#121216] border border-white/[0.08] rounded-[26px] p-6 shadow-xl animate-pulse">
         <div className="h-4 w-36 bg-white/10 rounded mb-4" />
         <div className="h-10 w-48 bg-white/10 rounded mb-4" />
         <div className="space-y-2">
@@ -84,7 +84,7 @@ export default function BalancesCard() {
   }
 
   return (
-    <div className="bg-[#13141B] border border-white/[0.07] rounded-[26px] p-6 shadow-xl relative overflow-hidden flex flex-col justify-between">
+    <div className="bg-[#121216] border border-white/[0.08] rounded-[26px] p-6 shadow-xl relative overflow-hidden flex flex-col justify-between">
       <div>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">

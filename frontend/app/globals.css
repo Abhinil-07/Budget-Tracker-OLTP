@@ -3,25 +3,44 @@
 @tailwind utilities;
 
 :root {
-  --background: #0A0B0E;
-  --surface: #121318;
-  --surface-raised: #181920;
-  --border: #1F2027;
+  --background: #090A0E;
+  --surface: #121216;
+  --surface-raised: #18181D;
+  --border: #222228;
   --accent: #FFFFFF;
   --accent-muted: #71717A;
-  --success: #22C55E;
-  --danger: #EF4444;
+  --success: #10B981;
+  --danger: #F43F5E;
   --warning: #F59E0B;
   --text-primary: #FFFFFF;
-  --text-secondary: #9496A1;
-  --text-muted: #525462;
+  --text-secondary: #9CA3AF;
+  --text-muted: #52525B;
 }
 
 body {
   background-color: var(--background);
   color: var(--text-primary);
-  font-family: var(--font-plus-jakarta-sans), var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: -0.015em;
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Ethereal Aurora Mesh Gradient */
+.bg-aurora {
+  background: 
+    radial-gradient(ellipse at 15% 10%, rgba(6, 182, 212, 0.45) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 15%, rgba(139, 92, 246, 0.5) 0%, transparent 55%),
+    radial-gradient(ellipse at 60% 85%, rgba(236, 72, 153, 0.4) 0%, transparent 60%),
+    radial-gradient(ellipse at 10% 90%, rgba(16, 185, 129, 0.35) 0%, transparent 50%),
+    linear-gradient(135deg, #0d0f17 0%, #161426 50%, #0c0d14 100%);
+}
+
+.bg-aurora-subtle {
+  background: 
+    radial-gradient(ellipse at 20% 0%, rgba(6, 182, 212, 0.25) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.3) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 90%, rgba(236, 72, 153, 0.2) 0%, transparent 60%),
+    #121216;
 }

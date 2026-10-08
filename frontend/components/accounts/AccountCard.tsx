@@ -25,24 +25,24 @@ export default function AccountCard({
     switch (account.type) {
       case "credit_card":
         return {
-          icon: <CreditCard className="h-5 w-5 text-[#FFA494]" />,
-          bg: "bg-[#FDECE8]/10 border-[#FDECE8]/20",
+          icon: <CreditCard className="h-5 w-5 text-rose-400" />,
+          bg: "bg-[#181820] border-white/10",
           tag: "Credit Card",
-          tagColor: "text-[#FFA494] bg-[#FDECE8]/10",
+          tagColor: "text-rose-400 bg-rose-500/10 border border-rose-500/20",
         };
       case "current":
         return {
-          icon: <Landmark className="h-5 w-5 text-[#C4B5FD]" />,
-          bg: "bg-[#ECEBFB]/10 border-[#ECEBFB]/20",
+          icon: <Landmark className="h-5 w-5 text-indigo-400" />,
+          bg: "bg-[#181820] border-white/10",
           tag: "Current",
-          tagColor: "text-[#C4B5FD] bg-[#ECEBFB]/10",
+          tagColor: "text-indigo-400 bg-indigo-500/10 border border-indigo-500/20",
         };
       default:
         return {
-          icon: <Wallet className="h-5 w-5 text-[#6EE7B7]" />,
-          bg: "bg-[#D4EFE6]/10 border-[#D4EFE6]/20",
+          icon: <Wallet className="h-5 w-5 text-emerald-400" />,
+          bg: "bg-[#181820] border-white/10",
           tag: "Savings",
-          tagColor: "text-[#6EE7B7] bg-[#D4EFE6]/10",
+          tagColor: "text-emerald-400 bg-emerald-500/10 border border-emerald-500/20",
         };
     }
   };
@@ -54,8 +54,8 @@ export default function AccountCard({
       onClick={onClick}
       className={`p-6 rounded-[26px] border transition-all duration-300 flex flex-col justify-between min-h-[190px] cursor-pointer group hover:scale-[1.01] shadow-xl relative overflow-hidden select-none ${
         isSelected
-          ? "border-white/80 ring-2 ring-white/20 bg-[#181922]"
-          : "bg-[#13141B] border-white/[0.07] hover:border-white/25 hover:bg-[#161720]"
+          ? "border-white ring-1 ring-white/30 bg-[#16161D]"
+          : "bg-[#121216] border-white/[0.08] hover:border-white/20 hover:bg-[#16161B]"
       }`}
     >
       {/* Top Header Row */}
@@ -79,7 +79,7 @@ export default function AccountCard({
         </div>
 
         {isSelected && (
-          <span className="text-[10px] font-bold uppercase tracking-wider bg-white text-black px-2.5 py-0.5 rounded-full">
+          <span className="text-[10px] font-bold uppercase tracking-wider bg-white text-black px-2.5 py-0.5 rounded-full shadow-sm">
             Active
           </span>
         )}
@@ -93,10 +93,10 @@ export default function AccountCard({
         <div
           className={`text-2xl sm:text-3xl font-extrabold tracking-tight font-sans ${
             isCreditCard
-              ? "text-[#FF8470]"
+              ? "text-rose-400"
               : account.balance_cents >= 0
               ? "text-white"
-              : "text-[#FF8470]"
+              : "text-rose-400"
           }`}
         >
           {formatCurrency(account.balance_cents, account.currency)}
@@ -104,7 +104,7 @@ export default function AccountCard({
       </div>
 
       {/* Bottom Spend Inset Pill */}
-      <div className="bg-[#1A1B24] border border-white/[0.05] rounded-2xl px-3.5 py-2.5 flex items-center justify-between text-xs mt-auto">
+      <div className="bg-[#18181E] border border-white/[0.06] rounded-2xl px-3.5 py-2.5 flex items-center justify-between text-xs mt-auto">
         <div className="flex flex-col">
           <span className="text-[10px] text-neutral-400 font-medium uppercase tracking-wider">
             Spent This Month

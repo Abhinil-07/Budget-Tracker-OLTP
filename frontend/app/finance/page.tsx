@@ -23,7 +23,11 @@ import {
   Users, 
   ShoppingBag, 
   Calendar,
-  Sparkles 
+  Sparkles,
+  Plus,
+  Eye,
+  ArrowUpRight,
+  CreditCard
 } from "lucide-react";
 import Link from "next/link";
 
@@ -245,53 +249,61 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Hero Stacked Card Deck (Inspired by Reference Design) */}
+      {/* Aurora Hero Card (Matching Reference Design) */}
       {user && (
         <div className="mb-8 select-none">
-          {/* Main Floating Highlight Card */}
-          <div className="bg-[#D4EFE6] text-[#111317] p-6 sm:p-7 rounded-[28px] shadow-2xl relative overflow-hidden transition-all duration-300">
+          <div className="bg-aurora text-white p-7 sm:p-8 rounded-[32px] shadow-2xl relative overflow-hidden border border-white/10">
             {/* Top row */}
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-600 block">
-                  Estimated Net Worth
-                </span>
-                <h2 className="text-sm font-semibold text-neutral-800">
-                  Welcome back, <span className="font-bold text-black">{user.email?.split("@")[0] || "User"}</span> 👋
-                </h2>
+            <div className="flex items-center justify-between gap-4 mb-6">
+              <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-md px-3.5 py-1.5 rounded-full text-xs font-semibold text-white border border-white/15 shadow-sm">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Total Net Worth</span>
               </div>
 
-              {/* Circular gauge badge in top-right (matching reference) */}
-              <div className="w-12 h-12 rounded-full border-2 border-neutral-900/15 bg-white/40 backdrop-blur-sm flex items-center justify-center shrink-0 shadow-sm">
-                <div className="flex flex-col items-center leading-none">
-                  <ArrowUp className="h-3.5 w-3.5 text-emerald-800 stroke-[2.5]" />
-                  <span className="text-[9px] font-extrabold text-neutral-900 mt-0.5">Live</span>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/15 flex items-center justify-center text-white/80">
+                  <Eye className="h-4 w-4" />
                 </div>
               </div>
             </div>
 
-            {/* Huge Bold Value */}
-            <div className="my-4">
-              <div className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight font-sans text-[#111317]">
+            {/* Middle: Amount & Greeting */}
+            <div className="my-2">
+              <span className="text-xs font-medium text-white/70 uppercase tracking-wider block mb-1">
+                Total Balance
+              </span>
+              <div className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white drop-shadow-sm font-sans">
                 {formatCurrency(netWorthCents, "INR")}
               </div>
+              <p className="text-xs sm:text-sm text-white/80 mt-2 font-medium">
+                Welcome back, <span className="text-white font-bold">{user.email?.split("@")[0] || "User"}</span> 👋
+              </p>
             </div>
 
-            {/* Bottom Inflow / Cashflow Pills */}
-            <div className="flex items-center flex-wrap gap-2 pt-2 border-t border-black/10 text-xs">
-              <div className="inline-flex items-center gap-1.5 bg-white/70 px-3 py-1 rounded-full font-semibold text-neutral-800 shadow-xs">
-                <TrendingUp className="h-3.5 w-3.5 text-emerald-700" />
+            {/* Bottom Quick Actions Row (Matching Send / Receive / Tap Up in Reference) */}
+            <div className="flex items-center flex-wrap gap-3 pt-5 mt-4 border-t border-white/10">
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="bg-white hover:bg-neutral-100 text-black font-bold px-4 py-2.5 rounded-2xl transition-all shadow-lg flex items-center gap-2 text-xs active:scale-95 cursor-pointer"
+              >
+                <Plus className="h-4 w-4 stroke-[2.5]" />
+                <span>Log Transaction</span>
+              </button>
+
+              <Link
+                href="/finance/accounts"
+                className="bg-white/15 hover:bg-white/20 backdrop-blur-md text-white font-medium px-4 py-2.5 rounded-2xl border border-white/15 transition-all flex items-center gap-2 text-xs"
+              >
+                <CreditCard className="h-3.5 w-3.5" />
+                <span>{accounts.length} Accounts</span>
+              </Link>
+
+              <div className="sm:ml-auto inline-flex items-center gap-1.5 bg-black/25 backdrop-blur-md px-3.5 py-2 rounded-2xl text-xs font-medium text-white/90 border border-white/10">
+                <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
                 <span>+{formatCurrency(mtdIncomeCents, "INR")} Inflow MTD</span>
-              </div>
-              <div className="inline-flex items-center gap-1.5 bg-black/5 px-3 py-1 rounded-full font-medium text-neutral-700">
-                <span>{accounts.length} Accounts Connected</span>
               </div>
             </div>
           </div>
-
-          {/* Stacked 3D Card Deck Silhouettes */}
-          <div className="w-[94%] mx-auto h-2.5 bg-[#181922] rounded-b-[24px] border-b border-x border-white/[0.06] opacity-80" />
-          <div className="w-[88%] mx-auto h-2 bg-[#121318] rounded-b-[20px] border-b border-x border-white/[0.04] opacity-50" />
         </div>
       )}
 
@@ -306,7 +318,7 @@ export default function Dashboard() {
       </div>
 
       {/* Timeframe Selector Panel */}
-      <div className="mb-6 p-4 rounded-[22px] bg-[#13141B] border border-white/[0.07] flex items-center justify-between flex-wrap gap-3 select-none">
+      <div className="mb-6 p-4 rounded-2xl bg-[#121216] border border-white/[0.08] flex items-center justify-between flex-wrap gap-3 select-none">
         <div className="flex items-center gap-2.5">
           <Calendar className="h-4 w-4 text-neutral-400" />
           <span className="text-xs text-neutral-400 uppercase font-mono tracking-wider font-semibold">
@@ -315,7 +327,7 @@ export default function Dashboard() {
           <select
             value={selectedTimeframe}
             onChange={(e) => setSelectedTimeframe(e.target.value)}
-            className="bg-[#1A1B24] border border-white/10 rounded-xl px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:ring-1 focus:ring-white cursor-pointer min-w-[150px]"
+            className="bg-[#18181D] border border-white/10 rounded-xl px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:ring-1 focus:ring-white cursor-pointer min-w-[150px]"
           >
             {timeframes.map((tf: { label: string; value: string }) => (
               <option key={tf.value} value={tf.value}>
@@ -327,7 +339,7 @@ export default function Dashboard() {
         {selectedTimeframe && timeframes.length > 0 && selectedTimeframe !== timeframes[0].value && (
           <button
             onClick={() => setSelectedTimeframe(timeframes[0].value)}
-            className="text-xs text-white hover:underline font-mono bg-white/10 px-3 py-1 rounded-lg"
+            className="text-xs text-white hover:underline font-mono bg-white/10 px-3 py-1.5 rounded-xl"
           >
             Back to Current Month
           </button>
@@ -390,96 +402,85 @@ export default function Dashboard() {
         <BalancesCard />
       </div>
 
-      {/* Primary 4 Metric Cards (Directly matching Left Device in Reference) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+      {/* Primary 4 Metric Cards (Clean Minimal Dark Cards - Matching Reference Analytics) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-8">
         {budgetLoading ? (
           [1, 2, 3, 4].map((n) => (
-            <div key={n} className="bg-[#13141B] p-6 rounded-[26px] border border-white/[0.06] animate-pulse space-y-3 h-[150px] flex flex-col justify-between">
-              <div className="h-10 w-10 bg-white/10 rounded-full" />
-              <div>
-                <div className="h-6 bg-white/10 w-3/4 rounded-md mb-2" />
-                <div className="h-3 bg-white/10 w-1/2 rounded" />
-              </div>
+            <div key={n} className="bg-[#121216] p-5 rounded-2xl border border-white/[0.06] animate-pulse space-y-3 h-[135px] flex flex-col justify-between">
+              <div className="h-4 bg-white/10 w-1/3 rounded" />
+              <div className="h-7 bg-white/10 w-2/3 rounded" />
             </div>
           ))
         ) : (
           <>
-            {/* Card 1: Spent MTD (Pale Blush/Peach) */}
-            <div className="bg-[#FDECE8] text-[#111317] p-6 rounded-[26px] shadow-lg border border-black/5 flex flex-col justify-between min-h-[160px] transition-all duration-300 hover:scale-[1.02] select-none">
+            {/* Card 1: Spent MTD */}
+            <div className="bg-[#121216] border border-white/[0.08] hover:border-white/20 p-5 rounded-2xl shadow-lg flex flex-col justify-between min-h-[135px] transition-all duration-200 select-none">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-full border border-black/10 bg-white/80 flex items-center justify-center text-[#E11D48] shadow-xs">
-                  <TrendingDown className="h-5 w-5 stroke-[2.2]" />
+                <span className="text-xs font-medium text-neutral-400">Spent MTD</span>
+                <div className="w-8 h-8 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
+                  <TrendingDown className="h-4 w-4" />
                 </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#E11D48] bg-white/60 px-2 py-0.5 rounded-full">
-                  Outflow
-                </span>
               </div>
-              <div className="mt-3">
-                <div className="text-2xl lg:text-3xl font-extrabold tracking-tight font-sans text-[#111317]">
+              <div className="mt-2">
+                <div className="text-2xl sm:text-3xl font-extrabold tracking-tight font-sans text-white">
                   {formatCurrency(mtdSpentCents, "INR")}
                 </div>
-                <span className="text-xs font-semibold text-neutral-600 block mt-0.5">
-                  Spent MTD
+                <span className="text-[11px] font-medium text-rose-400/80 mt-1 block">
+                  Monthly Outflow
                 </span>
               </div>
             </div>
 
-            {/* Card 2: Remaining Budget (Pale Mint) */}
-            <div className="bg-[#D4EFE6] text-[#111317] p-6 rounded-[26px] shadow-lg border border-black/5 flex flex-col justify-between min-h-[160px] transition-all duration-300 hover:scale-[1.02] select-none">
+            {/* Card 2: Remaining Budget */}
+            <div className="bg-[#121216] border border-white/[0.08] hover:border-white/20 p-5 rounded-2xl shadow-lg flex flex-col justify-between min-h-[135px] transition-all duration-200 select-none">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-full border border-black/10 bg-white/80 flex items-center justify-center text-[#059669] shadow-xs">
-                  <Wallet className="h-5 w-5 stroke-[2.2]" />
+                <span className="text-xs font-medium text-neutral-400">Remaining Budget</span>
+                <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                  <Wallet className="h-4 w-4" />
                 </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#059669] bg-white/60 px-2 py-0.5 rounded-full">
-                  Budget
-                </span>
               </div>
-              <div className="mt-3">
-                <div className="text-2xl lg:text-3xl font-extrabold tracking-tight font-sans text-[#111317]">
+              <div className="mt-2">
+                <div className="text-2xl sm:text-3xl font-extrabold tracking-tight font-sans text-white">
                   {formatCurrency(remainingCents, "INR")}
                 </div>
-                <span className="text-xs font-semibold text-neutral-600 block mt-0.5">
-                  Remaining Budget
+                <span className="text-[11px] font-medium text-emerald-400/80 mt-1 block">
+                  Available to Spend
                 </span>
               </div>
             </div>
 
-            {/* Card 3: Income MTD (Pale Lavender) */}
-            <div className="bg-[#ECEBFB] text-[#111317] p-6 rounded-[26px] shadow-lg border border-black/5 flex flex-col justify-between min-h-[160px] transition-all duration-300 hover:scale-[1.02] select-none">
+            {/* Card 3: Income MTD */}
+            <div className="bg-[#121216] border border-white/[0.08] hover:border-white/20 p-5 rounded-2xl shadow-lg flex flex-col justify-between min-h-[135px] transition-all duration-200 select-none">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-full border border-black/10 bg-white/80 flex items-center justify-center text-[#4F46E5] shadow-xs">
-                  <TrendingUp className="h-5 w-5 stroke-[2.2]" />
+                <span className="text-xs font-medium text-neutral-400">Income MTD</span>
+                <div className="w-8 h-8 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
+                  <TrendingUp className="h-4 w-4" />
                 </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#4F46E5] bg-white/60 px-2 py-0.5 rounded-full">
-                  Income
-                </span>
               </div>
-              <div className="mt-3">
-                <div className="text-2xl lg:text-3xl font-extrabold tracking-tight font-sans text-[#111317]">
+              <div className="mt-2">
+                <div className="text-2xl sm:text-3xl font-extrabold tracking-tight font-sans text-white">
                   {formatCurrency(mtdIncomeCents, "INR")}
                 </div>
-                <span className="text-xs font-semibold text-neutral-600 block mt-0.5">
-                  Income MTD
+                <span className="text-[11px] font-medium text-cyan-400/80 mt-1 block">
+                  Total Monthly Inflow
                 </span>
               </div>
             </div>
 
-            {/* Card 4: Owed to Me (Crisp Porcelain / Cream) */}
-            <div className="bg-[#F8F9FA] text-[#111317] p-6 rounded-[26px] shadow-lg border border-black/5 flex flex-col justify-between min-h-[160px] transition-all duration-300 hover:scale-[1.02] select-none">
+            {/* Card 4: Owed to Me */}
+            <div className="bg-[#121216] border border-white/[0.08] hover:border-white/20 p-5 rounded-2xl shadow-lg flex flex-col justify-between min-h-[135px] transition-all duration-200 select-none">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-full border border-black/10 bg-white flex items-center justify-center text-neutral-900 shadow-xs">
-                  <Users className="h-5 w-5 stroke-[2.2]" />
+                <span className="text-xs font-medium text-neutral-400">Owed to Me</span>
+                <div className="w-8 h-8 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">
+                  <Users className="h-4 w-4" />
                 </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-neutral-700 bg-neutral-200/60 px-2 py-0.5 rounded-full">
-                  Splits
-                </span>
               </div>
-              <div className="mt-3">
-                <div className="text-2xl lg:text-3xl font-extrabold tracking-tight font-sans text-[#111317]">
+              <div className="mt-2">
+                <div className="text-2xl sm:text-3xl font-extrabold tracking-tight font-sans text-white">
                   {formatCurrency(totalOwedCents, "INR")}
                 </div>
-                <span className="text-xs font-semibold text-neutral-600 block mt-0.5">
-                  Owed to Me
+                <span className="text-[11px] font-medium text-purple-400/80 mt-1 block">
+                  Shared Splits Balance
                 </span>
               </div>
             </div>
@@ -487,8 +488,8 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Monthly Budget Progress (Inspired by Right Device in Reference with Circular Dial) */}
-      <div className="bg-[#13141B] p-6 sm:p-7 rounded-[26px] border border-white/[0.07] shadow-xl mb-8">
+      {/* Monthly Budget Progress (Clean Dark Card with Aurora Indicator) */}
+      <div className="bg-[#121216] p-6 sm:p-7 rounded-3xl border border-white/[0.08] shadow-xl mb-8">
         {budgetLoading ? (
           <div className="space-y-4 animate-pulse">
             <div className="h-5 bg-white/10 w-1/3 rounded" />
@@ -506,11 +507,10 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            {/* Left circular gauge indicator */}
+            {/* Left Circular Gauge */}
             <div className="flex items-center gap-5">
-              <div className="relative w-20 h-20 shrink-0 flex items-center justify-center">
-                <svg className="w-20 h-20 -rotate-90" viewBox="0 0 36 36">
-                  {/* Background track circle */}
+              <div className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+                <svg className="w-16 h-16 sm:w-20 sm:h-20 -rotate-90" viewBox="0 0 36 36">
                   <path
                     className="text-white/10"
                     strokeWidth="3.5"
@@ -518,14 +518,13 @@ export default function Dashboard() {
                     fill="none"
                     d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                   />
-                  {/* Active progress stroke */}
                   <path
                     className={
                       percentageUsed >= 90
-                        ? "text-[#EF4444]"
+                        ? "text-rose-500"
                         : percentageUsed >= 75
-                        ? "text-[#F59E0B]"
-                        : "text-[#D4EFE6]"
+                        ? "text-amber-500"
+                        : "text-cyan-400"
                     }
                     strokeDasharray={`${Math.min(percentageUsed, 100)}, 100`}
                     strokeWidth="3.5"
@@ -536,14 +535,14 @@ export default function Dashboard() {
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-base font-extrabold text-white">
+                  <span className="text-sm sm:text-base font-extrabold text-white">
                     {Math.round(percentageUsed)}%
                   </span>
                 </div>
               </div>
 
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 block mb-0.5">
+                <span className="text-xs font-medium text-neutral-400 block mb-0.5">
                   Monthly Budget Status
                 </span>
                 <div className="text-lg sm:text-xl font-bold text-white tracking-tight">
@@ -568,15 +567,9 @@ export default function Dashboard() {
 
             {/* Right progress bar and manage link */}
             <div className="flex-1 max-w-md flex flex-col gap-2">
-              <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden p-0.5">
+              <div className="w-full bg-white/10 rounded-full h-2.5 overflow-hidden p-0.5">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    percentageUsed >= 90
-                      ? "bg-danger"
-                      : percentageUsed >= 75
-                      ? "bg-warning"
-                      : "bg-[#D4EFE6]"
-                  }`}
+                  className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-indigo-500 to-pink-500 transition-all duration-500"
                   style={{ width: `${Math.min(percentageUsed, 100)}%` }}
                 />
               </div>
@@ -594,8 +587,8 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Recent Transactions List (Matching Center Device Bottom List) */}
-      <div className="bg-[#13141B] rounded-[26px] border border-white/[0.07] overflow-hidden shadow-xl">
+      {/* Recent Transactions List (Matching Device 1 Reference) */}
+      <div className="bg-[#121216] rounded-3xl border border-white/[0.08] overflow-hidden shadow-xl">
         <div className="px-6 py-5 border-b border-white/[0.06] flex justify-between items-center">
           <div>
             <h3 className="font-bold text-base text-white">Recent Transactions</h3>
@@ -609,9 +602,9 @@ export default function Dashboard() {
             <span className="text-xs text-neutral-500 font-mono hidden sm:inline">Showing last 10</span>
             <Link
               href="/finance/transactions"
-              className="text-xs font-semibold bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-full transition-colors"
+              className="text-xs font-semibold bg-white/10 hover:bg-white/20 text-white px-3.5 py-1.5 rounded-full transition-colors"
             >
-              View All & Filter &rarr;
+              View all &rarr;
             </Link>
           </div>
         </div>
@@ -648,26 +641,20 @@ export default function Dashboard() {
               return (
                 <div
                   key={txn.id}
-                  className="px-6 py-4 flex items-center justify-between hover:bg-white/[0.03] transition-colors duration-150 gap-4"
+                  className="px-6 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors duration-150 gap-4"
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
                     {/* Circular Icon Pill (Matching Reference) */}
-                    <div
-                      className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 border ${
-                        isIncome
-                          ? "bg-[#D4EFE6]/10 border-[#D4EFE6]/20 text-[#6EE7B7]"
-                          : "bg-[#FDECE8]/10 border-[#FDECE8]/20 text-[#FFA494]"
-                      }`}
-                    >
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 border bg-[#18181F] border-white/10 text-white/90">
                       {isIncome ? (
-                        <TrendingUp className="h-5 w-5" />
+                        <TrendingUp className="h-4 w-4 text-emerald-400" />
                       ) : (
-                        <ShoppingBag className="h-5 w-5" />
+                        <ShoppingBag className="h-4 w-4 text-neutral-300" />
                       )}
                     </div>
 
                     <div className="min-w-0">
-                      <span className="text-sm font-bold text-white block truncate">
+                      <span className="text-sm font-semibold text-white block truncate">
                         {txn.description || "Unlabeled Transaction"}
                       </span>
                       <div className="flex items-center gap-2 mt-0.5">
@@ -683,9 +670,9 @@ export default function Dashboard() {
 
                   <div className="flex flex-col items-end shrink-0">
                     <span
-                      className={`text-sm sm:text-base font-extrabold font-sans tracking-tight ${
+                      className={`text-sm sm:text-base font-bold font-sans tracking-tight ${
                         isIncome
-                          ? "text-[#6EE7B7]"
+                          ? "text-emerald-400"
                           : txn.is_included === false
                           ? "text-neutral-500 line-through"
                           : "text-white"
