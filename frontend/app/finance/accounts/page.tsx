@@ -5,38 +5,21 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useTransactions } from "@/hooks/useTransactions";
 import PageWrapper from "@/components/layout/PageWrapper";
+import AccountCard from "@/components/accounts/AccountCard";
 import AddAccountModal from "@/components/accounts/AddAccountModal";
-import { formatCurrency } from "@/lib/formatCurrency";
-import { ACCOUNT_TYPES } from "@/lib/constants";
-import type { AccountType } from "@/lib/constants";
-import { api, ApiError } from "@/lib/api";
-import { useQueryClient } from "@tanstack/react-query";
+import EditAccountModal from "@/components/accounts/EditAccountModal";
+import { Account } from "@/types/account";
 import {
-  Wallet,
+  CreditCard,
   Plus,
-  Edit2,
-  Trash2,
-  Check,
-  X,
   AlertCircle,
-  HelpCircle,
+  Sparkles,
 } from "lucide-react";
 
 export default function AccountsPage() {
-  const queryClient = useQueryClient();
   const { token, hydrated, hydrate } = useAuthStore();
   const [showAddModal, setShowAddModal] = useState(false);
-
-  // Inline editing states
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editBalance, setEditBalance] = useState("");
-  const [editError, setEditError] = useState<string | null>(null);
-
-  // Deletion states
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
 
   // Hydrate auth
   useEffect(() => {
@@ -53,7 +36,7 @@ export default function AccountsPage() {
   // Fetch accounts
   const { data: accounts = [], isLoading: accountsLoading, error: accountsError } = useAccounts();
 
-  // Fetch transactions to find which accounts have transactions
+  // Fetch transactions to find accounts with transactions and calculate MTD spend
   const { data: txnData } = useTransactions({ page_size: 1000 });
 
   // Compute a set of account IDs that have transactions
@@ -65,75 +48,24 @@ export default function AccountsPage() {
     return ids;
   }, [txnData]);
 
-  // Inline edit handlers
-  const startEdit = (id: string, currentName: string, currentBalanceCents: number) => {
-    setEditingId(id);
-    setEditName(currentName);
-    setEditBalance((currentBalanceCents / 100).toFixed(2));
-    setEditError(null);
-  };
+  // Calculate current month's spend for each account
+  const spentByAccount = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!txnData?.items) return map;
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
 
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditName("");
-    setEditBalance("");
-    setEditError(null);
-  };
-
-  const saveEdit = async (id: string) => {
-    if (!editName.trim()) {
-      setEditError("Name cannot be empty.");
-      return;
-    }
-    const balanceNum = parseFloat(editBalance);
-    if (isNaN(balanceNum)) {
-      setEditError("Please enter a valid numeric balance.");
-      return;
-    }
-    const balanceCents = Math.round(balanceNum * 100);
-    try {
-      const res = await api.accounts.update(id, {
-        name: editName.trim(),
-        balance_cents: balanceCents,
-      });
-      if (res.error) throw new Error(res.error.message);
-
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
-      queryClient.invalidateQueries({ queryKey: ["transactions"] }); // invalidate transactions to update running balance checks if any
-      setEditingId(null);
-    } catch (err: unknown) {
-      const message =
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
-          ? err.message
-          : "Failed to update account details.";
-      setEditError(message);
-    }
-  };
-
-  // Delete handlers
-  const confirmDelete = async (id: string) => {
-    setIsDeleting(true);
-    setDeleteError(null);
-    try {
-      const res = await api.accounts.delete(id);
-      if (res.error) throw new Error(res.error.message);
-
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
-      setDeletingId(null);
-    } catch (err: unknown) {
-      const message =
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
-          ? err.message
-          : "Cannot delete account. Ensure it has no remaining transactions.";
-      setDeleteError(message);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
+    txnData.items.forEach((t) => {
+      if (t.type === "expense") {
+        const d = new Date(t.txn_date);
+        if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+          map.set(t.account_id, (map.get(t.account_id) || 0) + t.amount_cents);
+        }
+      }
+    });
+    return map;
+  }, [txnData]);
 
   if (!hydrated || !token) {
     return (
@@ -147,239 +79,99 @@ export default function AccountsPage() {
   }
 
   return (
-    <PageWrapper title="Accounts">
+    <PageWrapper title="Cards">
       {/* Add Account Modal */}
       <AddAccountModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
 
+      {/* Edit Account Modal */}
+      <EditAccountModal
+        isOpen={!!editingAccount}
+        onClose={() => setEditingAccount(null)}
+        account={editingAccount}
+        hasTransactions={editingAccount ? accountsWithTxns.has(editingAccount.id) : false}
+      />
+
       {/* Main Container */}
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="space-y-7">
+        {/* Top Header Row (Matching Reference Video Frame 2 "Cards" header) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
           <div>
-            <h2 className="text-lg font-semibold text-text-primary">Accounts Management</h2>
-            <p className="text-sm text-text-secondary mt-1">
-              Add new banking profiles or update credentials.
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="text-2xl font-extrabold text-white tracking-tight">Cards</h2>
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-white/10 text-white/80">
+                {accounts.length} Active
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-neutral-400">
+              Your digital cards and banking liabilities. Tap any card for settings and details.
             </p>
           </div>
+
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-accent hover:bg-accent/90 text-text-primary rounded-lg text-sm font-semibold transition-all duration-200 shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto"
+            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white hover:bg-neutral-100 text-black rounded-2xl text-xs font-bold transition-all duration-200 shadow-xl shadow-white/10 hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto cursor-pointer"
           >
-            <Plus className="h-4.5 w-4.5" />
-            <span>Add Account</span>
+            <Plus className="h-4 w-4 stroke-[2.5]" />
+            <span>Add Card</span>
           </button>
         </div>
 
         {accountsError && (
-          <div className="bg-danger/10 border border-danger/25 text-danger px-4 py-3 rounded-lg text-sm flex items-center gap-2">
-            <AlertCircle className="h-5 w-5" />
-            <span>Error loading accounts. Please refresh.</span>
+          <div className="bg-rose-500/10 border border-rose-500/25 text-rose-400 px-4 py-3 rounded-2xl text-xs flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            <span>Error loading cards. Please refresh.</span>
           </div>
         )}
 
         {accountsLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((n) => (
-              <div key={n} className="bg-surface border border-border p-6 rounded-xl h-44 animate-pulse" />
+              <div
+                key={n}
+                className="bg-[#121216] border border-white/[0.08] p-7 rounded-[32px] h-[220px] animate-pulse flex flex-col justify-between"
+              >
+                <div className="h-4 bg-white/10 w-1/3 rounded-full" />
+                <div className="h-8 bg-white/10 w-2/3 rounded-full" />
+                <div className="flex gap-2">
+                  <div className="w-9 h-9 rounded-full bg-white/10" />
+                  <div className="w-9 h-9 rounded-full bg-white/10" />
+                  <div className="w-9 h-9 rounded-full bg-white/10" />
+                </div>
+              </div>
             ))}
           </div>
         ) : accounts.length === 0 ? (
-          <div className="bg-surface p-12 rounded-xl border border-border text-center">
-            <Wallet className="h-10 w-10 text-text-muted mx-auto mb-4" />
-            <h3 className="font-semibold text-text-primary">No Accounts Configured</h3>
-            <p className="text-text-secondary text-sm mt-1 max-w-sm mx-auto">
-              Configure your savings, current, or credit card accounts to get started tracking transactions.
+          <div className="bg-[#121216] p-12 rounded-[32px] border border-white/[0.08] text-center max-w-lg mx-auto my-8">
+            <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4 text-white/70">
+              <CreditCard className="h-7 w-7" />
+            </div>
+            <h3 className="font-bold text-white text-base">No Cards Added Yet</h3>
+            <p className="text-neutral-400 text-xs mt-1.5 max-w-sm mx-auto leading-relaxed">
+              Connect your savings, checking, or credit card accounts to visualize your digital wallet.
             </p>
             <button
               onClick={() => setShowAddModal(true)}
-              className="mt-4 px-4 py-2 bg-accent hover:bg-accent/90 text-text-primary rounded-lg text-sm font-semibold transition-all"
+              className="mt-5 px-5 py-2.5 bg-white hover:bg-neutral-100 text-black rounded-2xl text-xs font-bold transition-all cursor-pointer shadow-lg active:scale-95"
             >
-              Add Your First Account
+              Add Your First Card
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {accounts.map((acc) => {
-              const isEditing = editingId === acc.id;
-              const hasTransactions = accountsWithTxns.has(acc.id);
-
-              return (
-                <div
-                  key={acc.id}
-                  className="bg-[#121216] border border-white/[0.08] hover:border-white/20 rounded-[26px] p-6 flex flex-col justify-between shadow-xl transition-all group"
-                >
-                  {/* Card Content (Header & Body) */}
-                  <div className="flex-1">
-                    {isEditing ? (
-                      <div className="space-y-3 bg-surface-raised/40 p-3 rounded-lg border border-border/50">
-                        <div>
-                          <label className="text-[10px] text-text-muted uppercase font-mono block mb-1">Account Name</label>
-                          <input
-                            type="text"
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            className="w-full bg-surface-raised border border-border rounded px-2.5 py-1 text-xs font-semibold text-text-primary focus:outline-none focus:ring-1 focus:ring-accent"
-                            placeholder="Account Name"
-                            autoFocus
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") saveEdit(acc.id);
-                              if (e.key === "Escape") cancelEdit();
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] text-text-muted uppercase font-mono block mb-1">
-                            {acc.type === "credit_card" ? "Owed Balance (₹)" : "Current Balance (₹)"}
-                          </label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={editBalance}
-                            onChange={(e) => setEditBalance(e.target.value)}
-                            className="w-full bg-surface-raised border border-border rounded px-2.5 py-1 text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-accent"
-                            placeholder="0.00"
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") saveEdit(acc.id);
-                              if (e.key === "Escape") cancelEdit();
-                            }}
-                          />
-                        </div>
-                        {editError && <p className="text-[10px] text-danger font-mono">{editError}</p>}
-                        <div className="flex justify-end gap-2 pt-2 border-t border-border/40">
-                          <button
-                            onClick={cancelEdit}
-                            className="p-1 rounded bg-surface-raised border border-border hover:bg-border text-text-muted hover:text-text-primary transition-all"
-                            title="Cancel"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => saveEdit(acc.id)}
-                            className="p-1 rounded bg-success/15 border border-success/20 hover:bg-success/25 text-success transition-all"
-                            title="Save changes"
-                          >
-                            <Check className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        {/* Title and Type */}
-                        <div className="flex justify-between items-start gap-2 mb-4">
-                          <div className="min-w-0">
-                            <h3 className="font-semibold text-text-primary truncate text-base">
-                              {acc.name}
-                            </h3>
-                            <span className="text-xs text-text-muted uppercase font-mono tracking-wider">
-                              {ACCOUNT_TYPES[acc.type as AccountType] || acc.type}
-                            </span>
-                          </div>
-                          <button
-                            onClick={() => startEdit(acc.id, acc.name, acc.balance_cents)}
-                            className="p-1.5 rounded bg-surface-raised text-text-muted hover:text-text-primary opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Edit account details"
-                          >
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-
-                        {/* Balance */}
-                        <div className="my-5">
-                          <div className="text-xs text-text-muted uppercase tracking-wider mb-1 font-mono">
-                            {acc.type === "credit_card" ? "Owed Amount" : "Current Balance"}
-                          </div>
-                          <div
-                            className={`font-mono text-2xl font-bold tracking-tight ${
-                              acc.type === "credit_card"
-                                ? "text-danger"
-                                : acc.balance_cents >= 0
-                                ? "text-success"
-                                : "text-danger"
-                            }`}
-                          >
-                            {acc.type === "credit_card" && "₹ "}
-                            {formatCurrency(acc.balance_cents, acc.currency)}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Card Footer: Info & Delete Actions */}
-                  <div className="flex justify-between items-center border-t border-border/50 pt-4">
-                    <span className="text-[10px] text-text-muted font-mono uppercase tracking-widest truncate max-w-[150px]">
-                      {acc.account_number ? `#...${acc.account_number.slice(-4)}` : "No Acc Number"}
-                    </span>
-
-                    {/* Delete Action */}
-                    <div className="flex items-center gap-1.5">
-                      {hasTransactions ? (
-                        <div className="relative group/tooltip">
-                          <button
-                            disabled
-                            className="p-1.5 rounded text-text-muted/30 cursor-not-allowed"
-                            title="Cannot delete accounts with existing transactions"
-                          >
-                            <Trash2 className="h-4.5 w-4.5" />
-                          </button>
-                          <span className="absolute bottom-full right-0 mb-2 w-48 scale-0 group-hover/tooltip:scale-100 transition-all origin-bottom-right duration-100 bg-surface-raised border border-border text-[10px] text-text-secondary font-mono p-2 rounded shadow-xl pointer-events-none">
-                            Locked: account contains transactions. Delete transactions first.
-                          </span>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setDeletingId(acc.id)}
-                          className="p-1.5 rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-colors"
-                          title="Delete account"
-                        >
-                          <Trash2 className="h-4.5 w-4.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          /* Cards Grid / Stack */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
+            {accounts.map((acc, index) => (
+              <AccountCard
+                key={acc.id}
+                account={acc}
+                colorIndex={index}
+                spentThisMonthCents={spentByAccount.get(acc.id) || 0}
+                onClick={() => setEditingAccount(acc)}
+                onEdit={() => setEditingAccount(acc)}
+              />
+            ))}
           </div>
         )}
       </div>
-
-      {/* Delete Confirmation Modal */}
-      {deletingId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeletingId(null)} />
-          <div className="relative bg-surface border border-border rounded-xl p-6 w-full max-w-md mx-4 animate-in fade-in zoom-in-95 duration-150 space-y-4">
-            <h4 className="text-base font-semibold text-text-primary">Delete Account</h4>
-            <p className="text-sm text-text-secondary">
-              Are you sure you want to delete this account? This action is permanent and cannot be undone.
-            </p>
-            {deleteError && (
-              <div className="bg-danger/10 border border-danger/25 text-danger px-3 py-2 rounded text-xs">
-                {deleteError}
-              </div>
-            )}
-            <div className="flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setDeletingId(null);
-                  setDeleteError(null);
-                }}
-                className="px-4 py-2 border border-border hover:bg-surface-raised rounded-lg text-sm font-medium text-text-secondary hover:text-text-primary transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => confirmDelete(deletingId)}
-                disabled={isDeleting}
-                className="px-4 py-2 bg-danger hover:bg-danger/90 disabled:opacity-50 text-white rounded-lg text-sm font-semibold transition-all shadow-lg shadow-danger/25"
-              >
-                {isDeleting ? "Deleting..." : "Confirm Delete"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </PageWrapper>
   );
 }

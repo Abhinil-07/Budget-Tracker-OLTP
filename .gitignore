@@ -48,3 +48,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 *.log
+
+# Media & Build Artifacts
+*.mp4
+*.tsbuildinfo

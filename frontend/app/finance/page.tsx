@@ -27,6 +27,7 @@ import {
   Plus,
   Eye,
   ArrowUpRight,
+  ArrowDownLeft,
   CreditCard
 } from "lucide-react";
 import Link from "next/link";
@@ -35,6 +36,7 @@ export default function Dashboard() {
   const { token, user, hydrated, hydrate } = useAuthStore();
   const { selectedAccountId, setSelectedAccountId } = useFinanceStore();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [addModalType, setAddModalType] = useState<"expense" | "income">("expense");
 
   // Hydrate auth state from localStorage on mount
   useEffect(() => {
@@ -237,10 +239,18 @@ export default function Dashboard() {
   const percentageUsed = budget?.percentage_used || 0;
 
   return (
-    <PageWrapper title="Dashboard" onAddTransactionClick={() => setShowAddModal(true)} actionLabel="Log Entry">
+    <PageWrapper
+      title="Dashboard"
+      onAddTransactionClick={() => {
+        setAddModalType("expense");
+        setShowAddModal(true);
+      }}
+      actionLabel="Log Entry"
+    >
       <AddTransactionModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
+        defaultType={addModalType}
       />
       {isError && (
         <div className="bg-danger/10 border border-danger/25 text-danger px-4 py-3 rounded-lg text-sm flex items-center gap-2">
@@ -249,12 +259,12 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Aurora Hero Card (Matching Reference Design) */}
+      {/* Aurora Hero Card (Matching Reference Video Frame 0) */}
       {user && (
         <div className="mb-8 select-none">
           <div className="bg-aurora text-white p-7 sm:p-8 rounded-[32px] shadow-2xl relative overflow-hidden border border-white/10">
             {/* Top row */}
-            <div className="flex items-center justify-between gap-4 mb-6">
+            <div className="flex items-center justify-between gap-4 mb-6 relative z-10">
               <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-md px-3.5 py-1.5 rounded-full text-xs font-semibold text-white border border-white/15 shadow-sm">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span>Total Net Worth</span>
@@ -267,27 +277,70 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Middle: Amount & Greeting */}
-            <div className="my-2">
-              <span className="text-xs font-medium text-white/70 uppercase tracking-wider block mb-1">
-                Total Balance
-              </span>
-              <div className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white drop-shadow-sm font-sans">
-                {formatCurrency(netWorthCents, "INR")}
+            {/* Middle: Amount & Peeking Cards Deck (Frame 0 in reference video) */}
+            <div className="flex items-center justify-between relative z-10 my-2">
+              <div>
+                <span className="text-xs font-medium text-white/70 uppercase tracking-wider block mb-1">
+                  Total Balance
+                </span>
+                <div className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white drop-shadow-sm font-sans">
+                  {formatCurrency(netWorthCents, "INR")}
+                </div>
+                <p className="text-xs sm:text-sm text-white/80 mt-2 font-medium">
+                  Welcome back, <span className="text-white font-bold">{user.email?.split("@")[0] || "User"}</span> 👋
+                </p>
               </div>
-              <p className="text-xs sm:text-sm text-white/80 mt-2 font-medium">
-                Welcome back, <span className="text-white font-bold">{user.email?.split("@")[0] || "User"}</span> 👋
-              </p>
+
+              {/* Peeking Cards Deck preview on right edge */}
+              <Link
+                href="/finance/accounts"
+                className="hidden md:flex flex-col items-end group cursor-pointer transition-transform duration-300 hover:scale-105 select-none"
+                title="View All Cards"
+              >
+                <div className="relative w-28 h-32">
+                  {/* Cyan Card (Back layer) */}
+                  <div className="absolute right-0 top-0 w-22 h-28 rounded-2xl bg-gradient-to-br from-[#38BDF8] to-[#0284C7] shadow-lg transform rotate-8 group-hover:rotate-12 transition-transform duration-300 opacity-60 border border-white/20" />
+                  {/* Mint Card (Middle layer) */}
+                  <div className="absolute right-2 top-2 w-22 h-28 rounded-2xl bg-gradient-to-br from-[#29EAAF] to-[#04BA88] shadow-lg transform rotate-4 group-hover:rotate-6 transition-transform duration-300 opacity-80 border border-white/20" />
+                  {/* Lime Card (Front layer) */}
+                  <div className="absolute right-4 top-4 w-22 h-28 rounded-2xl bg-gradient-to-br from-[#F4FE52] to-[#BEE60A] shadow-xl transform group-hover:-translate-x-1 transition-transform duration-300 border border-white/30 p-2.5 flex flex-col justify-between">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[8px] font-black text-black/85 tracking-tighter">DIGITAL</span>
+                      <div className="w-2 h-2 rounded-full bg-black/25" />
+                    </div>
+                    <div>
+                      <div className="text-[7px] font-mono text-black/60">•••• 7642</div>
+                      <div className="text-[9px] font-black text-black">Cards ({accounts.length})</div>
+                    </div>
+                  </div>
+                </div>
+              </Link>
             </div>
 
-            {/* Bottom Quick Actions Row (Matching Send / Receive / Tap Up in Reference) */}
-            <div className="flex items-center flex-wrap gap-3 pt-5 mt-4 border-t border-white/10">
+            {/* Bottom Quick Actions Row (Send / Request / Accounts) */}
+            <div className="flex items-center flex-wrap gap-3 pt-5 mt-4 border-t border-white/10 relative z-10">
+              {/* Send / Expense */}
               <button
-                onClick={() => setShowAddModal(true)}
-                className="bg-white hover:bg-neutral-100 text-black font-bold px-4 py-2.5 rounded-2xl transition-all shadow-lg flex items-center gap-2 text-xs active:scale-95 cursor-pointer"
+                onClick={() => {
+                  setAddModalType("expense");
+                  setShowAddModal(true);
+                }}
+                className="bg-white hover:bg-neutral-100 text-black font-extrabold px-4 py-2.5 rounded-2xl transition-all shadow-lg flex items-center gap-2 text-xs active:scale-95 cursor-pointer"
               >
-                <Plus className="h-4 w-4 stroke-[2.5]" />
-                <span>Log Transaction</span>
+                <ArrowUpRight className="h-4 w-4 stroke-[2.5]" />
+                <span>Send / Pay</span>
+              </button>
+
+              {/* Request / Income */}
+              <button
+                onClick={() => {
+                  setAddModalType("income");
+                  setShowAddModal(true);
+                }}
+                className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-bold px-4 py-2.5 rounded-2xl border border-white/20 transition-all shadow-lg flex items-center gap-2 text-xs active:scale-95 cursor-pointer"
+              >
+                <ArrowDownLeft className="h-4 w-4 stroke-[2.5]" />
+                <span>Request / Inflow</span>
               </button>
 
               <Link
@@ -295,7 +348,7 @@ export default function Dashboard() {
                 className="bg-white/15 hover:bg-white/20 backdrop-blur-md text-white font-medium px-4 py-2.5 rounded-2xl border border-white/15 transition-all flex items-center gap-2 text-xs"
               >
                 <CreditCard className="h-3.5 w-3.5" />
-                <span>{accounts.length} Accounts</span>
+                <span>{accounts.length} Cards</span>
               </Link>
 
               <div className="sm:ml-auto inline-flex items-center gap-1.5 bg-black/25 backdrop-blur-md px-3.5 py-2 rounded-2xl text-xs font-medium text-white/90 border border-white/10">
