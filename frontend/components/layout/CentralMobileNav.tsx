@@ -143,7 +143,7 @@ export default function CentralMobileNav() {
       {/* Floating Central Glassmorphic Dock for Both Desktop & Mobile */}
       <nav
         aria-label="Central Navigation Dock"
-        className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] sm:bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center justify-center pointer-events-auto select-none touch-manipulation"
+        className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center justify-center pointer-events-auto select-none touch-manipulation"
       >
         <div className="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-full bg-[#101014]/90 backdrop-blur-2xl border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.85)] ring-1 ring-white/10">
           {coreNavItems.map((item) => {

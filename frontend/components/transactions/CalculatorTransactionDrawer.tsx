@@ -268,8 +268,15 @@ export default function CalculatorTransactionDrawer({
       setErrorMessage("Please enter an amount greater than 0");
       return;
     }
-    if (!selectedAccountId && accounts.length > 0) {
-      setSelectedAccountId(accounts[0].id);
+    let targetAccId = selectedAccountId;
+    if (!targetAccId && accounts.length > 0) {
+      targetAccId = accounts[0].id;
+      setSelectedAccountId(targetAccId);
+    }
+
+    if (!targetAccId) {
+      setErrorMessage("Please select an account first");
+      return;
     }
 
     setErrorMessage(null);
@@ -278,7 +285,6 @@ export default function CalculatorTransactionDrawer({
     setAnimStage("topping_up");
 
     const amountCents = Math.round(parsedAmount * 100);
-    const targetAccId = selectedAccountId || (accounts[0] ? accounts[0].id : "");
 
     try {
       // Execute the API call concurrently with the animation

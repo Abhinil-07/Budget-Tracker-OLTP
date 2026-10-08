@@ -119,8 +119,17 @@ export default function TransactionsPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isExportingAll, setIsExportingAll] = useState(false);
 
-  // Splash Loading Screen (available on-demand via replay button, disabled by default so page loads instantly)
-  const [showIntroLoading, setShowIntroLoading] = useState(false);
+  // Splash Loading Screen (plays smooth 2.4s intro animation on page entry)
+  const [showIntroLoading, setShowIntroLoading] = useState(true);
+
+  // Auto-dismiss intro animation after 2.4s
+  useEffect(() => {
+    if (!showIntroLoading) return;
+    const timer = setTimeout(() => {
+      setShowIntroLoading(false);
+    }, 2400);
+    return () => clearTimeout(timer);
+  }, [showIntroLoading]);
 
   // Carousel Active Card Index (0 to accounts.length - 1) & Slide Direction (-1 or 1)
   const [carouselIndex, setCarouselIndex] = useState(0);
@@ -152,33 +161,6 @@ export default function TransactionsPage() {
   // Fetch accounts
   const { data: accounts = [], isLoading: accountsLoading } = useAccounts();
   const { categories } = useCategories();
-
-  // Responsive-friendly intro loading timing with guaranteed minimum playback
-  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
-
-  useEffect(() => {
-    if (!showIntroLoading) return;
-    setMinTimeElapsed(false);
-    const timer = setTimeout(() => {
-      setMinTimeElapsed(true);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [showIntroLoading]);
-
-  // Only auto-dismiss once minimum time elapsed AND accounts are no longer loading
-  useEffect(() => {
-    if (minTimeElapsed && !accountsLoading) {
-      setShowIntroLoading(false);
-    }
-  }, [minTimeElapsed, accountsLoading]);
-
-  // Safety fallback so it never stays stuck indefinitely (e.g. offline/slow connection)
-  useEffect(() => {
-    const safetyTimer = setTimeout(() => {
-      setShowIntroLoading(false);
-    }, 3800);
-    return () => clearTimeout(safetyTimer);
-  }, []);
 
   // Sync selected account with carousel index
   const activeAccount = useMemo(() => {
@@ -529,21 +511,22 @@ export default function TransactionsPage() {
       onAddTransactionClick={() => setShowAddModal(true)}
       actionLabel="Add Transaction"
     >
-      {/* On-Demand Animated Intro Cards Overlay (when triggered via Sparkles) */}
+      {/* Animated Intro Cards Overlay (Seamless 2.4s presentation on page visit) */}
       <AnimatePresence>
         {showIntroLoading && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 h-[100dvh] w-full bg-black flex flex-col items-center justify-center p-4 sm:p-6 overflow-hidden select-none"
+            onClick={() => setShowIntroLoading(false)}
+            className="fixed inset-0 z-40 h-[100dvh] w-full bg-black/95 flex flex-col items-center justify-center p-4 sm:p-6 overflow-hidden select-none cursor-pointer"
           >
             {/* Ambient background glow */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 sm:w-96 h-80 sm:h-96 bg-cyan-500/10 rounded-full blur-[100px] sm:blur-[120px] pointer-events-none" />
             <div className="absolute top-1/3 left-1/3 w-64 sm:w-80 h-64 sm:h-80 bg-violet-500/10 rounded-full blur-[90px] pointer-events-none" />
 
             {/* Stacked Fanning Animated Cards */}
-            <div className="relative w-[270px] h-[168px] sm:w-[320px] sm:h-[196px] mb-8 sm:mb-10 flex items-center justify-center">
+            <div className="relative w-[280px] h-[175px] sm:w-[320px] sm:h-[196px] mb-8 sm:mb-10 flex items-center justify-center pointer-events-none">
               {/* Card 1: Sage Green (Bottom tilt left) */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.8, rotate: -18, y: 25 }}
@@ -579,34 +562,43 @@ export default function TransactionsPage() {
               </motion.div>
 
               {/* Card 3: Dusty Orchid Pink (Front center) */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.7, y: 35 }}
-                animate={{ opacity: 1, scale: 1, rotate: 0, y: 0, x: 0 }}
-                transition={{ duration: 0.9, delay: 0.2, type: "spring", stiffness: 200 }}
-                className="absolute inset-0 rounded-[24px] sm:rounded-[28px] border border-[#D1699F]/70 shadow-[0_20px_50px_rgba(166,92,136,0.35)] p-4 sm:p-5 flex flex-col justify-between"
-                style={{
-                  background: "radial-gradient(125% 125% at 50% 50%, #180611 0%, #4D0E34 65%, #A65C88 100%)",
-                }}
-              >
-                <div className="flex justify-between items-center text-[10px] sm:text-[11px] text-white/80 font-bold uppercase tracking-wider">
-                  <span>Wallet Ledger</span>
-                  <span>•••• {accounts[0]?.account_number ? accounts[0].account_number.slice(-4) : "9012"}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-white/60 block font-semibold uppercase mb-0.5">
-                    {accounts[0]?.name || "Active Card"}
-                  </span>
-                  <AnimatedRollingBalance
-                    targetCents={accounts[0]?.balance_cents || 56200}
-                    currency={accounts[0]?.currency || "INR"}
-                    duration={1200}
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/30" />
-                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/15 -ml-2.5 sm:-ml-3" />
-                </div>
-              </motion.div>
+              {(() => {
+                const introAccount = accounts.find((a) => a.balance_cents > 0) || accounts[0];
+                const introBalance = introAccount ? introAccount.balance_cents : 56200;
+                const introName = introAccount ? introAccount.name : "Active Card";
+                const introLast4 = introAccount?.account_number ? introAccount.account_number.slice(-4) : "9012";
+                const introCurr = introAccount?.currency || "INR";
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.7, y: 35 }}
+                    animate={{ opacity: 1, scale: 1, rotate: 0, y: 0, x: 0 }}
+                    transition={{ duration: 0.9, delay: 0.2, type: "spring", stiffness: 200 }}
+                    className="absolute inset-0 rounded-[24px] sm:rounded-[28px] border border-[#D1699F]/70 shadow-[0_20px_50px_rgba(166,92,136,0.35)] p-4 sm:p-5 flex flex-col justify-between"
+                    style={{
+                      background: "radial-gradient(125% 125% at 50% 50%, #180611 0%, #4D0E34 65%, #A65C88 100%)",
+                    }}
+                  >
+                    <div className="flex justify-between items-center text-[10px] sm:text-[11px] text-white/80 font-bold uppercase tracking-wider">
+                      <span>Wallet Ledger</span>
+                      <span>•••• {introLast4}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-white/60 block font-semibold uppercase mb-0.5">
+                        {introName}
+                      </span>
+                      <AnimatedRollingBalance
+                        targetCents={introBalance}
+                        currency={introCurr}
+                        duration={1200}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/30" />
+                      <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/15 -ml-2.5 sm:-ml-3" />
+                    </div>
+                  </motion.div>
+                );
+              })()}
             </div>
 
             {/* Text & Shimmer loader */}
@@ -614,7 +606,7 @@ export default function TransactionsPage() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="text-center space-y-3 z-10 px-4"
+              className="text-center space-y-3 z-10 px-4 pointer-events-none"
             >
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 backdrop-blur-md text-xs font-semibold text-white/90 shadow-md">
                 <Sparkles className="h-3.5 w-3.5 text-cyan-400 animate-spin" />
@@ -625,13 +617,16 @@ export default function TransactionsPage() {
               </p>
             </motion.div>
 
-            {/* Skip to Ledger button */}
+            {/* Skip to Ledger button (Safe position above bottom dock on mobile) */}
             <button
-              onClick={() => setShowIntroLoading(false)}
-              className="absolute bottom-5 right-5 sm:bottom-6 sm:right-6 text-xs text-neutral-400 hover:text-white font-medium flex items-center gap-1 transition-colors cursor-pointer px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 backdrop-blur-md shadow-lg"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowIntroLoading(false);
+              }}
+              className="absolute bottom-24 sm:bottom-6 right-5 sm:right-6 text-xs text-neutral-300 hover:text-white font-medium flex items-center gap-1.5 transition-colors cursor-pointer px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 backdrop-blur-md shadow-lg z-50 touch-manipulation"
             >
-              <span>Close Intro</span>
-              <X className="h-3.5 w-3.5" />
+              <span>Skip to Ledger</span>
+              <ChevronRight className="h-3.5 w-3.5" />
             </button>
           </motion.div>
         )}
@@ -834,16 +829,17 @@ export default function TransactionsPage() {
                       drag="x"
                       dragConstraints={{ left: 0, right: 0 }}
                       dragElastic={0.25}
+                      style={{ touchAction: "pan-y" }}
                       onDragEnd={(_, info) => {
                         const swipe = info.offset.x;
                         const velocity = info.velocity.x;
-                        if ((swipe < -40 || velocity < -300) && carouselIndex < accounts.length - 1) {
+                        if ((swipe < -30 || velocity < -200) && carouselIndex < accounts.length - 1) {
                           handleSwipeNext();
-                        } else if ((swipe > 40 || velocity > 300) && carouselIndex > 0) {
+                        } else if ((swipe > 30 || velocity > 200) && carouselIndex > 0) {
                           handleSwipePrev();
                         }
                       }}
-                      className="cursor-grab active:cursor-grabbing w-full"
+                      className="cursor-grab active:cursor-grabbing w-full touch-manipulation"
                     >
                       <AccountCard
                         account={activeAccount}
