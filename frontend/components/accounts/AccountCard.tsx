@@ -35,50 +35,50 @@ export default function AccountCard({
 
     const themes = [
       {
-        // 1. Sage Green (Top-Left: Heart Rate)
-        cardBg: "bg-[#060E0C]",
-        ambientGlow: "radial-gradient(120% 120% at 50% 50%, #030605 0%, #081613 28%, #23473D 65%, #5B7F72 100%)",
-        spotlightColor: "rgba(91, 127, 114, 0.45)",
-        borderColor: "border-[#679182]/60 hover:border-[#83B7A5]/90",
-        accentPill: "bg-[#23473D]/70 border-[#679182]/70 text-emerald-100 shadow-sm",
+        // 1. Muted Sage Green / Lichen Slate (Top-Left: Heart Rate)
+        cardBg: "bg-[#080E0D]",
+        ambientGlow: "radial-gradient(125% 125% at 50% 50%, #050808 0%, #0A1413 25%, #253330 65%, #51615F 100%)",
+        spotlightColor: "rgba(81, 97, 95, 0.35)",
+        borderColor: "border-[#51615F]/55 hover:border-[#6B7F7D]/85",
+        accentPill: "bg-[#253330]/75 border-[#51615F]/60 text-[#D1DBD9] shadow-sm",
         btnPill: "bg-black/40 hover:bg-black/60 text-white/95 hover:text-white border-white/15",
-        glowShadow: "shadow-[0_16px_36px_-6px_rgba(91,127,114,0.45)]",
+        glowShadow: "shadow-[0_16px_36px_-8px_rgba(81,97,95,0.35)]",
         typeBadge,
         statusText,
       },
       {
-        // 2. Royal Cobalt Blue (Bottom-Left: Temperature)
-        cardBg: "bg-[#040816]",
-        ambientGlow: "radial-gradient(120% 120% at 50% 50%, #02030B 0%, #050E24 28%, #163475 65%, #315CBA 100%)",
-        spotlightColor: "rgba(49, 92, 186, 0.45)",
-        borderColor: "border-[#4A7CE0]/60 hover:border-[#729FFF]/90",
-        accentPill: "bg-[#163475]/70 border-[#4A7CE0]/70 text-sky-100 shadow-sm",
+        // 2. Muted Slate Cobalt Navy Blue (Bottom-Left: Temperature)
+        cardBg: "bg-[#050914]",
+        ambientGlow: "radial-gradient(125% 125% at 50% 50%, #03050C 0%, #060B1A 25%, #152244 65%, #273A71 100%)",
+        spotlightColor: "rgba(39, 58, 113, 0.35)",
+        borderColor: "border-[#273A71]/55 hover:border-[#38519B]/85",
+        accentPill: "bg-[#152244]/75 border-[#273A71]/60 text-[#C7D4F0] shadow-sm",
         btnPill: "bg-black/40 hover:bg-black/60 text-white/95 hover:text-white border-white/15",
-        glowShadow: "shadow-[0_16px_36px_-6px_rgba(49,92,186,0.45)]",
+        glowShadow: "shadow-[0_16px_36px_-8px_rgba(39,58,113,0.35)]",
         typeBadge,
         statusText,
       },
       {
-        // 3. Orchid Pink / Magenta (Top-Right: Glucose)
-        cardBg: "bg-[#1E0413]",
-        ambientGlow: "radial-gradient(120% 120% at 50% 50%, #2A051A 0%, #4D0A32 28%, #8D2562 65%, #BE5B90 100%)",
-        spotlightColor: "rgba(190, 91, 144, 0.45)",
-        borderColor: "border-[#D1699F]/60 hover:border-[#F48BC3]/90",
-        accentPill: "bg-[#8D2562]/70 border-[#D1699F]/70 text-pink-100 shadow-sm",
+        // 3. Dusty Mauve Orchid / Muted Pink (Top-Right: Glucose)
+        cardBg: "bg-[#14050E]",
+        ambientGlow: "radial-gradient(125% 125% at 50% 50%, #180611 0%, #300C22 25%, #632448 65%, #A65C88 100%)",
+        spotlightColor: "rgba(166, 92, 136, 0.35)",
+        borderColor: "border-[#A65C88]/55 hover:border-[#C473A3]/85",
+        accentPill: "bg-[#632448]/75 border-[#A65C88]/60 text-[#F5D8E8] shadow-sm",
         btnPill: "bg-black/40 hover:bg-black/60 text-white/95 hover:text-white border-white/15",
-        glowShadow: "shadow-[0_16px_36px_-6px_rgba(190,91,144,0.45)]",
+        glowShadow: "shadow-[0_16px_36px_-8px_rgba(166,92,136,0.35)]",
         typeBadge,
         statusText,
       },
       {
-        // 4. Warm Terracotta / Rust Copper (Bottom-Right: Steps)
-        cardBg: "bg-[#180401]",
-        ambientGlow: "radial-gradient(120% 120% at 50% 50%, #220602 0%, #3F0E04 28%, #7D2916 65%, #AA4A33 100%)",
-        spotlightColor: "rgba(170, 74, 51, 0.45)",
-        borderColor: "border-[#C7553A]/60 hover:border-[#EB7356]/90",
-        accentPill: "bg-[#7D2916]/70 border-[#C7553A]/70 text-amber-100 shadow-sm",
+        // 4. Warm Earthy Clay Terracotta (Bottom-Right: Steps)
+        cardBg: "bg-[#120402]",
+        ambientGlow: "radial-gradient(125% 125% at 50% 50%, #180503 0%, #2E0D07 25%, #5D2318 65%, #944838 100%)",
+        spotlightColor: "rgba(148, 72, 56, 0.35)",
+        borderColor: "border-[#944838]/55 hover:border-[#B25A47]/85",
+        accentPill: "bg-[#5D2318]/75 border-[#944838]/60 text-[#F6D9D2] shadow-sm",
         btnPill: "bg-black/40 hover:bg-black/60 text-white/95 hover:text-white border-white/15",
-        glowShadow: "shadow-[0_16px_36px_-6px_rgba(170,74,51,0.45)]",
+        glowShadow: "shadow-[0_16px_36px_-8px_rgba(148,72,56,0.35)]",
         typeBadge,
         statusText,
       },
@@ -106,11 +106,11 @@ export default function AccountCard({
     >
       {/* Luminous Atmospheric Corner Glow */}
       <div
-        className="absolute -top-8 -right-8 w-36 h-36 rounded-full pointer-events-none blur-2xl opacity-40 transition-opacity"
+        className="absolute -top-8 -right-8 w-36 h-36 rounded-full pointer-events-none blur-2xl opacity-25 transition-opacity"
         style={{ background: theme.spotlightColor }}
       />
       <div
-        className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full pointer-events-none blur-2xl opacity-30 transition-opacity"
+        className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full pointer-events-none blur-2xl opacity-20 transition-opacity"
         style={{ background: theme.spotlightColor }}
       />
 
