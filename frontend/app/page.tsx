@@ -25,13 +25,42 @@ import {
   Calendar,
 } from "lucide-react";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
+import { refreshAccessToken } from "@/lib/api";
 
 export default function OverviewPage() {
   const { token, user, hydrated, hydrate } = useAuthStore();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  // Auto-refresh queries whenever the user focuses or returns to the dashboard tab
+  useEffect(() => {
+    const handleRefresh = () => {
+      queryClient.invalidateQueries();
+    };
+
+    window.addEventListener("focus", handleRefresh);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        handleRefresh();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    // Background heartbeat: keep rolling session active
+    const interval = setInterval(() => {
+      refreshAccessToken();
+    }, 5 * 60 * 1000);
+
+    return () => {
+      window.removeEventListener("focus", handleRefresh);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      clearInterval(interval);
+    };
+  }, [queryClient]);
 
   useEffect(() => {
     if (hydrated && !token) {

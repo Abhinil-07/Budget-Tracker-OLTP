@@ -92,56 +92,61 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
   };
 
   const modalUI = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      {/* Glassmorphic Dead-Center Modal Box Container */}
-      <div className="relative my-auto mx-auto bg-slate-900/95 border border-slate-800/90 shadow-2xl rounded-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[85vh] backdrop-blur-xl ring-1 ring-white/10">
-        
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-200 select-none">
+      {/* Modal Container */}
+      <div className="relative my-auto mx-auto bg-[#0D0D12] border border-white/10 shadow-[0_24px_70px_rgba(0,0,0,0.85)] rounded-[32px] w-full max-w-3xl overflow-hidden flex flex-col max-h-[85vh]">
+        {/* Atmospheric ambient glows */}
+        <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full pointer-events-none blur-3xl opacity-25 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500" />
+        <div className="absolute -bottom-20 -left-20 w-60 h-60 rounded-full pointer-events-none blur-3xl opacity-20 bg-gradient-to-tr from-cyan-500 to-emerald-500" />
+
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800/80 bg-slate-900/50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08] relative z-10">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-emerald-500/15 border border-emerald-500/30 rounded-xl text-emerald-400 shadow-sm">
-              <Sparkles className="h-5 w-5" />
+            <div className="p-2 bg-white/10 border border-white/10 rounded-2xl text-white shadow-sm">
+              <Sparkles className="h-4 w-4" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-semibold text-slate-100 text-lg tracking-tight">Staged Inbox</h2>
+                <h2 className="font-bold text-white text-base tracking-tight">Staged Inbox</h2>
                 {stagedTransactions.length > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-white text-black">
                     {stagedTransactions.length}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-neutral-400 mt-0.5">
                 Review and approve auto-parsed SMS & Email transactions before they enter your ledger.
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 rounded-lg transition-all"
+            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95"
+            title="Close"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-4 font-sans custom-scrollbar">
+        <div className="p-6 overflow-y-auto flex-1 space-y-4 font-sans relative z-10 custom-scrollbar">
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl text-sm animate-in slide-in-from-top-1">
+            <div className="flex items-center gap-2 p-3 bg-rose-500/10 border border-rose-500/25 text-rose-400 rounded-2xl text-xs animate-in slide-in-from-top-1">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {stagedTransactions.length === 0 ? (
-            /* Glassmorphic Empty State */
+            /* Empty State */
             <div className="py-14 text-center space-y-4">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-400 shadow-inner">
-                <ShieldCheck className="h-8 w-8" />
+              <div className="inline-flex items-center justify-center w-14 h-14 bg-white/5 border border-white/10 rounded-full text-neutral-300">
+                <ShieldCheck className="h-7 w-7" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-lg font-semibold text-slate-100">Inbox Clean & Clear!</h3>
-                <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                <h3 className="text-base font-bold text-white tracking-tight">Inbox Clean & Clear!</h3>
+                <p className="text-xs text-neutral-400 max-w-sm mx-auto">
                   No unreviewed transactions pending. Forwarded bank emails and parsed SMS will land here for instant 1-click review.
                 </p>
               </div>
@@ -149,23 +154,23 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
           ) : (
             <div className="space-y-4">
               {/* Batch Action Toolbar */}
-              <div className="flex items-center justify-between text-xs font-mono bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 backdrop-blur-sm">
-                <span className="text-slate-300">
-                  <strong>{stagedTransactions.length}</strong> pending transaction(s)
+              <div className="flex items-center justify-between text-xs font-mono bg-[#141418] p-3 rounded-2xl border border-white/[0.08]">
+                <span className="text-neutral-300">
+                  <strong className="text-white">{stagedTransactions.length}</strong> pending transaction(s)
                 </span>
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={handleApproveAll}
-                    className="flex items-center gap-1.5 text-emerald-400 font-semibold hover:text-emerald-300 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white text-black hover:bg-neutral-100 transition-all cursor-pointer active:scale-95"
                   >
-                    <CheckCheck className="h-4 w-4" /> Approve All
+                    <CheckCheck className="h-3.5 w-3.5" /> Approve All
                   </button>
-                  <span className="text-slate-700">|</span>
+                  <span className="text-neutral-700">|</span>
                   <button
                     type="button"
                     onClick={clearAllStaged}
-                    className="text-slate-400 hover:text-rose-400 transition-colors"
+                    className="text-xs text-neutral-400 hover:text-rose-400 transition-colors cursor-pointer"
                   >
                     Discard All
                   </button>
@@ -177,20 +182,20 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
                 {stagedTransactions.map((item) => (
                   <div
                     key={item.id}
-                    className="p-4 bg-slate-800/40 border border-slate-700/60 hover:border-emerald-500/40 rounded-xl space-y-3.5 transition-all shadow-md backdrop-blur-md group"
+                    className="p-4 bg-[#141418] border border-white/[0.08] hover:border-white/20 rounded-2xl space-y-3.5 transition-all shadow-md group"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5">
                         {item.source === "email" ? (
-                          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-sky-400 bg-sky-500/10 px-2.5 py-1 rounded-md border border-sky-500/20 uppercase font-mono tracking-wider">
+                          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-sky-400 bg-sky-500/10 px-2.5 py-1 rounded-full border border-sky-500/20 uppercase font-mono tracking-wider">
                             <Mail className="h-3 w-3" /> Gmail
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20 uppercase font-mono tracking-wider">
+                          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20 uppercase font-mono tracking-wider">
                             <MessageSquare className="h-3 w-3" /> SMS
                           </span>
                         )}
-                        <span className="text-xs text-slate-400 font-mono">{item.created_at.split("T")[0]}</span>
+                        <span className="text-xs text-neutral-400 font-mono">{item.created_at.split("T")[0]}</span>
                       </div>
 
                       <button
@@ -200,7 +205,7 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
                             type: item.type === "expense" ? "income" : "expense",
                           })
                         }
-                        className={`px-2.5 py-1 rounded-md text-[10px] font-semibold uppercase cursor-pointer transition-all font-mono tracking-wider ${
+                        className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase cursor-pointer transition-all font-mono tracking-wider ${
                           item.type === "expense"
                             ? "bg-rose-500/15 text-rose-400 border border-rose-500/30 hover:bg-rose-500/25"
                             : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25"
@@ -211,20 +216,20 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
                     </div>
 
                     {/* Inputs Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs font-mono">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5 text-xs font-mono">
                       {/* Account */}
                       <div>
-                        <label className="block text-[10px] font-sans font-semibold text-slate-400 uppercase mb-1">
+                        <label className="block text-[10px] font-sans font-bold text-neutral-400 uppercase mb-1">
                           Account *
                         </label>
                         <select
                           value={item.account_id}
                           onChange={(e) => updateStagedTransaction(item.id, { account_id: e.target.value })}
-                          className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                          className="w-full bg-[#14141A] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-white/20"
                         >
-                          <option value="">-- Select Account --</option>
+                          <option value="" className="bg-[#14141A] text-neutral-400">-- Select Account --</option>
                           {accounts.map((acc) => (
-                            <option key={acc.id} value={acc.id}>
+                            <option key={acc.id} value={acc.id} className="bg-[#14141A] text-white">
                               {acc.name} ({acc.type})
                             </option>
                           ))}
@@ -233,16 +238,16 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
 
                       {/* Category */}
                       <div>
-                        <label className="block text-[10px] font-sans font-semibold text-slate-400 uppercase mb-1">
+                        <label className="block text-[10px] font-sans font-bold text-neutral-400 uppercase mb-1">
                           Category
                         </label>
                         <select
                           value={item.category}
                           onChange={(e) => updateStagedTransaction(item.id, { category: e.target.value })}
-                          className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                          className="w-full bg-[#14141A] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-white/20"
                         >
                           {categories.map((c) => (
-                            <option key={c} value={c}>
+                            <option key={c} value={c} className="bg-[#14141A] text-white">
                               {c}
                             </option>
                           ))}
@@ -251,7 +256,7 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
 
                       {/* Amount */}
                       <div>
-                        <label className="block text-[10px] font-sans font-semibold text-slate-400 uppercase mb-1">
+                        <label className="block text-[10px] font-sans font-bold text-neutral-400 uppercase mb-1">
                           Amount (₹)
                         </label>
                         <input
@@ -264,33 +269,33 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
                               amount_cents: isNaN(val) ? 0 : Math.round(val * 100),
                             });
                           }}
-                          className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-100 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                          className="w-full bg-[#14141A] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-white focus:outline-none focus:ring-1 focus:ring-white/20"
                         />
                       </div>
 
                       {/* Date */}
                       <div>
-                        <label className="block text-[10px] font-sans font-semibold text-slate-400 uppercase mb-1">
+                        <label className="block text-[10px] font-sans font-bold text-neutral-400 uppercase mb-1">
                           Date
                         </label>
                         <input
                           type="date"
                           value={item.txn_date}
                           onChange={(e) => updateStagedTransaction(item.id, { txn_date: e.target.value })}
-                          className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                          className="w-full bg-[#14141A] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-white/20"
                         />
                       </div>
                     </div>
 
                     {/* Payee / Description & Actions */}
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-700/40">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-white/[0.08]">
                       <div className="w-full sm:w-2/3">
                         <input
                           type="text"
                           value={item.description}
                           onChange={(e) => updateStagedTransaction(item.id, { description: e.target.value })}
                           placeholder="Description / Payee Name..."
-                          className="w-full bg-transparent border-b border-slate-700 py-1 text-xs text-slate-200 placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+                          className="w-full bg-transparent border-b border-white/15 py-1 text-xs text-white placeholder-neutral-500 focus:border-white focus:outline-none"
                         />
                       </div>
 
@@ -298,19 +303,19 @@ export default function StagedInboxModal({ isOpen, onClose }: StagedInboxModalPr
                         <button
                           type="button"
                           onClick={() => removeStagedTransaction(item.id)}
-                          className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                          className="w-8 h-8 rounded-full bg-white/5 hover:bg-rose-500/10 text-neutral-400 hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer"
                           title="Discard transaction"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
 
                         <button
                           type="button"
                           disabled={loadingIds[item.id] || !item.account_id}
                           onClick={() => handleApprove(item)}
-                          className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 rounded-lg text-xs font-bold shadow-md shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                          className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-neutral-100 disabled:opacity-40 text-black rounded-full text-xs font-bold shadow-lg transition-all active:scale-95 cursor-pointer"
                         >
-                          <Check className="h-4 w-4 stroke-[3]" />
+                          <Check className="h-3.5 w-3.5 stroke-[3]" />
                           <span>Approve & Log</span>
                         </button>
                       </div>

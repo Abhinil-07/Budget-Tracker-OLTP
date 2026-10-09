@@ -187,7 +187,7 @@ export default function InvestmentsPage() {
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-5 py-2.5 bg-accent hover:bg-accent/90 text-text-primary rounded-lg text-xs font-semibold transition-all shadow-md shadow-accent/10"
+            className="px-6 py-2.5 bg-white hover:bg-neutral-100 text-black rounded-full text-xs font-bold transition-all shadow-xl active:scale-95 cursor-pointer"
           >
             Add First Investment
           </button>

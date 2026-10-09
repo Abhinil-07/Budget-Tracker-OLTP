@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import CentralMobileNav from "./CentralMobileNav";
 import Header from "./Header";
 import { getActiveModule } from "./navConfig";
+import LinkPhoneModal from "../auth/LinkPhoneModal";
+import AnnouncementModal from "./AnnouncementModal";
 
 interface PageWrapperProps {
   children: React.ReactNode;
@@ -38,6 +40,12 @@ export default function PageWrapper({
           </div>
         </main>
       </div>
+
+      {/* Screen-blocking release announcement modal (shown once per deployment) */}
+      <AnnouncementModal />
+
+      {/* One-time mobile number prompt modal */}
+      <LinkPhoneModal />
 
       {/* Floating Central Glassmorphic Dock for Both Desktop & Mobile */}
       <CentralMobileNav />

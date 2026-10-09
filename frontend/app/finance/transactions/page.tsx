@@ -648,13 +648,19 @@ export default function TransactionsPage() {
 
       {/* Delete Confirmation Modal */}
       {deletingTxn && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#121216] border border-white/10 p-6 rounded-3xl max-w-sm w-full space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-3 text-rose-400">
-              <AlertCircle className="h-6 w-6" />
-              <h3 className="font-bold text-base text-white">Delete Transaction?</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-fade-in select-none">
+          <div className="relative bg-[#0D0D12] border border-white/10 p-6 rounded-[32px] max-w-sm w-full space-y-4 shadow-[0_24px_70px_rgba(0,0,0,0.85)] animate-in zoom-in-95 duration-150 overflow-hidden">
+            {/* Atmospheric ambient lighting */}
+            <div className="absolute -top-16 -right-16 w-40 h-40 rounded-full pointer-events-none blur-3xl opacity-25 bg-gradient-to-br from-rose-500 to-pink-500" />
+            <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full pointer-events-none blur-3xl opacity-15 bg-gradient-to-tr from-amber-500 to-red-500" />
+
+            <div className="flex items-center gap-3 text-rose-400 relative z-10">
+              <div className="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+                <AlertCircle className="h-5 w-5" />
+              </div>
+              <h3 className="font-bold text-base text-white tracking-tight">Delete Transaction?</h3>
             </div>
-            <p className="text-xs text-neutral-300 leading-relaxed">
+            <p className="text-xs text-neutral-300 leading-relaxed relative z-10">
               Are you sure you want to delete{" "}
               <span className="font-bold text-white">
                 "{deletingTxn.description || deletingTxn.category}"
@@ -666,21 +672,23 @@ export default function TransactionsPage() {
               ? This action cannot be undone.
             </p>
             {deleteError && (
-              <div className="text-xs text-rose-400 bg-rose-500/10 p-2.5 rounded-xl border border-rose-500/20">
+              <div className="text-xs text-rose-400 bg-rose-500/10 p-2.5 rounded-2xl border border-rose-500/25 relative z-10">
                 {deleteError}
               </div>
             )}
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-2.5 pt-2 relative z-10">
               <button
+                type="button"
                 onClick={() => setDeletingTxn(null)}
-                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-semibold transition-all"
+                className="px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 hover:text-white rounded-full text-xs font-semibold transition-all cursor-pointer"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleConfirmDelete}
                 disabled={isDeleting}
-                className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                className="px-6 py-2.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full text-xs font-bold transition-all disabled:opacity-50 shadow-lg shadow-rose-500/20 cursor-pointer active:scale-95"
               >
                 {isDeleting ? "Deleting..." : "Delete"}
               </button>
@@ -764,23 +772,23 @@ export default function TransactionsPage() {
             </div>
 
             {/* Interactive Swipeable Stage */}
-            <div className="relative flex items-center justify-center overflow-hidden py-4 px-2 sm:px-14">
-              {/* Desktop Left Chevron Button */}
+            <div className="relative flex items-center justify-center overflow-hidden py-4 px-1 md:px-14">
+              {/* Desktop Left Chevron Button (Hidden on responsive / mobile screens) */}
               {carouselIndex > 0 && (
                 <button
                   onClick={handleSwipePrev}
-                  className="absolute left-2 sm:left-4 z-30 w-11 h-11 rounded-full bg-black/70 hover:bg-black/95 border border-white/20 text-white flex items-center justify-center transition-all shadow-xl hover:scale-110 active:scale-95 cursor-pointer backdrop-blur-md"
+                  className="hidden md:flex absolute left-2 sm:left-4 z-30 w-11 h-11 rounded-full bg-black/70 hover:bg-black/95 border border-white/20 text-white items-center justify-center transition-all shadow-xl hover:scale-110 active:scale-95 cursor-pointer backdrop-blur-md"
                   title="Previous Card"
                 >
                   <ChevronLeft className="h-6 w-6 stroke-[2.5]" />
                 </button>
               )}
 
-              {/* Desktop Right Chevron Button */}
+              {/* Desktop Right Chevron Button (Hidden on responsive / mobile screens) */}
               {carouselIndex < accounts.length - 1 && (
                 <button
                   onClick={handleSwipeNext}
-                  className="absolute right-2 sm:right-4 z-30 w-11 h-11 rounded-full bg-black/70 hover:bg-black/95 border border-white/20 text-white flex items-center justify-center transition-all shadow-xl hover:scale-110 active:scale-95 cursor-pointer backdrop-blur-md"
+                  className="hidden md:flex absolute right-2 sm:right-4 z-30 w-11 h-11 rounded-full bg-black/70 hover:bg-black/95 border border-white/20 text-white items-center justify-center transition-all shadow-xl hover:scale-110 active:scale-95 cursor-pointer backdrop-blur-md"
                   title="Next Card"
                 >
                   <ChevronRight className="h-6 w-6 stroke-[2.5]" />

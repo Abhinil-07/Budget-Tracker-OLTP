@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { X, Plus } from "lucide-react";
+import { X, Plus, AlertCircle } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../../lib/api";
 import { useAccounts } from "../../hooks/useAccounts";
@@ -153,50 +153,60 @@ export default function EditTransactionModal({
   const { ref: amountRegRef, ...amountRegRest } = register("amount");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/80 backdrop-blur-xl"
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="relative bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col animate-in fade-in duration-200">
+      <div className="relative bg-[#0D0D12] border border-white/10 rounded-[32px] shadow-[0_24px_70px_rgba(0,0,0,0.85)] w-full max-w-lg mx-4 max-h-[90vh] flex flex-col overflow-hidden z-10">
+        {/* Ambient atmospheric corner glow */}
+        <div className="absolute -top-16 -right-16 w-52 h-52 rounded-full pointer-events-none blur-3xl opacity-25 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500" />
+        <div className="absolute -bottom-16 -left-16 w-52 h-52 rounded-full pointer-events-none blur-3xl opacity-20 bg-gradient-to-tr from-cyan-500 to-emerald-500" />
+
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
-          <h2 className="text-lg font-semibold text-text-primary">
-            Edit Transaction
-          </h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08] shrink-0 relative z-10">
+          <div>
+            <h2 className="text-lg font-bold text-white tracking-tight">
+              Edit Transaction
+            </h2>
+            <p className="text-xs text-neutral-400 mt-0.5">Modify amount, account, or category details.</p>
+          </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-surface-raised text-text-muted hover:text-text-primary transition-colors"
+            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95"
+            title="Close"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-5 overflow-y-auto flex-1">
+        <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-4 overflow-y-auto flex-1 relative z-10">
           {/* Root error */}
           {errors.root && (
-            <div className="bg-danger/10 border border-danger/25 text-danger px-4 py-3 rounded-lg text-sm">
-              {errors.root.message}
+            <div className="bg-rose-500/10 border border-rose-500/25 text-rose-400 px-3.5 py-2.5 rounded-2xl text-xs flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{errors.root.message}</span>
             </div>
           )}
 
           {/* Type Toggle */}
           <div>
-            <label className="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-1.5">
               Type
             </label>
-            <div className="grid grid-cols-2 gap-2 p-1 bg-surface-raised rounded-lg border border-border">
+            <div className="grid grid-cols-2 gap-2 p-1 bg-[#141418] rounded-2xl border border-white/[0.08]">
               <button
                 type="button"
                 onClick={() => setValue("type", "expense")}
-                className={`py-2 rounded-md text-sm font-semibold transition-all duration-200 ${
+                className={`py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                   selectedType === "expense"
-                    ? "bg-danger/15 text-danger shadow-sm border border-danger/20"
-                    : "text-text-secondary hover:text-text-primary"
+                    ? "bg-white text-black shadow-md"
+                    : "text-neutral-400 hover:text-white"
                 }`}
               >
                 Expense
@@ -204,10 +214,10 @@ export default function EditTransactionModal({
               <button
                 type="button"
                 onClick={() => setValue("type", "income")}
-                className={`py-2 rounded-md text-sm font-semibold transition-all duration-200 ${
+                className={`py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                   selectedType === "income"
-                    ? "bg-success/15 text-success shadow-sm border border-success/20"
-                    : "text-text-secondary hover:text-text-primary"
+                    ? "bg-white text-black shadow-md"
+                    : "text-neutral-400 hover:text-white"
                 }`}
               >
                 Income
@@ -219,12 +229,12 @@ export default function EditTransactionModal({
           <div>
             <label
               htmlFor="edit-txn-amount"
-              className="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2"
+              className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-1.5"
             >
               Amount (₹)
             </label>
             <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted font-mono text-lg">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-mono text-base font-semibold">
                 ₹
               </span>
               <input
@@ -238,11 +248,11 @@ export default function EditTransactionModal({
                   amountRegRef(e);
                   amountRef.current = e;
                 }}
-                className="w-full pl-9 pr-4 py-2.5 bg-surface-raised border border-border rounded-lg text-text-primary font-mono text-lg placeholder-text-muted focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent transition-all"
+                className="w-full pl-9 pr-4 py-2.5 bg-[#14141A] border border-white/10 rounded-2xl text-white font-mono text-base placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/30 transition-all"
               />
             </div>
             {errors.amount && (
-              <p className="mt-1 text-xs text-danger">{errors.amount.message}</p>
+              <p className="mt-1.5 text-xs text-rose-400 font-medium">{errors.amount.message}</p>
             )}
           </div>
 
@@ -250,26 +260,28 @@ export default function EditTransactionModal({
           <div>
             <label
               htmlFor="edit-txn-account"
-              className="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2"
+              className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-1.5"
             >
               Account
             </label>
-            <select
-              id="edit-txn-account"
-              {...register("account_id")}
-              className="w-full px-3.5 py-2.5 bg-surface-raised border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent transition-all appearance-none cursor-pointer"
-            >
-              <option value="" className="text-text-muted">
-                Select an account
-              </option>
-              {accounts.map((acc) => (
-                <option key={acc.id} value={acc.id}>
-                  {acc.name} ({ACCOUNT_TYPES[acc.type as AccountType] || acc.type})
+            <div className="relative">
+              <select
+                id="edit-txn-account"
+                {...register("account_id")}
+                className="w-full px-4 py-2.5 bg-[#14141A] border border-white/10 rounded-2xl text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/30 transition-all appearance-none cursor-pointer"
+              >
+                <option value="" className="bg-[#14141A] text-neutral-400">
+                  Select an account
                 </option>
-              ))}
-            </select>
+                {accounts.map((acc) => (
+                  <option key={acc.id} value={acc.id} className="bg-[#14141A] text-white">
+                    {acc.name} ({ACCOUNT_TYPES[acc.type as AccountType] || acc.type})
+                  </option>
+                ))}
+              </select>
+            </div>
             {errors.account_id && (
-              <p className="mt-1 text-xs text-danger">
+              <p className="mt-1.5 text-xs text-rose-400 font-medium">
                 {errors.account_id.message}
               </p>
             )}
@@ -277,17 +289,17 @@ export default function EditTransactionModal({
 
           {/* Category Dropdown */}
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-1.5">
               <label
                 htmlFor="edit-txn-category"
-                className="block text-xs font-medium text-text-muted uppercase tracking-wider"
+                className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400"
               >
                 Category
               </label>
               <button
                 type="button"
                 onClick={() => setIsAddingCategory(!isAddingCategory)}
-                className="text-xs text-accent hover:underline flex items-center gap-1 font-medium cursor-pointer"
+                className="text-[11px] text-neutral-300 hover:text-white flex items-center gap-1 font-semibold cursor-pointer transition-colors"
               >
                 <Plus className="h-3 w-3" />
                 {isAddingCategory ? "Select Existing" : "Add Custom"}
@@ -307,13 +319,13 @@ export default function EditTransactionModal({
                       handleAddCustomCategory();
                     }
                   }}
-                  className="flex-1 px-3.5 py-2 bg-surface-raised border border-accent rounded-lg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+                  className="flex-1 px-4 py-2.5 bg-[#14141A] border border-white/20 rounded-2xl text-white text-xs placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/20"
                   autoFocus
                 />
                 <button
                   type="button"
                   onClick={handleAddCustomCategory}
-                  className="px-3 py-2 bg-accent text-text-primary rounded-lg text-xs font-semibold hover:bg-accent/90 transition-all"
+                  className="px-4 py-2.5 bg-white text-black font-bold rounded-full text-xs hover:bg-neutral-100 transition-all cursor-pointer active:scale-95"
                 >
                   Save
                 </button>
@@ -322,13 +334,13 @@ export default function EditTransactionModal({
               <select
                 id="edit-txn-category"
                 {...register("category")}
-                className="w-full px-3.5 py-2.5 bg-surface-raised border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent transition-all appearance-none cursor-pointer"
+                className="w-full px-4 py-2.5 bg-[#14141A] border border-white/10 rounded-2xl text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/30 transition-all appearance-none cursor-pointer"
               >
-                <option value="" className="text-text-muted">
+                <option value="" className="bg-[#14141A] text-neutral-400">
                   Select a category
                 </option>
                 {categories.map((cat) => (
-                  <option key={cat} value={cat}>
+                  <option key={cat} value={cat} className="bg-[#14141A] text-white">
                     {cat}
                   </option>
                 ))}
@@ -336,7 +348,7 @@ export default function EditTransactionModal({
             )}
 
             {errors.category && !isAddingCategory && (
-              <p className="mt-1 text-xs text-danger">
+              <p className="mt-1.5 text-xs text-rose-400 font-medium">
                 {errors.category.message}
               </p>
             )}
@@ -346,17 +358,17 @@ export default function EditTransactionModal({
           <div>
             <label
               htmlFor="edit-txn-description"
-              className="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2"
+              className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-1.5"
             >
               Description{" "}
-              <span className="text-text-muted/50 normal-case">(optional)</span>
+              <span className="text-neutral-500 normal-case font-normal">(optional)</span>
             </label>
             <input
               id="edit-txn-description"
               type="text"
               placeholder="e.g. Lunch at restaurant"
               {...register("description")}
-              className="w-full px-3.5 py-2.5 bg-surface-raised border border-border rounded-lg text-text-primary text-sm placeholder-text-muted focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent transition-all"
+              className="w-full px-4 py-2.5 bg-[#14141A] border border-white/10 rounded-2xl text-white text-xs placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/30 transition-all"
             />
           </div>
 
@@ -364,7 +376,7 @@ export default function EditTransactionModal({
           <div>
             <label
               htmlFor="edit-txn-date"
-              className="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2"
+              className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-1.5"
             >
               Date
             </label>
@@ -372,26 +384,26 @@ export default function EditTransactionModal({
               id="edit-txn-date"
               type="date"
               {...register("txn_date")}
-              className="w-full px-3.5 py-2.5 bg-surface-raised border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent transition-all"
+              className="w-full px-4 py-2.5 bg-[#14141A] border border-white/10 rounded-2xl text-white text-xs focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/30 transition-all"
             />
             {errors.txn_date && (
-              <p className="mt-1 text-xs text-danger">
+              <p className="mt-1.5 text-xs text-rose-400 font-medium">
                 {errors.txn_date.message}
               </p>
             )}
           </div>
 
           {/* To Be Included in Expense Total Toggle */}
-          <div className="flex items-center justify-between p-3 rounded-xl bg-surface-raised/40 border border-border/60">
+          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#141418] border border-white/[0.08]">
             <div className="space-y-0.5 pr-2">
               <label
                 htmlFor="edit-txn-is-included"
-                className="text-xs font-semibold text-text-primary block cursor-pointer"
+                className="text-xs font-bold text-white block cursor-pointer"
               >
-                To Be Included in Expense Total
+                Include in Expense Total
               </label>
-              <p className="text-[11px] text-text-muted leading-tight">
-                When enabled, this transaction counts toward your home dashboard expense metrics.
+              <p className="text-[11px] text-neutral-400 leading-tight">
+                When enabled, this transaction counts toward your dashboard expense metrics.
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer shrink-0">
@@ -401,27 +413,23 @@ export default function EditTransactionModal({
                 {...register("is_included")}
                 className="sr-only peer"
               />
-              <div className="w-10 h-5 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent"></div>
+              <div className="w-10 h-5 bg-white/15 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-white"></div>
             </label>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-2">
+          <div className="flex items-center justify-end gap-3 pt-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-raised rounded-lg border border-border transition-all"
+              className="px-5 py-2.5 text-xs font-semibold text-neutral-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-full border border-white/10 transition-all cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.01] active:scale-[0.99] ${
-                selectedType === "income"
-                  ? "bg-success hover:bg-success/90 text-white shadow-success/20"
-                  : "bg-accent hover:bg-accent/90 text-text-primary shadow-accent/20"
-              }`}
+              className="px-6 py-2.5 rounded-full text-xs font-bold text-black bg-white hover:bg-neutral-100 shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95"
             >
               {isSubmitting ? "Saving..." : "Save Changes"}
             </button>

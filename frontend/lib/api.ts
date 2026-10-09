@@ -9,7 +9,12 @@ import { StudyLog, CreateStudyLogDto, UpdateStudyLogDto, StudyGoal, CreateStudyG
 import { MediaItem, CreateMediaItemDto, UpdateMediaItemDto } from "../types/media";
 import { Person, PersonBalance, Settlement } from "../types/split";
 
-import { getInMemoryToken } from "../stores/useAuthStore";
+import {
+  getInMemoryToken,
+  getInMemoryRefreshToken,
+  getInMemoryExpiresAt,
+  useAuthStore,
+} from "../stores/useAuthStore";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -32,6 +37,79 @@ export class ApiError extends Error {
     this.name = "ApiError";
     Object.setPrototypeOf(this, ApiError.prototype);
   }
+}
+
+// Single-flight promise so parallel requests share the exact same refresh call
+let activeRefreshPromise: Promise<string | null> | null = null;
+
+export async function refreshAccessToken(): Promise<string | null> {
+  if (activeRefreshPromise) {
+    return activeRefreshPromise;
+  }
+
+  activeRefreshPromise = (async () => {
+    try {
+      let refreshToken =
+        getInMemoryRefreshToken() ||
+        (typeof window !== "undefined" ? localStorage.getItem("refresh_token") : null);
+
+      if (!refreshToken && typeof window !== "undefined") {
+        const keys = Object.keys(localStorage);
+        const supabaseKey = keys.find(key => key.startsWith("sb-") && key.endsWith("-auth-token"));
+        if (supabaseKey) {
+          try {
+            const data = JSON.parse(localStorage.getItem(supabaseKey) || "{}");
+            refreshToken = data.currentSession?.refresh_token || data.refresh_token || null;
+          } catch {
+            // Ignore parse errors
+          }
+        }
+      }
+
+      if (!refreshToken) {
+        return null;
+      }
+
+      const res = await fetch(`${API_BASE}/api/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+
+      if (!res.ok) {
+        // If refresh token is truly invalid/expired, log out to prevent infinite loops
+        if (res.status === 401 && typeof window !== "undefined") {
+          useAuthStore.getState().logout();
+          if (window.location.pathname !== "/login") {
+            window.location.href = "/login";
+          }
+        }
+        return null;
+      }
+
+      const resJson = await res.json();
+      const authData = resJson.data;
+
+      if (authData?.access_token) {
+        useAuthStore
+          .getState()
+          .updateTokens(
+            authData.access_token,
+            authData.refresh_token,
+            authData.expires_at
+          );
+        return authData.access_token;
+      }
+      return null;
+    } catch (err) {
+      console.error("Token refresh failed:", err);
+      return null;
+    } finally {
+      activeRefreshPromise = null;
+    }
+  })();
+
+  return activeRefreshPromise;
 }
 
 function getToken(): string {
@@ -80,14 +158,51 @@ async function request<T>(
   path: string,
   options?: RequestInit,
 ): Promise<ApiResponse<T>> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  // 1. Proactive expiry check: if token expires within 60 seconds, refresh before call
+  const expiresAt =
+    getInMemoryExpiresAt() ||
+    (typeof window !== "undefined"
+      ? Number(localStorage.getItem("token_expires_at") || "0")
+      : 0);
+
+  if (expiresAt > 0 && Date.now() / 1000 > expiresAt - 60 && !path.includes("/auth/")) {
+    await refreshAccessToken();
+  }
+
+  const token = getToken();
+
+  let res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
       ...options?.headers,
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
     },
   });
+
+  // 2. Reactive 401 retry: if unauthorized, refresh session silently and replay request once
+  if (res.status === 401 && !path.includes("/auth/")) {
+    const freshToken = await refreshAccessToken();
+    if (freshToken) {
+      res = await fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers: {
+          ...options?.headers,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${freshToken}`,
+        },
+      });
+    } else {
+      // Refresh token failed or is missing: the session is dead.
+      // Clear zombie credentials so user is redirected to clean login instead of broken dashboard.
+      if (typeof window !== "undefined") {
+        useAuthStore.getState().logout();
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
+      }
+    }
+  }
 
   if (!res.ok) {
     let errorDetail;
@@ -282,6 +397,31 @@ export const api = {
       request<Settlement>("/api/splits/settle", {
         method: "POST",
         body: JSON.stringify(body),
+      }),
+  },
+  auth: {
+    sendOtp: (identifier: string) =>
+      request<{ email: string; masked_email: string; via_phone: boolean; message: string }>("/api/auth/otp/send", {
+        method: "POST",
+        body: JSON.stringify({ identifier }),
+      }),
+    verifyOtp: (email: string, token: string) =>
+      request<{
+        access_token: string;
+        refresh_token: string;
+        expires_at: number;
+        expires_in: number;
+        user: { id: string; email: string; phone?: string | null };
+      }>("/api/auth/otp/verify", {
+        method: "POST",
+        body: JSON.stringify({ email, token }),
+      }),
+    getProfile: () =>
+      request<{ id: string; email: string; phone?: string | null }>("/api/auth/profile"),
+    updatePhone: (phone: string) =>
+      request<{ phone: string; message: string }>("/api/auth/profile/phone", {
+        method: "PUT",
+        body: JSON.stringify({ phone }),
       }),
   },
 };

@@ -25,33 +25,33 @@ export default function Header({
   const [showStagedInbox, setShowStagedInbox] = useState(false);
 
   return (
-    <header className="h-14 border-b border-border bg-surface/80 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20">
+    <header className="h-14 border-b border-white/[0.08] bg-[#0A0A0E]/80 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20 select-none">
       <StagedInboxModal isOpen={showStagedInbox} onClose={() => setShowStagedInbox(false)} />
 
       {/* Title */}
       <div className="flex items-center gap-2.5">
-        <h1 className="text-sm sm:text-base font-semibold text-text-primary tracking-tight">
+        <h1 className="text-sm sm:text-base font-bold text-white tracking-tight">
           {title}
         </h1>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2.5 sm:gap-3">
+      <div className="flex items-center gap-2 sm:gap-2.5">
         {/* Staged Inbox Badge (Finance) */}
         <button
           type="button"
           onClick={() => setShowStagedInbox(true)}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer active:scale-95 border ${
             stagedCount > 0
-              ? "bg-accent/10 text-accent border-accent/30 hover:bg-accent/15"
-              : "bg-surface-raised text-text-muted border-border hover:text-text-secondary"
+              ? "bg-white/10 text-white border-white/20 hover:bg-white/15 shadow-sm"
+              : "bg-white/[0.04] text-neutral-400 border-white/[0.08] hover:text-white hover:bg-white/[0.08]"
           }`}
           title="Staged Transactions"
         >
           <Inbox className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Inbox</span>
           {stagedCount > 0 && (
-            <span className="px-1.5 py-0.5 bg-accent text-white rounded-full text-[10px] font-bold leading-none">
+            <span className="px-1.5 py-0.5 bg-white text-black rounded-full text-[10px] font-bold leading-none">
               {stagedCount}
             </span>
           )}
@@ -64,7 +64,7 @@ export default function Header({
         {onAddTransactionClick && (
           <button
             onClick={onAddTransactionClick}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent/90 text-black rounded-lg text-xs font-bold transition-all shadow-sm"
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-white hover:bg-neutral-100 text-black rounded-full text-xs font-bold transition-all shadow-lg shadow-white/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
             <span>{actionLabel || "Log Entry"}</span>

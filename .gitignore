@@ -10,6 +10,7 @@ ENV/
 out/
 build/
 dist/
+*.tsbuildinfo
 
 # Local Environment Variables
 .env

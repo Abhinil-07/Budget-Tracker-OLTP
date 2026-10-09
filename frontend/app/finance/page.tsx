@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useFinanceStore } from "@/stores/useFinanceStore";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -14,6 +15,7 @@ import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import BudgetAlertBanners from "@/components/budget/BudgetAlertBanners";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { formatDate } from "@/lib/formatDate";
+import { refreshAccessToken } from "@/lib/api";
 import { 
   AlertCircle, 
   TrendingUp, 
@@ -40,10 +42,41 @@ export default function Dashboard() {
   const [addModalType, setAddModalType] = useState<"expense" | "income">("expense");
   const [isNetWorthMasked, setIsNetWorthMasked] = useState(false);
 
+  const queryClient = useQueryClient();
+
   // Hydrate auth state from localStorage on mount
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  // Auto-refresh queries whenever the user focuses or returns to the dashboard tab
+  useEffect(() => {
+    const handleRefresh = () => {
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["budget"] });
+      queryClient.invalidateQueries({ queryKey: ["investments"] });
+    };
+
+    window.addEventListener("focus", handleRefresh);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        handleRefresh();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    // Background heartbeat: keep rolling session active
+    const interval = setInterval(() => {
+      refreshAccessToken();
+    }, 5 * 60 * 1000);
+
+    return () => {
+      window.removeEventListener("focus", handleRefresh);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      clearInterval(interval);
+    };
+  }, [queryClient]);
 
   // Redirect to login if hydrated and no token
   useEffect(() => {
@@ -305,7 +338,7 @@ export default function Dashboard() {
                   setAddModalType("expense");
                   setShowAddModal(true);
                 }}
-                className="bg-white hover:bg-neutral-100 text-black font-extrabold px-4 py-2.5 rounded-2xl transition-all shadow-lg flex items-center gap-1.5 text-xs active:scale-95 cursor-pointer"
+                className="bg-white hover:bg-neutral-100 text-black font-extrabold px-5 py-2.5 rounded-full transition-all shadow-lg flex items-center gap-1.5 text-xs active:scale-95 cursor-pointer"
               >
                 <Plus className="h-4 w-4 stroke-[2.5]" />
                 <span>Expense</span>
@@ -317,7 +350,7 @@ export default function Dashboard() {
                   setAddModalType("income");
                   setShowAddModal(true);
                 }}
-                className="bg-white/15 hover:bg-white/25 backdrop-blur-md text-white font-bold px-4 py-2.5 rounded-2xl border border-white/15 transition-all shadow-lg flex items-center gap-1.5 text-xs active:scale-95 cursor-pointer"
+                className="bg-white/15 hover:bg-white/25 backdrop-blur-md text-white font-bold px-5 py-2.5 rounded-full border border-white/15 transition-all shadow-lg flex items-center gap-1.5 text-xs active:scale-95 cursor-pointer"
               >
                 <TrendingUp className="h-4 w-4 stroke-[2.5] text-emerald-300" />
                 <span>Income</span>
@@ -325,13 +358,13 @@ export default function Dashboard() {
 
               <Link
                 href="/finance/accounts"
-                className="bg-white/15 hover:bg-white/20 backdrop-blur-md text-white font-medium px-4 py-2.5 rounded-2xl border border-white/15 transition-all flex items-center gap-1.5 text-xs"
+                className="bg-white/15 hover:bg-white/20 backdrop-blur-md text-white font-medium px-4 py-2.5 rounded-full border border-white/15 transition-all flex items-center gap-1.5 text-xs"
               >
                 <CreditCard className="h-3.5 w-3.5" />
                 <span>{accounts.length} Cards</span>
               </Link>
 
-              <div className="sm:ml-auto inline-flex items-center gap-1.5 bg-black/25 backdrop-blur-md px-3.5 py-2 rounded-2xl text-xs font-medium text-white/90 border border-white/10">
+              <div className="sm:ml-auto inline-flex items-center gap-1.5 bg-black/25 backdrop-blur-md px-3.5 py-2 rounded-full text-xs font-medium text-white/90 border border-white/10">
                 <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
                 <span>+{formatCurrency(mtdIncomeCents, "INR")} Inflow MTD</span>
               </div>

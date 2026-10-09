@@ -387,34 +387,34 @@ export default function BudgetPage() {
                       <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-success text-white rounded-lg text-sm font-semibold hover:bg-success/90 transition-all duration-150"
+                        className="flex items-center gap-1.5 px-6 py-2.5 bg-white text-black font-bold rounded-full text-xs hover:bg-neutral-100 shadow-xl transition-all duration-150 cursor-pointer active:scale-95 disabled:opacity-50"
                       >
-                        <Check className="h-4 w-4" />
+                        <Check className="h-3.5 w-3.5 stroke-[2.5]" />
                         <span>Save Changes</span>
                       </button>
                       <button
                         onClick={handleCancel}
                         disabled={saving}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-surface-raised border border-border rounded-lg text-sm font-semibold text-text-secondary hover:text-text-primary transition-all duration-150"
+                        className="flex items-center gap-1.5 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-xs font-semibold text-neutral-300 hover:text-white transition-all duration-150 cursor-pointer"
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-3.5 w-3.5" />
                         <span>Cancel</span>
                       </button>
                     </div>
-                    {error && <p className="text-xs text-danger font-mono">{error}</p>}
+                    {error && <p className="text-xs text-rose-400 font-mono">{error}</p>}
                   </div>
                 ) : totalBudgetCents === 0 ? (
                   <div className="flex flex-col items-center justify-center py-10 text-center gap-4">
-                    <div className="p-3 bg-accent/10 border border-accent/20 rounded-xl">
-                      <PiggyBank className="h-8 w-8 text-accent" />
+                    <div className="p-3 bg-white/5 border border-white/10 rounded-2xl">
+                      <PiggyBank className="h-8 w-8 text-white" />
                     </div>
                     <div>
-                      <p className="text-sm text-text-secondary font-semibold">Set a monthly budget to track spending</p>
-                      <p className="text-xs text-text-muted mt-1">Configure limits on categories to control your monthly burn rate.</p>
+                      <p className="text-sm text-neutral-200 font-bold">Set a monthly budget to track spending</p>
+                      <p className="text-xs text-neutral-400 mt-1">Configure limits on categories to control your monthly burn rate.</p>
                     </div>
                     <button
                       onClick={handleStartEdit}
-                      className="flex items-center gap-1.5 px-5 py-2 bg-accent hover:bg-accent/90 text-text-primary rounded-lg text-xs font-semibold transition-all shadow-md shadow-accent/10"
+                      className="flex items-center gap-2 px-6 py-2.5 bg-white hover:bg-neutral-100 text-black rounded-full text-xs font-bold transition-all shadow-xl cursor-pointer active:scale-95"
                     >
                       <Edit3 className="h-3.5 w-3.5" />
                       <span>Set Monthly Budget</span>
@@ -424,24 +424,24 @@ export default function BudgetPage() {
                   <>
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider font-mono">
+                        <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider font-mono">
                           Target Monthly Limit
                         </h3>
                         <div className="flex items-baseline gap-3 mt-2">
-                          <span className="font-mono text-3xl font-extrabold text-text-primary tracking-tight">
+                          <span className="font-mono text-3xl font-extrabold text-white tracking-tight">
                             {formatCurrency(totalBudgetCents, "INR")}
                           </span>
                           <button
                             onClick={handleStartEdit}
-                            className="text-accent hover:underline text-xs flex items-center gap-1 font-semibold"
+                            className="px-3 py-1 rounded-full bg-white/10 hover:bg-white/15 text-white text-xs flex items-center gap-1.5 font-bold border border-white/10 transition-all cursor-pointer active:scale-95"
                           >
-                            <Edit3 className="h-3.5 w-3.5" />
+                            <Edit3 className="h-3 w-3" />
                             <span>Edit</span>
                           </button>
                         </div>
                       </div>
-                      <div className="p-3 bg-accent/10 border border-accent/20 rounded-xl">
-                        <PiggyBank className="h-6 w-6 text-accent" />
+                      <div className="p-3 bg-white/5 border border-white/10 rounded-2xl">
+                        <PiggyBank className="h-6 w-6 text-white" />
                       </div>
                     </div>
 

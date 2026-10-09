@@ -442,19 +442,30 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-surface border border-border rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-fade-in select-none">
+      <div className="relative bg-[#0D0D12] border border-white/10 rounded-[32px] shadow-[0_24px_70px_rgba(0,0,0,0.85)] w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
+        {/* Ambient atmospheric glows */}
+        <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full pointer-events-none blur-3xl opacity-25 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500" />
+        <div className="absolute -bottom-20 -left-20 w-60 h-60 rounded-full pointer-events-none blur-3xl opacity-20 bg-gradient-to-tr from-cyan-500 to-emerald-500" />
+
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border/80 bg-surface-raised/40">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08] relative z-10">
           <div className="flex items-center gap-2.5">
-            <FileSpreadsheet className="h-5 w-5 text-accent" />
-            <h2 className="font-semibold text-text-primary text-lg">Bulk Statement Importer</h2>
+            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white">
+              <FileSpreadsheet className="h-4 w-4" />
+            </div>
+            <div>
+              <h2 className="font-bold text-white text-base tracking-tight">Bulk Statement Importer</h2>
+              <p className="text-[11px] text-neutral-400">Import CSV or Excel statement with automatic column mapping.</p>
+            </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1 text-text-muted hover:text-text-primary hover:bg-surface-raised rounded-lg transition-colors"
+            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95"
+            title="Close"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
@@ -836,13 +847,13 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
         </div>
 
         {/* Footer Navigation */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-border/80 bg-surface-raised/40">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-white/[0.08] relative z-10">
           {step === "upload" && (
             <>
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary rounded-lg border border-border"
+                className="px-5 py-2.5 text-xs font-semibold text-neutral-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-full border border-white/10 transition-all cursor-pointer"
               >
                 Cancel
               </button>
@@ -850,9 +861,9 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
                 type="button"
                 disabled={!file || rawRows.length === 0}
                 onClick={() => setStep("map")}
-                className="flex items-center gap-1.5 px-5 py-2 bg-accent hover:bg-accent/90 disabled:opacity-50 text-text-primary font-semibold text-sm rounded-lg"
+                className="flex items-center gap-1.5 px-6 py-2.5 bg-white hover:bg-neutral-100 disabled:opacity-40 text-black font-bold text-xs rounded-full shadow-xl transition-all cursor-pointer active:scale-95"
               >
-                Next: Map Columns <ArrowRight className="h-4 w-4" />
+                Next: Map Columns <ArrowRight className="h-3.5 w-3.5" />
               </button>
             </>
           )}
@@ -862,16 +873,16 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
               <button
                 type="button"
                 onClick={() => setStep("upload")}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm text-text-secondary hover:text-text-primary rounded-lg border border-border"
+                className="flex items-center gap-1.5 px-5 py-2.5 text-xs font-semibold text-neutral-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-full border border-white/10 transition-all cursor-pointer"
               >
-                <ArrowLeft className="h-4 w-4" /> Back
+                <ArrowLeft className="h-3.5 w-3.5" /> Back
               </button>
               <button
                 type="button"
                 onClick={handleProceedToPreview}
-                className="flex items-center gap-1.5 px-5 py-2 bg-accent hover:bg-accent/90 text-text-primary font-semibold text-sm rounded-lg"
+                className="flex items-center gap-1.5 px-6 py-2.5 bg-white hover:bg-neutral-100 text-black font-bold text-xs rounded-full shadow-xl transition-all cursor-pointer active:scale-95"
               >
-                Preview Transactions <ArrowRight className="h-4 w-4" />
+                Preview Transactions <ArrowRight className="h-3.5 w-3.5" />
               </button>
             </>
           )}
@@ -881,23 +892,23 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
               <button
                 type="button"
                 onClick={() => setStep("map")}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm text-text-secondary hover:text-text-primary rounded-lg border border-border"
+                className="flex items-center gap-1.5 px-5 py-2.5 text-xs font-semibold text-neutral-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-full border border-white/10 transition-all cursor-pointer"
               >
-                <ArrowLeft className="h-4 w-4" /> Back
+                <ArrowLeft className="h-3.5 w-3.5" /> Back
               </button>
               <button
                 type="button"
                 disabled={submitting || enabledRows.length === 0}
                 onClick={handleImportSubmit}
-                className="flex items-center gap-2 px-5 py-2 bg-accent hover:bg-accent/90 disabled:opacity-50 text-text-primary font-semibold text-sm rounded-lg shadow-lg shadow-accent/20"
+                className="flex items-center gap-2 px-6 py-2.5 bg-white hover:bg-neutral-100 disabled:opacity-40 text-black font-bold text-xs rounded-full shadow-xl transition-all cursor-pointer active:scale-95"
               >
                 {submitting ? (
                   <>
-                    <RefreshCw className="h-4 w-4 animate-spin" /> Importing...
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Importing...
                   </>
                 ) : (
                   <>
-                    Import {enabledRows.length} Transactions <CheckCircle className="h-4 w-4" />
+                    Import {enabledRows.length} Transactions <CheckCircle className="h-3.5 w-3.5" />
                   </>
                 )}
               </button>
@@ -909,7 +920,7 @@ export default function BulkImportModal({ isOpen, onClose }: BulkImportModalProp
               <button
                 type="button"
                 onClick={onClose}
-                className="px-6 py-2.5 bg-accent hover:bg-accent/90 text-text-primary font-semibold text-sm rounded-lg shadow-lg shadow-accent/20"
+                className="px-8 py-2.5 bg-white hover:bg-neutral-100 text-black font-bold text-xs rounded-full shadow-xl transition-all cursor-pointer active:scale-95"
               >
                 Done
               </button>
