@@ -8,6 +8,7 @@ import PageWrapper from "@/components/layout/PageWrapper";
 import AccountCard from "@/components/accounts/AccountCard";
 import AddAccountModal from "@/components/accounts/AddAccountModal";
 import EditAccountModal from "@/components/accounts/EditAccountModal";
+import AuthLoadingScreen from "@/components/auth/AuthLoadingScreen";
 import { Account } from "@/types/account";
 import {
   CreditCard,
@@ -68,14 +69,7 @@ export default function AccountsPage() {
   }, [txnData]);
 
   if (!hydrated || !token) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-accent border-r-2" />
-          <span className="text-sm text-text-secondary font-mono">Loading...</span>
-        </div>
-      </div>
-    );
+    return <AuthLoadingScreen statusMessage="Synchronizing digital cards..." />;
   }
 
   return (

@@ -59,12 +59,13 @@ export default function LoginPage() {
     hydrate();
   }, [hydrate]);
 
-  // If already logged in, redirect to dashboard
+  // If already logged in, redirect to dashboard (blocked while cinematic loading screen is running)
   useEffect(() => {
+    if (loadingScreenActive) return;
     if (hydrated && token) {
       window.location.href = "/finance";
     }
-  }, [hydrated, token]);
+  }, [hydrated, token, loadingScreenActive]);
 
   // Resend countdown timer
   useEffect(() => {
@@ -138,16 +139,16 @@ export default function LoginPage() {
           res.data.expires_at
         );
 
-        // Intentionally show a 3.5-4s delay so user can read the inspiring quote & observe wave animation
+        // Solid 4.5-5.0 second cinematic loading experience
         setTimeout(() => {
           setLoadingStep(1);
           setLoadingStatus("Preparing your daily financial focus...");
-        }, 1200);
+        }, 1500);
 
         setTimeout(() => {
           setLoadingStep(2);
           setLoadingStatus("Synchronizing accounts & transactions...");
-        }, 2400);
+        }, 3000);
 
         setTimeout(() => {
           setLoadingStatus("Workspace ready! Entering...");
@@ -155,7 +156,7 @@ export default function LoginPage() {
           setTimeout(() => {
             window.location.href = "/finance";
           }, 850);
-        }, 3600);
+        }, 4200);
       } else {
         throw new Error("Invalid session received from server.");
       }
@@ -223,16 +224,16 @@ export default function LoginPage() {
           authData.expires_at || null
         );
 
-        // Intentionally show a 3.5-4s delay so user can read the inspiring quote & observe wave animation
+        // Solid 4.5-5.0 second cinematic loading experience
         setTimeout(() => {
           setLoadingStep(1);
           setLoadingStatus("Preparing your daily financial focus...");
-        }, 1200);
+        }, 1500);
 
         setTimeout(() => {
           setLoadingStep(2);
           setLoadingStatus("Synchronizing accounts & transactions...");
-        }, 2400);
+        }, 3000);
 
         setTimeout(() => {
           setLoadingStatus("Workspace ready! Entering...");
@@ -240,7 +241,7 @@ export default function LoginPage() {
           setTimeout(() => {
             window.location.href = "/finance";
           }, 850);
-        }, 3600);
+        }, 4200);
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "An unexpected error occurred.";
@@ -459,7 +460,10 @@ export default function LoginPage() {
                   >
                     {loading ? (
                       <>
-                        <div className="w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                        <span className="relative flex h-2 w-2 shrink-0">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-black opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-black" />
+                        </span>
                         <span>Sending Code...</span>
                       </>
                     ) : (
@@ -519,7 +523,10 @@ export default function LoginPage() {
                   >
                     {loading ? (
                       <>
-                        <div className="w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                        <span className="relative flex h-2 w-2 shrink-0">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-black opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-black" />
+                        </span>
                         <span>Verifying...</span>
                       </>
                     ) : (

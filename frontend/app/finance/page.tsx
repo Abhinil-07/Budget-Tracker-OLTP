@@ -16,6 +16,7 @@ import BudgetAlertBanners from "@/components/budget/BudgetAlertBanners";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { formatDate } from "@/lib/formatDate";
 import { refreshAccessToken } from "@/lib/api";
+import AuthLoadingScreen from "@/components/auth/AuthLoadingScreen";
 import { 
   AlertCircle, 
   TrendingUp, 
@@ -249,14 +250,7 @@ export default function Dashboard() {
 
   // Show loading state until auth is resolved
   if (!hydrated || !token) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-accent border-r-2" />
-          <span className="text-sm text-text-secondary font-mono">Loading...</span>
-        </div>
-      </div>
-    );
+    return <AuthLoadingScreen statusMessage="Initializing Life OS..." />;
   }
 
   const isLoading = accountsLoading || txnsLoading || budgetLoading;

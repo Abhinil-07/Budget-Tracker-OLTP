@@ -9,6 +9,7 @@ import { formatDate } from "../../lib/formatDate";
 import { RefreshCw, LogOut, CheckCircle, AlertCircle, Shield, Tag, Plus, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCategories } from "../../hooks/useCategories";
+import AuthLoadingScreen from "../../components/auth/AuthLoadingScreen";
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
@@ -95,11 +96,7 @@ export default function SettingsPage() {
   };
 
   if (!hydrated || !token) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-accent border-r-2" />
-      </div>
-    );
+    return <AuthLoadingScreen statusMessage="Loading settings..." />;
   }
 
   return (

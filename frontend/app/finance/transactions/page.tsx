@@ -10,6 +10,7 @@ import AccountCard from "@/components/accounts/AccountCard";
 import AddTransactionModal from "@/components/transactions/AddTransactionModal";
 import EditTransactionModal from "@/components/transactions/EditTransactionModal";
 import BulkImportModal from "@/components/transactions/BulkImportModal";
+import AuthLoadingScreen from "@/components/auth/AuthLoadingScreen";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { formatDate } from "@/lib/formatDate";
 import { CATEGORIES } from "@/lib/constants";
@@ -493,16 +494,9 @@ export default function TransactionsPage() {
 
   const totalPages = txnData ? Math.ceil(txnData.total / pageSize) : 1;
 
-  // If auth is not yet hydrated, render clean centered spinner inside PageWrapper
+  // If auth is not yet hydrated, render cinematic loading screen
   if (!hydrated) {
-    return (
-      <PageWrapper title="Transactions">
-        <div className="py-24 flex flex-col items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-white border-r-2 mb-3" />
-          <span className="text-xs text-neutral-400">Loading transactions...</span>
-        </div>
-      </PageWrapper>
-    );
+    return <AuthLoadingScreen statusMessage="Loading transactions ledger..." />;
   }
 
   return (

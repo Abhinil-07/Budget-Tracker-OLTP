@@ -10,6 +10,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import BudgetAlertBanners from "@/components/budget/BudgetAlertBanners";
 import { CATEGORIES } from "@/lib/constants";
 import { useCategories } from "@/hooks/useCategories";
+import AuthLoadingScreen from "@/components/auth/AuthLoadingScreen";
 import {
   PieChart,
   Edit3,
@@ -229,14 +230,7 @@ export default function BudgetPage() {
   }, [budget]);
 
   if (!hydrated || !token) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-accent border-r-2" />
-          <span className="text-sm text-text-secondary font-mono">Loading...</span>
-        </div>
-      </div>
-    );
+    return <AuthLoadingScreen statusMessage="Loading budget & targets..." />;
   }
 
   const totalBudgetCents = budget?.total_cents || 0;
