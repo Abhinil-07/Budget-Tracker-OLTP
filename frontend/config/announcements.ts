@@ -19,17 +19,18 @@ export interface Announcement {
  * until the next deployment with a new ID!
  */
 export const CURRENT_ANNOUNCEMENT: Announcement | null = {
-  id: "deploy-2026-10-09-v2-polish-otp",
-  badge: "DEPLOYED TO PROD",
-  title: "Cinematic Login, Card Refinements & Gesture Swiping",
-  description: "Experience our new cinematic animated login with daily motivational affirmations, seamless borderless digital cards with camouflaged live badges, and streamlined mobile card swiping.",
-  date: "Oct 9, 2026",
+  id: "deploy-2026-10-22-v1-spends-analysis",
+  badge: "NEW RELEASE",
+  title: "Interactive Spends Analysis & Chart Intelligence",
+  description: "Explore deep visual insights into your cash flows, category footprints, and daily spending velocity with our brand-new interactive Analysis hub.",
+  date: "Oct 22, 2026",
   features: [
-    "Cinematic 4s animated login screen with inspiring daily quotes & aurora lighting",
-    "Seamless borderless card design with translucent gradient-camouflaged live pills",
-    "Pure touch swiping on mobile transaction carousel (arrow buttons hidden on mobile)",
-    "Passwordless 6-digit OTP sign-in & one-time mobile number profile linking",
+    "New Spends Analysis tab with interactive Area, Bar, and Donut charts",
+    "Interactive category drilldown — click any slice or category to filter timeline spikes",
+    "Weekly rhythm habit tracker to pinpoint peak spending days of the week",
+    "Outflow source breakdown comparing Credit Card debt vs Liquid Bank debits",
+    "Hardened session stability across multiple browser tabs and mobile sleep cycles",
   ],
   // Sunsets 14 days after release so users away for months don't see stale alerts
-  expiresAt: "2026-10-23T23:59:59Z",
+  expiresAt: "2026-11-05T23:59:59Z",
 };

@@ -17,6 +17,7 @@ import {
   Settings,
   Scale,
   TrendingUp,
+  BarChart3,
 } from "lucide-react";
 
 export default function CentralMobileNav() {
@@ -59,6 +60,7 @@ export default function CentralMobileNav() {
   ];
 
   const moreApps = [
+    { label: "Spends Analysis", href: "/finance/analysis", icon: BarChart3, tag: "Finance" },
     { label: "Reconciliation", href: "/finance/reconciliation", icon: Scale, tag: "Finance" },
     { label: "Investments", href: "/finance/investments", icon: TrendingUp, tag: "Finance" },
     { label: "Gym Tracker", href: "/gym", icon: Dumbbell, tag: "Life OS" },

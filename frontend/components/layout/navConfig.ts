@@ -14,6 +14,7 @@ import {
   History,
   Target,
   Bookmark,
+  BarChart3,
   LucideIcon,
 } from "lucide-react";
 
@@ -46,6 +47,7 @@ export const LIFE_OS_MODULES: ModuleDefinition[] = [
     subItems: [
       { name: "Dashboard", href: "/finance", icon: LayoutDashboard },
       { name: "Transactions", href: "/finance/transactions", icon: ArrowLeftRight },
+      { name: "Analysis", href: "/finance/analysis", icon: BarChart3 },
       { name: "Reconciliation", href: "/finance/reconciliation", icon: Scale },
       { name: "Accounts", href: "/finance/accounts", icon: Wallet },
       { name: "Investments", href: "/finance/investments", icon: TrendingUp },
