@@ -744,7 +744,7 @@ export default function SpendsAnalysisPage() {
             </div>
 
             {/* Recharts Timeline */}
-            <div className="h-[280px] sm:h-[320px] w-full">
+            <div className="h-[280px] sm:h-[320px] w-full min-w-0">
               {isMounted && (
                 <ResponsiveContainer width="100%" height="100%">
                   {trendViewMode === "daily" ? (
@@ -914,12 +914,11 @@ export default function SpendsAnalysisPage() {
               </div>
 
               {/* Donut + Center Stat */}
-              <div className="flex flex-col sm:flex-row items-center gap-6">
-                <div className="relative w-[210px] h-[210px] shrink-0">
+              <div className="flex flex-col sm:flex-row items-center gap-6 min-w-0">
+                <div className="relative w-[210px] h-[210px] shrink-0 flex items-center justify-center">
                   {isMounted && (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
+                    <PieChart width={210} height={210}>
+                      <Pie
                           data={analytics.categoryList}
                           dataKey="amountCents"
                           nameKey="name"
@@ -958,7 +957,6 @@ export default function SpendsAnalysisPage() {
                           })}
                         </Pie>
                       </PieChart>
-                    </ResponsiveContainer>
                   )}
 
                   {/* Donut Center Display */}
@@ -1064,7 +1062,7 @@ export default function SpendsAnalysisPage() {
                   )}
                 </div>
 
-                <div className="h-[180px] w-full">
+                <div className="h-[180px] w-full min-w-0">
                   {isMounted && (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart

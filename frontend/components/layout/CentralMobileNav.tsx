@@ -42,9 +42,17 @@ export default function CentralMobileNav() {
       isActive: pathname === "/finance/transactions",
     },
     {
+      id: "analysis",
+      label: "Analysis",
+      shortcut: "3",
+      href: "/finance/analysis",
+      icon: BarChart3,
+      isActive: pathname.startsWith("/finance/analysis") || pathname.startsWith("/finance/analytics"),
+    },
+    {
       id: "accounts",
       label: "Cards & Accounts",
-      shortcut: "3",
+      shortcut: "4",
       href: "/finance/accounts",
       icon: Wallet,
       isActive: pathname === "/finance/accounts",
@@ -52,7 +60,7 @@ export default function CentralMobileNav() {
     {
       id: "budget",
       label: "Budget & Stats",
-      shortcut: "4",
+      shortcut: "5",
       href: "/finance/budget",
       icon: PieChart,
       isActive: pathname === "/finance/budget",
