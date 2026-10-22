@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
+import { useAuthStore } from "../stores/useAuthStore";
 import type { Transaction } from "../types/transaction";
 
 export interface StagedTransactionItem {
@@ -22,6 +23,7 @@ const STORAGE_KEY = "staged_transactions_queue";
 
 export function useStagedTransactions() {
   const queryClient = useQueryClient();
+  const { token, hydrated } = useAuthStore();
   const [localStaged, setLocalStaged] = useState<StagedTransactionItem[]>([]);
   // Local overrides for inline edits on remote/local staged items
   const [edits, setEdits] = useState<Record<string, Partial<StagedTransactionItem>>>({});
@@ -37,7 +39,9 @@ export function useStagedTransactions() {
         return [];
       }
     },
-    refetchInterval: 8000,
+    enabled: hydrated && !!token,
+    refetchInterval: 60000,
+    refetchIntervalInBackground: false,
   });
 
   // Load local staged items

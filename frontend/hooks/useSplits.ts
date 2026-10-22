@@ -3,25 +3,31 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { PersonBalance, Person } from "../types/split";
+import { useAuthStore } from "../stores/useAuthStore";
 
 export function useBalances() {
+  const { token, hydrated } = useAuthStore();
   return useQuery({
     queryKey: ["person-balances"],
     queryFn: async () => {
       const res = await api.splits.balances();
       return res.data || [];
     },
-    refetchInterval: 15000,
+    enabled: hydrated && !!token,
+    refetchInterval: 60000,
+    refetchIntervalInBackground: false,
   });
 }
 
 export function usePeople() {
+  const { token, hydrated } = useAuthStore();
   return useQuery({
     queryKey: ["people"],
     queryFn: async () => {
       const res = await api.splits.people();
       return res.data || [];
     },
+    enabled: hydrated && !!token,
   });
 }
 

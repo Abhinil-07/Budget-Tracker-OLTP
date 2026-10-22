@@ -39,10 +39,17 @@ export class ApiError extends Error {
   }
 }
 
-// Single-flight promise so parallel requests share the exact same refresh call
+// Single-flight promise and timestamp cache so parallel requests share the exact same refresh call
 let activeRefreshPromise: Promise<string | null> | null = null;
+let lastRefreshTime = 0;
+let lastRefreshedToken: string | null = null;
 
 export async function refreshAccessToken(): Promise<string | null> {
+  // If a refresh succeeded in the last 15 seconds, reuse it immediately to avoid token rotation races
+  if (lastRefreshedToken && Date.now() - lastRefreshTime < 15000) {
+    return lastRefreshedToken;
+  }
+
   if (activeRefreshPromise) {
     return activeRefreshPromise;
   }
@@ -64,8 +71,28 @@ export async function refreshAccessToken(): Promise<string | null> {
       });
 
       if (!res.ok) {
-        // If refresh token is truly invalid/expired, log out to prevent infinite loops
-        if (res.status === 401 && typeof window !== "undefined") {
+        let errData: any = null;
+        try {
+          errData = await res.json();
+        } catch {}
+
+        const detailMsg = (
+          errData?.detail ||
+          errData?.error?.message ||
+          ""
+        ).toLowerCase();
+
+        // Only log out if Supabase explicitly rejected the refresh token as invalid, expired, or revoked
+        const isExplicitRevocation =
+          res.status === 401 &&
+          (detailMsg.includes("invalid") ||
+            detailMsg.includes("expired") ||
+            detailMsg.includes("revoked") ||
+            detailMsg.includes("session not found") ||
+            detailMsg.includes("already used"));
+
+        if (isExplicitRevocation && typeof window !== "undefined") {
+          console.warn("Session permanently revoked. Redirecting to login.");
           useAuthStore.getState().logout();
           if (window.location.pathname !== "/login") {
             window.location.href = "/login";
@@ -78,6 +105,8 @@ export async function refreshAccessToken(): Promise<string | null> {
       const authData = resJson.data;
 
       if (authData?.access_token) {
+        lastRefreshTime = Date.now();
+        lastRefreshedToken = authData.access_token;
         useAuthStore
           .getState()
           .updateTokens(
@@ -89,7 +118,7 @@ export async function refreshAccessToken(): Promise<string | null> {
       }
       return null;
     } catch (err) {
-      console.error("Token refresh failed:", err);
+      console.error("Token refresh network failed:", err);
       return null;
     } finally {
       activeRefreshPromise = null;
@@ -138,6 +167,7 @@ async function request<T>(
     }
   }
 
+  const tokenSent = currentToken;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options?.headers as Record<string, string>),
@@ -151,9 +181,18 @@ async function request<T>(
     headers,
   });
 
-  // 2. Reactive 401 retry: if unauthorized, refresh session silently and replay request once
+  // 2. Reactive 401 retry:
   if (res.status === 401 && !path.includes("/auth/")) {
-    const freshToken = await refreshAccessToken();
+    // Check if another concurrent request already refreshed the token in the store
+    const latestToken = getToken();
+    let freshToken: string | null = null;
+
+    if (latestToken && latestToken !== tokenSent) {
+      freshToken = latestToken;
+    } else {
+      freshToken = await refreshAccessToken();
+    }
+
     if (freshToken) {
       res = await fetch(`${API_BASE}${path}`, {
         ...options,
@@ -164,15 +203,7 @@ async function request<T>(
         },
       });
     } else {
-      // Refresh token failed or is missing: the session is dead.
-      // Clear zombie credentials so user is redirected to clean login instead of broken dashboard.
-      if (typeof window !== "undefined") {
-        useAuthStore.getState().logout();
-        if (window.location.pathname !== "/login") {
-          window.location.href = "/login";
-        }
-      }
-      throw new ApiError(401, { error: { message: "Session expired. Please log in again." } });
+      throw new ApiError(401, { error: { message: "Session expired or authentication failed." } });
     }
   }
 

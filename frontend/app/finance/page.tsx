@@ -50,21 +50,31 @@ export default function Dashboard() {
     hydrate();
   }, [hydrate]);
 
-  // Auto-refresh queries whenever the user focuses or returns to the dashboard tab
+  // Auto-refresh queries gracefully on focus with at least 30s throttle
   useEffect(() => {
-    const handleRefresh = () => {
+    let lastRefreshed = 0;
+    const handleRefresh = async () => {
+      const now = Date.now();
+      if (now - lastRefreshed < 30000) return;
+      lastRefreshed = now;
+
+      try {
+        await refreshAccessToken();
+      } catch {}
+
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["budget"] });
       queryClient.invalidateQueries({ queryKey: ["investments"] });
     };
 
-    window.addEventListener("focus", handleRefresh);
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
         handleRefresh();
       }
     };
+
+    window.addEventListener("focus", handleRefresh);
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
