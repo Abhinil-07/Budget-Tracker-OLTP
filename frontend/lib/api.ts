@@ -49,22 +49,9 @@ export async function refreshAccessToken(): Promise<string | null> {
 
   activeRefreshPromise = (async () => {
     try {
-      let refreshToken =
-        getInMemoryRefreshToken() ||
-        (typeof window !== "undefined" ? localStorage.getItem("refresh_token") : null);
-
-      if (!refreshToken && typeof window !== "undefined") {
-        const keys = Object.keys(localStorage);
-        const supabaseKey = keys.find(key => key.startsWith("sb-") && key.endsWith("-auth-token"));
-        if (supabaseKey) {
-          try {
-            const data = JSON.parse(localStorage.getItem(supabaseKey) || "{}");
-            refreshToken = data.currentSession?.refresh_token || data.refresh_token || null;
-          } catch {
-            // Ignore parse errors
-          }
-        }
-      }
+      const refreshToken =
+        (typeof window !== "undefined" ? localStorage.getItem("refresh_token") : null) ||
+        getInMemoryRefreshToken();
 
       if (!refreshToken) {
         return null;
@@ -113,35 +100,13 @@ export async function refreshAccessToken(): Promise<string | null> {
 }
 
 function getToken(): string {
-  // 1. Try to fetch from memory token first
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("access_token");
+    if (token) return token;
+  }
   const memoryToken = getInMemoryToken();
   if (memoryToken) return memoryToken;
-
-  if (typeof window === "undefined") return "";
-  
-  // 2. Direct access token override (for tests/local dev helper)
-  const token = localStorage.getItem("access_token");
-  if (token) return token;
-
-  // 3. Scan localStorage for any Supabase auth token
-  const keys = Object.keys(localStorage);
-  const supabaseKey = keys.find(key => key.startsWith("sb-") && key.endsWith("-auth-token"));
-  if (supabaseKey) {
-    try {
-      const data = JSON.parse(localStorage.getItem(supabaseKey) || "{}");
-      if (data.currentSession?.access_token) {
-        return data.currentSession.access_token;
-      }
-      if (data.access_token) {
-        return data.access_token;
-      }
-    } catch {
-      // Ignore JSON parse errors
-    }
-  }
-
-  // 4. Fallback dev key
-  return "dev-local-key-12345";
+  return "";
 }
 
 function toQueryString(params: Record<string, any>): string {
@@ -160,24 +125,30 @@ async function request<T>(
 ): Promise<ApiResponse<T>> {
   // 1. Proactive expiry check: if token expires within 60 seconds, refresh before call
   const expiresAt =
-    getInMemoryExpiresAt() ||
     (typeof window !== "undefined"
       ? Number(localStorage.getItem("token_expires_at") || "0")
-      : 0);
+      : 0) || getInMemoryExpiresAt() || 0;
+
+  let currentToken = getToken();
 
   if (expiresAt > 0 && Date.now() / 1000 > expiresAt - 60 && !path.includes("/auth/")) {
-    await refreshAccessToken();
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      currentToken = refreshed;
+    }
   }
 
-  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options?.headers as Record<string, string>),
+  };
+  if (currentToken) {
+    headers["Authorization"] = `Bearer ${currentToken}`;
+  }
 
   let res = await fetch(`${API_BASE}${path}`, {
     ...options,
-    headers: {
-      ...options?.headers,
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    headers,
   });
 
   // 2. Reactive 401 retry: if unauthorized, refresh session silently and replay request once
@@ -201,6 +172,7 @@ async function request<T>(
           window.location.href = "/login";
         }
       }
+      throw new ApiError(401, { error: { message: "Session expired. Please log in again." } });
     }
   }
 

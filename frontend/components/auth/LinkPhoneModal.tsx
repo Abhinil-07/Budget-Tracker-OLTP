@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Phone, X, Check, AlertCircle, Sparkles, ShieldCheck } from "lucide-react";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { api, ApiError } from "../../lib/api";
+import { CURRENT_ANNOUNCEMENT } from "../../config/announcements";
 
 export default function LinkPhoneModal() {
   const { user, setUserPhone } = useAuthStore();
@@ -25,6 +26,14 @@ export default function LinkPhoneModal() {
     if (user.phone) {
       setIsOpen(false);
       return;
+    }
+
+    // Don't open if announcement modal hasn't been dismissed yet
+    if (CURRENT_ANNOUNCEMENT) {
+      const announcementKey = `announcement_seen_${user.id}_${CURRENT_ANNOUNCEMENT.id}`;
+      if (!localStorage.getItem(announcementKey)) {
+        return;
+      }
     }
 
     // Check if dismissed previously for this user

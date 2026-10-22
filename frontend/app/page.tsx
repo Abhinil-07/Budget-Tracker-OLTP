@@ -50,15 +50,9 @@ export default function OverviewPage() {
     };
     document.addEventListener("visibilitychange", handleVisibility);
 
-    // Background heartbeat: keep rolling session active
-    const interval = setInterval(() => {
-      refreshAccessToken();
-    }, 5 * 60 * 1000);
-
     return () => {
       window.removeEventListener("focus", handleRefresh);
       document.removeEventListener("visibilitychange", handleVisibility);
-      clearInterval(interval);
     };
   }, [queryClient]);
 

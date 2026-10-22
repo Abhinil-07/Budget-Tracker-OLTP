@@ -67,15 +67,9 @@ export default function Dashboard() {
     };
     document.addEventListener("visibilitychange", handleVisibility);
 
-    // Background heartbeat: keep rolling session active
-    const interval = setInterval(() => {
-      refreshAccessToken();
-    }, 5 * 60 * 1000);
-
     return () => {
       window.removeEventListener("focus", handleRefresh);
       document.removeEventListener("visibilitychange", handleVisibility);
-      clearInterval(interval);
     };
   }, [queryClient]);
 
@@ -282,9 +276,22 @@ export default function Dashboard() {
         defaultType={addModalType}
       />
       {isError && (
-        <div className="bg-danger/10 border border-danger/25 text-danger px-4 py-3 rounded-lg text-sm flex items-center gap-2">
-          <AlertCircle className="h-5 w-5" />
-          <span>Error loading dashboard metrics. Please refresh.</span>
+        <div className="bg-danger/10 border border-danger/25 text-danger px-4 py-3 rounded-xl text-sm flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            <span>Could not load some dashboard metrics.</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              refreshAccessToken().then(() => {
+                queryClient.invalidateQueries();
+              });
+            }}
+            className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-semibold transition-all cursor-pointer border border-white/10 active:scale-95 shrink-0"
+          >
+            Retry Sync
+          </button>
         </div>
       )}
 

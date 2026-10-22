@@ -106,12 +106,16 @@ async def login(credentials: AuthCredentials, supabase: AsyncClient = Depends(ge
         raw_phone = response.user.phone or (response.user.user_metadata or {}).get("phone")
         phone = await resolve_user_phone(supabase, response.user.id, raw_phone)
             
+        now_ts = int(datetime.now(timezone.utc).timestamp())
+        expires_in = response.session.expires_in or 3600
+        expires_at = response.session.expires_at or (now_ts + expires_in)
+
         return {
             "data": {
                 "access_token": response.session.access_token,
                 "refresh_token": response.session.refresh_token,
-                "expires_at": response.session.expires_at,
-                "expires_in": response.session.expires_in,
+                "expires_at": expires_at,
+                "expires_in": expires_in,
                 "user": {
                     "id": response.user.id,
                     "email": response.user.email,
@@ -146,12 +150,16 @@ async def refresh_session(payload: RefreshRequest, supabase: AsyncClient = Depen
         raw_phone = response.user.phone or (response.user.user_metadata or {}).get("phone")
         phone = await resolve_user_phone(supabase, response.user.id, raw_phone)
 
+        now_ts = int(datetime.now(timezone.utc).timestamp())
+        expires_in = response.session.expires_in or 3600
+        expires_at = response.session.expires_at or (now_ts + expires_in)
+
         return {
             "data": {
                 "access_token": response.session.access_token,
                 "refresh_token": response.session.refresh_token,
-                "expires_at": response.session.expires_at,
-                "expires_in": response.session.expires_in,
+                "expires_at": expires_at,
+                "expires_in": expires_in,
                 "user": {
                     "id": response.user.id,
                     "email": response.user.email,
@@ -281,12 +289,16 @@ async def verify_otp(payload: VerifyOtpRequest, supabase: AsyncClient = Depends(
         raw_phone = response.user.phone or (response.user.user_metadata or {}).get("phone")
         phone = await resolve_user_phone(supabase, response.user.id, raw_phone)
 
+        now_ts = int(datetime.now(timezone.utc).timestamp())
+        expires_in = response.session.expires_in or 3600
+        expires_at = response.session.expires_at or (now_ts + expires_in)
+
         return {
             "data": {
                 "access_token": response.session.access_token,
                 "refresh_token": response.session.refresh_token,
-                "expires_at": response.session.expires_at,
-                "expires_in": response.session.expires_in,
+                "expires_at": expires_at,
+                "expires_in": expires_in,
                 "user": {
                     "id": response.user.id,
                     "email": response.user.email,

@@ -32,9 +32,13 @@ async def list_people(
     supabase: AsyncClient = Depends(get_supabase),
 ):
     """List known people for the current user."""
-    res = await supabase.from_("people").select("*").eq("user_id", str(current_user.id)).order("name").execute()
-    items = [Person(**row) for row in (res.data or [])]
-    return ApiResponse(data=items)
+    try:
+        res = await supabase.from_("people").select("*").eq("user_id", str(current_user.id)).order("name").execute()
+        items = [Person(**row) for row in (res.data or [])]
+        return ApiResponse(data=items)
+    except Exception as e:
+        print("Error fetching people:", e)
+        return ApiResponse(data=[])
 
 @router.post("/settle", response_model=ApiResponse[Settlement], status_code=status.HTTP_201_CREATED)
 async def create_settlement(
