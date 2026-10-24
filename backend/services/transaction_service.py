@@ -443,15 +443,18 @@ class TransactionService:
         elif "rent" in lower:
             inferred_category = "Housing"
 
-        # 4. Description Extraction (Enhanced for HDFC InstaAlerts & UPI VPA)
+        # 4. Description Extraction (Enhanced for HDFC InstaAlerts, Slice & UPI VPA)
         vpa_bracket_match = re.search(r'towards\s+vpa\s+[^\(\s]+\s*\(([^)]+)\)', text, re.IGNORECASE)
         vpa_plain_match = re.search(r'towards\s+vpa\s+([a-zA-Z0-9._\-]+@[a-zA-Z0-9._\-]+)', text, re.IGNORECASE)
+        slice_to_match = re.search(r"(?:^|[\r\n]+)\s*To\s+([A-Za-z0-9\s&.\-]+?)(?:[\r\n]+|\$|RRN)", text, re.IGNORECASE)
         at_merchant_match = re.search(r'\b(?:at|to)\s+([A-Za-z0-9\s&.\-]+?)(?:\s+on|\s+ref|\s+via|\s+val|\.|\$|$)', text, re.IGNORECASE)
 
         if vpa_bracket_match and vpa_bracket_match.group(1):
             description = vpa_bracket_match.group(1).strip()
         elif vpa_plain_match and vpa_plain_match.group(1):
             description = vpa_plain_match.group(1).split('@')[0].replace('.', ' ').capitalize().strip()
+        elif slice_to_match and slice_to_match.group(1):
+            description = slice_to_match.group(1).strip()
         elif at_merchant_match and at_merchant_match.group(1):
             description = at_merchant_match.group(1).strip()
         else:
@@ -501,13 +504,44 @@ class TransactionService:
 
             if not account_id:
                 try:
-                    acc_resp = await self.db.table("accounts").select("id, user_id").limit(1).execute()
-                    if acc_resp.data:
-                        account = acc_resp.data[0]
-                        user_id = account["user_id"]
-                        account_id = account["id"]
+                    all_accs_resp = await self.db.table("accounts").select("id, user_id, name, type").execute()
+                    accounts = all_accs_resp.data or []
+                    text_lower = text.lower()
+
+                    matched_acc = None
+                    for acc in accounts:
+                        name_lower = (acc.get("name") or "").lower()
+                        if "slice" in text_lower and "slice" in name_lower:
+                            is_credit = any(k in text_lower for k in ["credit card", "credit", "card xx", "card ending", "limit"])
+                            if is_credit and acc.get("type") == "credit_card":
+                                matched_acc = acc
+                                break
+                            elif not is_credit and acc.get("type") != "credit_card":
+                                matched_acc = acc
+                                break
+                            elif not matched_acc:
+                                matched_acc = acc
+                        elif "axis" in text_lower and "axis" in name_lower:
+                            matched_acc = acc
+                            break
+                        elif "pixel" in text_lower and "pixel" in name_lower:
+                            matched_acc = acc
+                            break
+                        elif "hdfc" in text_lower and "hdfc" in name_lower:
+                            matched_acc = acc
+                            break
+                        elif "sbi" in text_lower and "sbi" in name_lower:
+                            matched_acc = acc
+                            break
+
+                    if matched_acc:
+                        account_id = matched_acc["id"]
+                        user_id = matched_acc["user_id"]
+                    elif accounts:
+                        account_id = accounts[0]["id"]
+                        user_id = accounts[0]["user_id"]
                 except Exception as e:
-                    print("Error finding default account:", e)
+                    print("Error finding smart matched account:", e)
 
             # Fallback to transactions table to find existing user_id/account_id if accounts query returns empty
             if not account_id:
