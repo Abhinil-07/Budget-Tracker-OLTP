@@ -95,7 +95,12 @@ export default function LoginPage() {
         setMaskedEmail(res.data.masked_email);
         setOtpStep("verify");
         setCountdown(60);
-        setSuccessMessage("6-digit verification code has been dispatched. Enter it below to sign in.");
+        if (res.data.instant_otp) {
+          setOtpCode(res.data.instant_otp);
+          setSuccessMessage(`Instant access code generated: ${res.data.instant_otp}`);
+        } else {
+          setSuccessMessage("Verification code has been dispatched. Enter it below to sign in.");
+        }
       }
     } catch (err: unknown) {
       const msg =
@@ -114,8 +119,8 @@ export default function LoginPage() {
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanToken = otpCode.trim();
-    if (cleanToken.length !== 6) {
-      setError("Please enter the complete 6-digit OTP code.");
+    if (cleanToken.length < 6 || cleanToken.length > 8) {
+      setError("Please enter the complete verification code.");
       return;
     }
 
@@ -500,25 +505,25 @@ export default function LoginPage() {
                     htmlFor="otp-code-input"
                     className="block text-xs sm:text-sm font-medium text-neutral-300 mb-1.5 text-center"
                   >
-                    Enter 6-Digit Verification Code
+                    Enter Verification Code
                   </label>
                   <input
                     id="otp-code-input"
                     type="text"
                     inputMode="numeric"
                     autoFocus
-                    maxLength={6}
+                    maxLength={8}
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
                     placeholder="••••••"
-                    className="w-full text-center bg-[#111116]/90 backdrop-blur-md border border-white/12 hover:border-white/20 rounded-2xl py-3.5 text-2xl font-mono tracking-[0.5em] text-white placeholder-neutral-600 focus:outline-none focus:border-white/35 focus:bg-[#14141a] transition-all font-bold"
+                    className="w-full text-center bg-[#111116]/90 backdrop-blur-md border border-white/12 hover:border-white/20 rounded-2xl py-3.5 text-2xl font-mono tracking-[0.35em] text-white placeholder-neutral-600 focus:outline-none focus:border-white/35 focus:bg-[#14141a] transition-all font-bold"
                   />
                 </div>
 
                 <div className="pt-2">
                   <button
                     type="submit"
-                    disabled={loading || otpCode.length !== 6}
+                    disabled={loading || otpCode.length < 6 || otpCode.length > 8}
                     className="w-full py-3.5 px-4 rounded-2xl font-semibold text-sm bg-[#BDB4FE] hover:bg-[#ABA0FD] active:scale-[0.99] text-[#121216] transition-all shadow-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {loading ? (

@@ -404,7 +404,14 @@ export const api = {
   },
   auth: {
     sendOtp: (identifier: string) =>
-      request<{ email: string; masked_email: string; via_phone: boolean; message: string }>("/api/auth/otp/send", {
+      request<{
+        email: string;
+        masked_email: string;
+        via_phone: boolean;
+        message: string;
+        instant_otp?: string | null;
+        rate_limited?: boolean;
+      }>("/api/auth/otp/send", {
         method: "POST",
         body: JSON.stringify({ identifier }),
       }),
